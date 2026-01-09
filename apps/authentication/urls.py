@@ -9,6 +9,11 @@ urlpatterns = [
         name="auth-login-basic",
     ),
     path(
+        "accounts/login/",
+        AuthView.as_view(template_name="auth_login_basic.html"),
+        name="auth-login-basic",
+    ),
+    path(
         "auth/register/",
         RegisterView.as_view(),
         name="auth-register-basic",

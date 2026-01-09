@@ -94,7 +94,7 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
 
         # Map templates to breadcrumbs
         route_map = {
-            "companies_list.html": ("Companies", None),
+            "companies_list.html": ("User Management", None),
             "company_detail.html": ("Companies", reverse('companies'), "Company Detail"),
             # "company_detail_table.html": ("Companies", reverse('companies'), reverse('company-detail', args=[company_id]),"In-Detail"),
             "add_company.html": ("Companies", reverse('companies'), "Add Company"),

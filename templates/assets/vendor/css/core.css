@@ -22166,7 +22166,7 @@ html:not(.layout-menu-fixed) .menu-inner-shadow {
 .menu-vertical .menu-block,
 .menu-vertical .menu-inner > .menu-item,
 .menu-vertical .menu-inner > .menu-header {
-  width: 12.25rem;
+  width: 16.25rem;
 }
 .menu-vertical .menu-inner {
   flex-direction: column;
@@ -22286,7 +22286,7 @@ html:not(.layout-menu-fixed) .menu-inner-shadow {
   margin-left: 1rem;
   padding-right: 1.5rem;
   padding-left: 0.5rem;
-  width: 12.25rem;
+  width: 16.25rem;
   text-indent: -9999px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -22546,7 +22546,7 @@ html:not(.layout-menu-fixed) .menu-inner-shadow {
   }
   .layout-menu-fixed:not(.layout-menu-collapsed) .layout-page,
   .layout-menu-fixed-offcanvas:not(.layout-menu-collapsed) .layout-page {
-    padding-left: 12.25rem;
+    padding-left: 16.25rem;
   }
 }
 html:not(.layout-navbar-fixed):not(.layout-menu-fixed):not(.layout-menu-fixed-offcanvas) .layout-page,
@@ -22588,7 +22588,7 @@ html:not(.layout-footer-fixed) .content-wrapper {
   .layout-navbar-fixed:not(.layout-menu-collapsed) .layout-content-navbar:not(.layout-without-menu) .layout-navbar,
   .layout-menu-fixed.layout-navbar-fixed:not(.layout-menu-collapsed) .layout-content-navbar:not(.layout-without-menu) .layout-navbar,
   .layout-menu-fixed-offcanvas.layout-navbar-fixed:not(.layout-menu-collapsed) .layout-content-navbar:not(.layout-without-menu) .layout-navbar {
-    left: 12.25rem;
+    left: 16.25rem;
   }
 }
 .layout-footer-fixed .content-footer {
@@ -22600,7 +22600,7 @@ html:not(.layout-footer-fixed) .content-wrapper {
 
 @media (min-width: 1200px) {
   .layout-footer-fixed:not(.layout-menu-collapsed) .layout-wrapper:not(.layout-without-menu) .content-footer {
-    left: 12.25rem;
+    left: 16.25rem;
   }
 }
 @media (max-width: 1199.98px) {
@@ -22812,8 +22812,8 @@ html:not(.layout-footer-fixed) .content-wrapper {
 }
 
 .menu-vertical .app-brand {
-  padding-right: 2rem;
-  padding-left: 2rem;
+  padding-right: 0rem;
+  padding-left: 1rem;
 }
 
 .menu-horizontal .app-brand,

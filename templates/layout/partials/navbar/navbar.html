@@ -299,7 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
            id="offcanvasTop" aria-labelledby="offcanvasTopLabel">
         <div class="offcanvas-header border-bottom py-2 px-3">
           <div class="d-flex align-items-center gap-2">
-            <img src="{% static 'img/logo/logo.png' %}" alt="Logo" class="rounded" style="width:32px;height:32px;">
+            <img src="{% static 'img/logo/logo.jpg' %}" alt="Logo" class="rounded" style="width:32px;height:32px;">
             <h6 id="offcanvasTopLabel" class="mb-0 fw-semibold text-primary">ChatBot Admin</h6>
           </div>
           <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -407,7 +407,7 @@ document.addEventListener("DOMContentLoaded", () => {
 <!-- 📱 Mobile Drawer Menu -->
 {% comment %} <div id="mobile-admin-menu">
   <div class="brand">
-    <img src="{% static 'img/logo/logo.png' %}" alt="Logo">
+    <img src="{% static 'img/logo/logo.jpg' %}" alt="Logo">
   </div>
   <a href="/admin-dashboard/" class="{% if request.resolver_match.url_name == 'admin-dashboard' %}active{% endif %}">
     <i class="bx bxs-home-smile"></i> Home
