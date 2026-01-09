@@ -103,7 +103,7 @@
               <input type="text" id="mobile" class="form-control" placeholder="Enter Mobile Number" required>
             </div>
 
-            <div class="col-md-6 position-relative">
+            {% comment %} <div class="col-md-6 position-relative">
               <input type="password" id="password" class="form-control" placeholder="Enter Password" required>
               <i class="bx bx-show toggle-icon" id="togglePassword"></i>
             </div>
@@ -111,7 +111,7 @@
             <div class="col-md-6 position-relative">
               <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm Password" required>
               <i class="bx bx-show toggle-icon" id="toggleConfirmPassword"></i>
-            </div>
+            </div> {% endcomment %}
 
             <div class="col-md-6">
               <input type="text" id="address" class="form-control" placeholder="Enter Address">
@@ -120,18 +120,21 @@
             <div class="col-md-6">
               <select id="country" class="form-select" required>
                 <option value="">Select Country</option>
+                <option value='India'>India</opiton>
               </select>
             </div>
 
             <div class="col-md-6">
               <select id="state" class="form-select" required>
                 <option value="">Select State</option>
+                <option value='Gujarat'>Gujarat</opiton>
               </select>
             </div>
 
             <div class="col-md-6">
               <select id="city" class="form-select">
                 <option value="">Select City</option>
+                <option value='Ahmedabad'>Ahmedabad</opiton>
               </select>
             </div> 
 
@@ -140,7 +143,7 @@
             </div>
 
             <div class="col-12 d-flex justify-content-end mt-3">
-              <button type="submit" class="btn btn-primary btn me-2" id="submitBtn">Register</button>
+              <button type="submit" class="btn btn-primary btn me-2" id="submitBtn">Add</button>
               <button type="button" class="btn btn-secondary btn" onclick="window.location.href='/administrator/companies/'; return false;">Cancel</button>
             </div>
           </div>
@@ -278,8 +281,8 @@ function loadUserForEdit(userId) {
       icon.classList.toggle("bx-hide");
     });
   }
-  toggleVisibility("password", "togglePassword");
-  toggleVisibility("confirmPassword", "toggleConfirmPassword");
+  {% comment %} toggleVisibility("password", "togglePassword");
+  toggleVisibility("confirmPassword", "toggleConfirmPassword"); {% endcomment %}
 
   // Submit Form
   {% comment %} document.getElementById("companySignupForm").addEventListener("submit", function(e) {
@@ -305,8 +308,8 @@ function loadUserForEdit(userId) {
       full_name: document.getElementById("companyName").value.trim(),
       email: document.getElementById("email").value.trim(),
       mobile: fullMobile,
-      password: document.getElementById("password").value,
-      confirm_password: document.getElementById("confirmPassword").value,
+      //password: document.getElementById("password").value,
+      //confirm_password: document.getElementById("confirmPassword").value,//
       address_line: document.getElementById("address").value.trim(),
       city: cityName,
       state: stateName,
@@ -358,14 +361,14 @@ function loadUserForEdit(userId) {
   }
 
   // Only send password on ADD
-  if (!userId) {
-    payload.password = document.getElementById("password").value;
-    payload.confirm_password = document.getElementById("confirmPassword").value;
-  }
+  //if (!userId) {
+    //payload.password = document.getElementById("password").value;
+    //payload.confirm_password = document.getElementById("confirmPassword").value;
+  //}
 
   const url = userId
     ? `/administrator/companies-list/${userId}/`
-    : `/administrator/companies-list//`;
+    : `/administrator/companies-list/`;
 
   const method = userId ? "PATCH" : "POST";
 
