@@ -1,0 +1,372 @@
+{% extends layout_path %}
+ 
+{% load static %}
+{% load i18n %}
+ 
+{% block title %}Dashboard - Analytics{% endblock %}
+ 
+{% block vendor_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'vendor/libs/apex-charts/apex-charts.css' %}" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+{% endblock vendor_css %}
+ 
+{% block vendor_js %}
+{{ block.super }}
+<script src="{% static 'vendor/libs/apex-charts/apexcharts.js' %}"></script>
+{% endblock vendor_js %}
+ 
+{% block page_js %}
+{{ block.super }}
+<script src="{% static 'js/dashboards-analytics.js' %}"></script>
+ 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    function renderChart(container, labels, data, color) {
+      var options = {
+        series: [{
+          name: "Property Count",
+          data: data
+        }],
+        chart: {
+          type: 'bar',
+          height: Math.max(350, labels.length * 15)   // auto-height (30px per bar)
+        },
+        colors: [color],
+        plotOptions: {
+          bar: {
+            horizontal: true,
+            barHeight: '65%'   // control thickness
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        xaxis: {
+          categories: labels
+        },
+        yaxis: {
+          labels: {
+            style: { fontSize: '12px' }
+          }
+        }
+      };
+      var chart = new ApexCharts(document.querySelector(container), options);
+      chart.render();
+    }
+
+
+    fetch('/admin-dashboard-stats/')
+      .then(res => res.json())
+      .then(data => {
+          function setIfExists(id, value) {
+            const el = document.getElementById(id);
+            if (el) {
+              el.innerText = value;
+
+              // Get the parent card div
+              const card = el.closest('.card');
+
+              if (card && value == 0 && id !== "meta-leads") {
+                card.style.cursor = 'not-allowed';
+                card.removeAttribute('onclick'); // remove click behavior
+              }
+            }
+          }
+
+          // Active Properties
+          setIfExists("active-res-rent", data.active.residential_rent);
+          setIfExists("active-res-sell", data.active.residential_sell);
+          setIfExists("active-com-rent", data.active.commercial_rent);
+          setIfExists("active-com-sell", data.active.commercial_sell);
+          setIfExists("active-total", data.active.total);
+
+          // Today's Properties
+          setIfExists("today-res-rent", data.today.residential_rent);
+          setIfExists("today-res-sell", data.today.residential_sell);
+          setIfExists("today-com-rent", data.today.commercial_rent);
+          setIfExists("today-com-sell", data.today.commercial_sell);
+          setIfExists("today-total", data.today.total);
+
+          // Yesterday's Properties
+          setIfExists("yesterday-res-rent", data.yesterday.residential_rent);
+          setIfExists("yesterday-res-sell", data.yesterday.residential_sell);
+          setIfExists("yesterday-com-rent", data.yesterday.commercial_rent);
+          setIfExists("yesterday-com-sell", data.yesterday.commercial_sell);
+          setIfExists("yesterday-total", data.yesterday.total);
+
+          // Charts
+          const residentialRentData = data.residential_rent;
+          const residentialSellData = data.residential_sell;
+          const commercialRentData = data.commercial_rent;
+          const commercialSellData = data.commercial_sell;
+
+          renderChart("#residential-rent-chart", residentialRentData.areas, residentialRentData.counts, "#00BFFF");
+          renderChart("#residential-sell-chart", residentialSellData.areas, residentialSellData.counts, "#228B22");
+          renderChart("#commercial-rent-chart", commercialRentData.areas, commercialRentData.counts, "#FF8C00");
+          renderChart("#commercial-sell-chart", commercialSellData.areas, commercialSellData.counts, "#DC143C");
+          
+      })
+      .catch(error => console.error("Dashboard load error:", error));
+  
+  // const residentialRentData = {
+  // areas: ["Gandhinagar","Shela","Vaishno Devi","Chandkheda","Sargasan","Gift City","Sanand","Jagatpur","Gandhinagar","Shela","Vaishno Devi","Chandkheda","Sargasan","Gift City","Sanand","Jagatpur","Gandhinagar","Shela","Vaishno Devi","Chandkheda","Sargasan","Gift City","Sanand","Jagatpur","Gandhinagar","Shela","Vaishno Devi","Chandkheda","Sargasan","Gift City","Sanand","Jagatpur","Gandhinagar","Shela","Vaishno Devi","Chandkheda","Sargasan","Gift City","Sanand","Jagatpur","Gandhinagar","Shela","Vaishno Devi","Chandkheda","Sargasan","Gift City","Sanand","Jagatpur"],
+  // counts: [120,100,85,70,65,55,50,45,120,100,85,70,65,55,50,45,120,100,85,70,65,55,50,45,120,100,85,70,65,55,50,45,120,100,85,70,65,55,50,45,120,100,85,70,65,55,50,45]
+  // };
+
+  // const residentialSellData = {
+  //   areas: ["Chandkheda","Sanand","Gandhinagar","Shela","Gota","Paldi","Vasna","Bopal"],
+  //   counts: [110,105,100,95,80,75,70,65]
+  // };
+
+  // const commercialRentData = {
+  //   areas: ["Gandhinagar","Navrangpura","Ashram Road","CG Road","Chandkheda","Changodar","Ellisbridge","Paldi"],
+  //   counts: [130,125,110,105,95,90,85,80]
+  // };
+
+  // const commercialSellData = {
+  //   areas: ["Navrangpura","Gandhinagar","Ashram Road","CG Road","Changodar","Chandkheda","Makarba","South Bopal"],
+  //   counts: [140,130,120,115,110,105,95,90]
+  // };
+
+  // --- Chart render function ---
+  // renderChart("#residential-rent-chart", residentialRentData.areas, residentialRentData.counts, "#00BFFF");
+  // renderChart("#residential-sell-chart", residentialSellData.areas, residentialSellData.counts, "#228B22");
+  // renderChart("#commercial-rent-chart", commercialRentData.areas, commercialRentData.counts, "#FF8C00");
+  // renderChart("#commercial-sell-chart", commercialSellData.areas, commercialSellData.counts, "#DC143C");
+});
+</script>
+{% endblock page_js %}  
+ 
+{% block content %}
+ 
+  <!-- First Row: 6 Active Property Tabs -->
+<div class="row g-2 mb-4"> <!-- g-2 adds small uniform gap -->
+  <!-- Add New Property -->
+  <div class="col custom-col">
+    <div class="card small-card hover-shadow text-center add-card" 
+         onclick="window.location.href='/admin-premium-properties/add/'" 
+         style="cursor:pointer;">
+      <div class="card-body d-flex flex-column align-items-center justify-content-center p-3" style="height:70px">
+        <!-- Suggested icon: fa-plus-circle -->
+        <p class="fw-bold mb-0 text-primary" style="font-size:1rem;">+ Add New Property</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Residential Rent style='background-color:#26C9FF;' -->
+  <div class="col custom-col" >
+    <div class="card small-card hover-shadow"  onclick="window.location.href='{% url 'dashboard' %}?key=active_residential_rent'">
+      <div class="card-body d-flex align-items-center justify-content-between p-1" style='background-color:#00C0EF; color:white; '>
+        <div style="background-color:#0085A6; padding:10px; border-radius:4px;">
+          <i class="fa fa-home" style="font-size:44px; "></i>
+        </div>
+        <div class="text-end">         
+          <p class="mb-1 fw-medium" style="font-size:0.85rem;">Residential Rent</p>
+          <h5 class="mb-0" id="active-res-rent" style="font-size:1rem; color:white;">0</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Residential Sell -->
+  <div class="col custom-col">
+    <div class="card small-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=active_residential_sell'">
+      <div class="card-body d-flex align-items-center justify-content-between p-1" style='background-color:#00A65A; color:white; '>
+        <div style="background-color:#006A3A; padding:10px; border-radius:4px;">
+          <i class="fa fa-home" style="font-size:44px;"></i>
+        </div>
+        <div class="text-end">
+          <p class="mb-1 fw-medium" style="font-size:0.85rem;">Residential Sell</p>
+          <h5 class="mb-0" id="active-res-sell" style="font-size:1rem; color:white;">0</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Commercial Rent -->
+  <div class="col custom-col">
+    <div class="card small-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=active_commercial_rent'">
+      <div class="card-body d-flex align-items-center justify-content-between p-1" style='background-color:#F39C12; color:white; '>
+        <div style="background-color:#A86C0C; padding:10px; border-radius:4px;">
+           <i class="fa fa-building" style="font-size:42px;"></i>
+        </div>
+        <div class="text-end">
+          <p class="mb-1 fw-medium" style="font-size:0.85rem;">Commercial Rent</p>
+          <h5 class="mb-0" id="active-com-rent" style="font-size:1rem; color:white;">0</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Commercial Sell -->
+  <div class="col custom-col">
+    <div class="card small-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=active_commercial_sell'">
+      <div class="card-body d-flex align-items-center justify-content-between p-1" style='background-color:#DD4B39; color:white; '>
+        <div style="background-color:#993428; padding:10px; border-radius:4px;">
+           <i class="fa fa-building" style="font-size:42px;"></i>
+        </div>
+        <div class="text-end">
+          <p class="mb-1 fw-medium" style="font-size:0.85rem;">Commercial Sell</p>
+          <h5 class="mb-0" id="active-com-sell" style="font-size:1rem; color:white;">0</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Active -->
+  <div class="col custom-col">
+    <div class="card small-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=active'">
+      <div class="card-body d-flex align-items-center justify-content-between p-1" style='background-color:#AAAAAA; color:white; '>
+        <div style="background-color:#6D6D6D; padding:10px; border-radius:4px;">
+          <i class="fa fa-th-large" style="font-size:42px; "></i>
+        </div>
+        <div class="text-end">
+          <p class="mb-1 fw-medium" style="font-size:0.85rem;">Total Active</p>
+          <h5 class="mb-0" id="active-total" style="font-size:1rem; color:white;">0</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Second Row: 12 Tabs for Today + Yesterday -->
+<div class="row g-2">
+
+  <!-- Today Heading -->
+  <div class="col heading-col mb-3">
+    <div class="card small-card square-card" style="background:#e9ecef; cursor:default;">
+      <p class="fw-bold">Today’s Properties</p>
+    </div>
+  </div>
+
+  <!-- Today Residential Rent -->
+  <div class="col custom-col-ty mb-3">
+    <div class="card small-card square-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=today_residential_rent'" style="cursor:pointer; background-color:#00C0EF; color:white; ">
+      <p>Residential Rent</p>
+      <h6 id="today-res-rent" style="color:white;">0</h6>
+    </div>
+  </div>
+
+  <!-- Today Residential Sell -->
+  <div class="col custom-col-ty mb-3">
+    <div class="card small-card square-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=today_residential_sell'" style="cursor:pointer; background-color:#00A65A; color:white;">
+      <p>Residential Sell</p>
+      <h6 id="today-res-sell" style="color:white;">0</h6>
+    </div>
+  </div>
+
+  <!-- Today Commercial Rent -->
+  <div class="col custom-col-ty mb-3">
+    <div class="card small-card square-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=today_commercial_rent'" style="cursor:pointer; background-color:#F39C12; color:white;">
+      <p>Commercial Rent</p>
+      <h6 id="today-com-rent" style="color:white;">0</h6>
+    </div>
+  </div>
+
+  <!-- Today Commercial Sell -->
+  <div class="col custom-col-ty mb-3">
+    <div class="card small-card square-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=today_commercial_sell'" style="cursor:pointer; background-color:#DD4B39; color:white;">
+      <p>Commercial Sell</p>
+      <h6 id="today-com-sell" style="color:white;">0</h6>
+    </div>
+  </div>
+
+  <!-- Today Total -->
+  <div class="col custom-col-ty mb-3">
+    <div class="card small-card square-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=active_today'" style="cursor:pointer; background-color:#AAAAAA; color:white;">
+      <p>Total Properties</p>
+      <h6 id="today-total" style="color:white;">0</h6>
+    </div>
+  </div>
+
+  <!-- Yesterday Heading -->
+  <div class="col heading-col mb-3">
+    <div class="card small-card square-card" style="background:#e9ecef; cursor:default;">
+      <p class="fw-bold">Yesterday’s Properties</p>
+    </div>
+  </div>
+
+  <!-- Yesterday Residential Rent -->
+  <div class="col custom-col-ty mb-3">
+    <div class="card small-card square-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=yesterday_residential_rent'" style="cursor:pointer; background-color:#00C0EF; color:white;">
+      <p>Residential Rent</p>
+      <h6 id="yesterday-res-rent" style="color:white;">0</h6>
+    </div>
+  </div>
+
+  <!-- Yesterday Residential Sell -->
+  <div class="col custom-col-ty mb-3">
+    <div class="card small-card square-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=yesterday_residential_sell'" style="cursor:pointer; background-color:#00A65A; color:white;">
+      <p>Residential Sell</p>
+      <h6 id="yesterday-res-sell" style="color:white;">0</h6>
+    </div>
+  </div>
+
+  <!-- Yesterday Commercial Rent -->
+  <div class="col custom-col-ty mb-3">
+    <div class="card small-card square-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=yesterday_commercial_rent'" style="cursor:pointer; background-color:#F39C12; color:white;">
+      <p>Commercial Rent</p>
+      <h6 id="yesterday-com-rent" style="color:white;">0</h6>
+    </div>
+  </div>
+
+  <!-- Yesterday Commercial Sell -->
+  <div class="col custom-col-ty mb-3">
+    <div class="card small-card square-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=yesterday_commercial_sell'" style="cursor:pointer; background-color:#DD4B39; color:white;">
+      <p>Commercial Sell</p>
+      <h6 id="yesterday-com-sell" style="color:white;">0</h6>
+    </div>
+  </div>
+
+  <!-- Yesterday Total -->
+  <div class="col custom-col-ty mb-3">
+    <div class="card small-card square-card hover-shadow" onclick="window.location.href='{% url 'dashboard' %}?key=active_yesterday'" style="cursor:pointer; background-color:#AAAAAA; color:white;">
+      <p>Total Properties</p>
+      <h6 id="yesterday-total" style="color:white;">0</h6>
+    </div>
+  </div>
+
+</div>
+
+<h5 class="mb-3 fw-bold">Top 50 Areas Analysis</h5>
+<div class="row">
+  <div class="col-md-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="mb-3">Residential Rent Top 50 Area</h6>
+        <div id="residential-rent-chart"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="mb-3">Residential Sell Top 50 Area</h6>
+        <div id="residential-sell-chart"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="mb-3">Commercial Rent Top 50 Area</h6>
+        <div id="commercial-rent-chart"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="mb-3">Commercial Sell Top 50 Area</h6>
+        <div id="commercial-sell-chart"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+ 
+{% endblock %}

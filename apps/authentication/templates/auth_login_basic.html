@@ -1,0 +1,133 @@
+{% extends layout_path %}
+
+{% load static %}
+{% load i18n %}
+
+{% block title %}Login - Pages{% endblock %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static  'vendor/css/pages/page-auth.css' %}">
+{% endblock page_css %}
+
+{% block content %}
+<div class="container-xxl">
+  <div class="authentication-wrapper authentication-basic container-p-y">
+    <div class="authentication-inner">
+      <!-- Login -->
+      <div class="card px-sm-6 px-0">
+        <div class="card-body">
+          <!-- Logo -->
+          <div class="app-brand justify-content-center">
+            <a href="{% url 'index' %}" class="app-brand-link gap-2">
+              {% comment %} <span class="app-brand-logo demo">{% include 'partials/logo.html' with withbg="#696CFF" %}</span> {% endcomment %}
+              <img src="{% static 'img/logo/logo.png' %}" alt="Logo" style="height: 40px;" />
+              <span class="app-brand-text demo text-heading fw-bold">{% get_theme_variables 'template_name' %}</span>
+            </a>
+          </div>
+          <!-- /Logo -->
+          <h4 class="mb-1">Welcome to {% get_theme_variables 'template_name' %}! 👋</h4>
+          <p class="mb-6">Please sign-in to your account and start the adventure</p>
+
+          <form id="formAuthentication" class="mb-6" method="POST" action="{% url 'auth-login-basic' %}">
+            {% csrf_token %}
+            <div class="mb-6">
+              <label for="email" class="form-label">Username</label>
+              <input type="text" class="form-control" id="email" name="email-username" placeholder="Enter your email or username" autofocus>
+            </div>
+            <div class="mb-6 form-password-toggle">
+              <label class="form-label" for="password">Password</label>
+              <div class="input-group input-group-merge">
+                <input type="password" id="password" class="form-control" name="password" placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;" aria-describedby="password" />
+                <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span>
+              </div>
+            </div>
+            <div class="mb-8">
+              <div class="d-flex justify-content-between mt-8">
+                <div class="form-check mb-0 ms-2">
+                  <input class="form-check-input" type="checkbox" id="remember-me">
+                  <label class="form-check-label" for="remember-me">
+                    Remember Me
+                  </label>
+                </div>
+                <a href="{% url 'auth-forgot-password-basic' %}">
+                  <span>Forgot Password?</span>
+                </a>
+              </div>
+            </div>
+            <div class="mb-6">
+              <button class="btn btn-primary d-grid w-100" type="submit">Login</button>
+            </div>
+          </form>
+
+          <div id="errorDiv" class="alert alert-danger d-none"></div>
+
+          {% if error %}
+            <div class="alert alert-danger">
+              {{ error }}
+            </div>
+          {% endif %}
+          {% comment %} <p class="text-center">
+            <span>New on our platform?</span>
+            <a href="{% url 'auth-register-basic' %}">
+              <span>Create an account</span>
+            </a>
+          </p> {% endcomment %}
+        </div>
+      </div>
+      <!-- /Login -->
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("formAuthentication");
+
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const username = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      const response = await fetch("{% url 'auth-login-basic' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-Requested-With": "XMLHttpRequest",  // 👈 important to get JSON
+        },
+        body: new URLSearchParams({
+          "email-username": username,
+          "password": password,
+          "csrfmiddlewaretoken": document.querySelector('[name=csrfmiddlewaretoken]').value,
+        }),
+      });
+
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error("Invalid JSON response");
+      }
+
+      if (data.status) {
+        // ✅ Save tokens in localStorage
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("refresh_token", data.refresh_token);
+
+        window.location.href = "/";  // redirect to dashboard or home
+      } else {
+        errorDiv.textContent = data.message || "Invalid username or password.";
+        errorDiv.classList.remove("d-none");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      errorDiv.textContent = "Something went wrong. Please try again.";
+      errorDiv.classList.remove("d-none");
+    }
+  });
+});
+</script>
+
+{% endblock %}

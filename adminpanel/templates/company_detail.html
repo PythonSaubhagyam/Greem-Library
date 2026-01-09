@@ -1,0 +1,435 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}Dashboard{% endblock %}
+
+{% block page_css %}
+<style>
+.hover-shadow {
+  transition: all 0.3s ease;
+}
+.hover-shadow:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+}
+canvas {
+  max-width: 100%;
+}
+#cardsContainer {
+  visibility: hidden; /* prevent flicker before JS runs */
+}
+#revenueChartSection {
+  visibility: hidden; /* same for chart area */
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Cards Row -->
+  <div id="cardsLoader" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted">Loading company details...</p>
+  </div>
+    <div class="row" id="cardsContainer">
+      <h4 class="mb-4 fw-bold" id="companyTitle"></h4>
+      <div class="col-md-6 col-xl-3 mb-4">
+        <div class="card h-100 hover-shadow clickable-card" data-type="users">
+          <div class="card-body">
+            <div class="card-title d-flex align-items-start justify-content-between mb-4">
+              <div class="avatar flex-shrink-0">
+                <img src="{% static 'img/icons/unicons/user-color.jpg' %}" alt="Total Users" class="rounded">
+              </div>
+            </div>
+            <p class="mb-1">Total Users</p>
+            <h4 class="card-title mb-0" id="total-users"></h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-xl-3 mb-4">
+        <div class="card h-100 hover-shadow clickable-card" data-type="templates">
+          <div class="card-body">
+            <div class="card-title d-flex align-items-start justify-content-between mb-4">
+              <div class="avatar flex-shrink-0">
+                <img src="{% static 'img/icons/unicons/template-color.jpg' %}" alt="Total Companies" class="rounded">
+              </div>
+            </div>
+            <p class="mb-1">Total Templates</p>
+            <h4 class="card-title mb-0" id="total-templates"></h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-xl-3 mb-4">
+        <div class="card h-100 hover-shadow clickable-card" data-type="broadcast">
+          <div class="card-body">
+            <div class="card-title d-flex align-items-start justify-content-between mb-4">
+              <div class="avatar flex-shrink-0">
+                <img src="{% static 'img/icons/unicons/broadcast-color.jpg' %}" alt="Total Companies" class="rounded">
+              </div>
+            </div>
+            <p class="mb-1">Total Broadcast</p>
+            <h4 class="card-title mb-0" id="total-broadcast"></h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-xl-3 mb-4">
+        <div class="card h-100 hover-shadow clickable-card" data-type="active_contacts">
+          <div class="card-body">
+            <div class="card-title d-flex align-items-start justify-content-between mb-4">
+              <div class="avatar flex-shrink-0">
+                <img src="{% static 'img/icons/unicons/contacts-color.png' %}" alt="Total Companies" class="rounded">
+              </div>
+            </div>
+            <p class="mb-1">Active Contacts</p>
+            <h4 class="card-title mb-0" id="active-contacts"></h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-xl-3 mb-4">
+        <div class="card h-100 hover-shadow clickable-card" data-type="contacts">
+          <div class="card-body">
+            <div class="card-title d-flex align-items-start justify-content-between mb-4">
+              <div class="avatar flex-shrink-0">
+                <img src="{% static 'img/icons/unicons/contacts-color.png' %}" alt="Total Companies" class="rounded">
+              </div>
+            </div>
+            <p class="mb-1">Total Contacts</p>
+            <h4 class="card-title mb-0" id="total-contacts"></h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-xl-3 mb-4">
+        <div class="card h-100 hover-shadow clickable-card" data-type="orders">
+          <div class="card-body">
+            <div class="card-title d-flex align-items-start justify-content-between mb-4">
+              <div class="avatar flex-shrink-0">
+                <img src="{% static 'img/icons/unicons/order-color.png' %}" alt="Total Companies" class="rounded">
+              </div>
+            </div>
+            <p class="mb-1">Orders</p>
+            <h4 class="card-title mb-0" id="orders"></h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-xl-3 mb-4">
+        <div class="card h-100 hover-shadow clickable-card" data-type="flows">
+          <div class="card-body">
+            <div class="card-title d-flex align-items-start justify-content-between mb-4">
+              <div class="avatar flex-shrink-0">
+                <img src="{% static 'img/icons/unicons/flow-color.jpg' %}" alt="Total Companies" class="rounded">
+              </div>
+            </div>
+            <p class="mb-1">Flows</p>
+            <h4 class="card-title mb-0" id="flows"></h4>
+          </div>
+        </div>
+      </div>
+      {% comment %} <div class="col-md-6 col-xl-3 mb-4">
+        <div class="card h-100 hover-shadow ">
+          <div class="card-body">
+            <div class="card-title d-flex align-items-start justify-content-between mb-4">
+              <div class="avatar flex-shrink-0">
+                <img src="{% static 'img/icons/unicons/wallet-balance.png' %}" alt="Total Companies" class="rounded">
+              </div>
+            </div>
+            <p class="mb-1">Wallet balance Amount</p>
+            <h4 class="card-title mb-0" id="balance-amount"></h4>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-xl-3 mb-4">
+        <div class="card h-100 hover-shadow ">
+          <div class="card-body">
+            <div class="card-title d-flex align-items-start justify-content-between mb-4">
+              <div class="avatar flex-shrink-0">
+                <img src="{% static 'img/icons/unicons/hold.png' %}" alt="Total Companies" class="rounded">
+              </div>
+            </div>
+            <p class="mb-1">Wallet Hold Amount</p>
+            <h4 class="card-title mb-0" id="hold-amount"></h4>
+          </div>
+        </div>
+      </div> {% endcomment %}
+    </div>
+
+<div id="chartLoader" class="text-center py-5">
+  <div class="spinner-border text-success" role="status"></div>
+  <p class="mt-2 text-muted">Loading broadcast data...</p>
+</div>
+<!-- Chart Section -->
+<div class="card mt-4" id="revenueChartSection">
+  <div class="card-header">
+    <h5 class="mb-0">Category-wise Revenue by Branch</h5>
+  </div>
+  <div class="card-body">
+    <canvas id="revenueChart" style="width:100%; height:400px;"></canvas>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block page_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const pathParts = window.location.pathname.split("/").filter(Boolean);
+  const companyId = pathParts[pathParts.length - 1];
+  const token = localStorage.getItem("access_token");
+
+  const chartSection = document.getElementById("revenueChartSection");
+  const cardsContainer = document.getElementById("cardsContainer");
+  const canvas = document.getElementById("revenueChart");
+  const ctx = canvas.getContext("2d");
+  let chartInstance = null;
+
+  // Hide containers initially
+  chartSection.style.visibility = "hidden";
+  cardsContainer.style.visibility = "hidden";
+
+  // Show/Hide loader helper
+  function showLoader(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "block";
+  }
+  function hideLoader(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  }
+
+  // ✅ Render chart
+  function renderChart(broadcastDetails) {
+    if (!broadcastDetails || broadcastDetails.length === 0) {
+      if (chartInstance) chartInstance.destroy();
+      chartSection.style.visibility = "hidden";
+      return;
+    }
+
+    const labels = broadcastDetails.map((item) => item.broadcast_group);
+    const statusSet = new Set();
+
+    broadcastDetails.forEach((item) => {
+      if (item.status && typeof item.status === "object") {
+        Object.keys(item.status).forEach((s) => statusSet.add(s));
+      }
+    });
+
+    const allStatuses = Array.from(statusSet);
+    const statusColors = {
+      sent: "#007bff",
+      delivered: "#28a745",
+      read: "#17a2b8",
+      replied: "#ffc107",
+      failed: "#dc3545",
+      inquiry: "#6f42c1",
+    };
+    const fallbackPalette = [
+      "#007bff",
+      "#28a745",
+      "#17a2b8",
+      "#ffc107",
+      "#dc3545",
+      "#6f42c1",
+      "#20c997",
+      "#ff851b",
+      "#6610f2",
+    ];
+
+    const perLabel = 48;
+    const minHeight = 300;
+    const canvasHeight = Math.max(minHeight, labels.length * perLabel);
+    canvas.style.height = canvasHeight + "px";
+
+    const approxSlot = canvasHeight / labels.length;
+    const barThicknessPx = Math.max(
+      12,
+      Math.min(80, Math.floor(approxSlot * 0.6))
+    );
+
+    const datasets = allStatuses.map((status, idx) => {
+      const color =
+        statusColors[status] || fallbackPalette[idx % fallbackPalette.length];
+      const dataPoints = broadcastDetails.map((item) => {
+        const s = item.status || {};
+        return Number(s[status] || 0);
+      });
+
+      return {
+        label: status.charAt(0).toUpperCase() + status.slice(1),
+        data: dataPoints,
+        backgroundColor: color,
+        barThickness: barThicknessPx,
+        maxBarThickness: Math.max(barThicknessPx, 80),
+        borderRadius: 6,
+      };
+    });
+
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+      type: "bar",
+      data: { labels, datasets },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false, // IMPORTANT: let canvas height control layout
+        datasets: {
+          bar: { // fallback global settings
+            maxBarThickness: 120
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            beginAtZero: true,
+            title: { display: true, text: 'Count' },
+            grid: { display: false }
+          },
+          y: {
+            stacked: true,
+            title: { display: true, text: 'Broadcasts' },
+            grid: { display: false },
+            categoryPercentage: 0.9,
+            barPercentage: 0.95
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 15, padding: 12 }
+          },
+          tooltip: {
+            mode: 'index',           // show all stacked values for that label
+            intersect: true,        //  require exact hover over a bar
+            callbacks: {
+              title: function(ctx) {
+                return ctx[0].label; // broadcast group name
+              },
+              label: function(ctx) {
+                return `${ctx.dataset.label}: ${ctx.parsed.x}`;
+              },
+              footer: function(items) {
+                const total = items.reduce((sum, item) => sum + item.parsed.x, 0);
+                return `Total: ${total}`;
+              }
+            }
+          }
+        },
+        interaction: { mode: "index", intersect: false },
+      },
+    });
+  }
+
+
+  // ✅ Helper to set text
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value ?? 0;
+  }
+
+  // ✅ Create both API promises
+  const companyPromise = fetch(
+    `/administrator/company-details/?id=${encodeURIComponent(companyId)}`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    }
+  ).then((r) => {
+    if (r.status === 401) {
+      window.location.href = "/auth/login/";
+      throw new Error("Unauthorized");
+    }
+    return r.json();
+  });
+
+  const broadcastPromise = fetch(
+    `/administrator/broadcast-details/?id=${encodeURIComponent(companyId)}`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    }
+  ).then((r) => r.json());
+
+  showLoader("cardsLoader");
+  showLoader("chartLoader");
+
+  // ✅ Run both in parallel
+  Promise.allSettled([companyPromise, broadcastPromise])
+    .then(([companyResult, broadcastResult]) => {
+      // Handle company details
+      if (companyResult.status === "fulfilled" && companyResult.value.length > 0) {
+        hideLoader("cardsLoader");
+        const company = companyResult.value[0];
+        setText("companyTitle", company.company_name || "Company Dashboard");
+        setText("total-users", company.total_users);
+        setText("total-templates", company.total_templates);
+        setText("total-broadcast", company.total_broadcasts);
+        setText("active-contacts", company.active_conversations);
+        setText("total-contacts", company.total_contacts);
+        setText("orders", company.orders);
+        setText("flows", company.flows);
+        cardsContainer.style.visibility = "visible";
+
+        // ✅ Disable click if count is 0
+         document.querySelectorAll(".clickable-card").forEach(card => {
+          const type = card.getAttribute("data-type");
+          const valueMap = {
+            users: Number(company.total_users) || 0,
+            templates: Number(company.total_templates) || 0,
+            broadcast: Number(company.total_broadcasts) || 0,
+            active_contacts: Number(company.active_conversations) || 0,
+            contacts: Number(company.total_contacts) || 0,
+            orders: Number(company.orders) || 0,
+            flows: Number(company.flows) || 0
+          };
+          const count = valueMap[type] ?? 0;
+          card.dataset.count = String(count);
+
+          // update visual state
+          if (count <= 0) {
+            card.style.cursor = "not-allowed";
+            card.style.opacity = "0.6";
+          } else {
+            card.style.cursor = "pointer";
+            card.style.opacity = "1";
+          }
+
+          // attach click handler here (after counts known)
+          card.addEventListener("click", function (e) {
+            const currentCount = parseInt(this.dataset.count || "0", 10);
+            if (currentCount <= 0) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+            const companyId = window.location.pathname.split("/").filter(Boolean).pop();
+            const type = this.getAttribute("data-type");
+            window.location.href = `/administrator/company-details-table/?type=${type}&company=${companyId}`;
+          });
+        });
+      }
+
+      // Handle broadcast details
+      if (broadcastResult.status === "fulfilled") {
+        hideLoader("chartLoader");
+        const details = broadcastResult.value.broadcast_details || [];
+        if (details.length > 0) {
+          chartSection.style.visibility = "visible";
+          renderChart(details);
+        } else {
+          chartSection.style.visibility = "hidden";
+        }
+      }
+    })
+    .catch((err) => console.error("Error fetching data:", err))
+    .finally(() => {
+      hideLoader("cardsLoader");
+      hideLoader("chartLoader");
+    });
+});
+</script>
+
+{% endblock %}

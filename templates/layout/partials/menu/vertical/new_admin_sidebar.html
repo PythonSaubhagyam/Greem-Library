@@ -1,0 +1,49 @@
+
+<div class="menu-inner-shadow"></div>
+
+<ul class="menu-inner">
+    <li
+        class="menu-item {% if 'admin-dashboard' == request.resolver_match.url_name or '/admin-dashboard/detail/' in request.path %}active open{% endif %}"
+        >
+        <a href="{% url 'admin-dashboard' %}" class="menu-link">
+            <i class="menu-icon tf-icons bx bx-home-smile"></i>
+            <div class="text-truncate" data-i18n="Dashboards">Dashboard</div>
+        </a>
+    </li>
+
+
+    <li class="menu-header small text-uppercase">
+      <span class="menu-header-text">Property Management</span>
+    </li>
+
+
+    <li
+      class="menu-item {% if '/admin-properties/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'admin-properties' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-home"></i>
+        <div class="text-truncate" data-i18n="Dashboards">All Properties</div>
+      </a>
+    </li>
+
+    <li
+      class="menu-item {% if '/admin-premium-properties/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'admin-premium-properties' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-building-house"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Premium Properties</div>
+      </a>
+    </li>
+    
+    <li
+      class="menu-item {% if '/admin-imp-properties/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'admin-imp-properties' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-buildings"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Important Properties</div>
+      </a>
+    </li>
+
+</ul>
+
+

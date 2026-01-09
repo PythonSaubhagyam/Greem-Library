@@ -1,0 +1,140 @@
+<li class="menu-header small text-uppercase">
+      <span class="menu-header-text">Companies Details</span>
+    </li>
+    {{request.path}}
+    <li
+      class="menu-item {% if 'parents' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'companies' %}?type=parent" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-buildings"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Parents Management</div>
+      </a>
+    </li>
+
+    <li
+      class="menu-item {% if 'teachers' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'companies' %}?type=teacher" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-buildings"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Teaches Management</div>
+      </a>
+    </li>
+
+    {% comment %} <li
+      class="menu-item {% if '/near-by-places/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'near-by-places' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-map-pin"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Near By Places</div>
+      </a>
+    </li>
+
+    <li
+      class="menu-item {% if '/amenities/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'get-amenities' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-category-alt"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Amenities</div>
+      </a>
+    </li>
+
+    <li
+      class="menu-item {% if '/property_type/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'property_type' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-home-circle"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Property Types</div>
+      </a>
+    </li>
+
+    <li
+      class="menu-item {% if '/locations/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'get-locations' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-map"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Locations</div>
+      </a>
+    </li>
+
+    <li
+      class="menu-item {% if '/developers/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'get-developers' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-user-voice"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Developers</div>
+      </a>
+    </li>
+
+    <li
+      class="menu-item {% if '/projects/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'get-projects' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-layer"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Projects</div>
+      </a>
+    </li>
+
+    <li
+      class="menu-item {% if '/cities/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'cities' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-building-house"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Cities</div>
+      </a>
+    </li>
+
+    <li
+      class="menu-item {% if '/states/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'states' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-globe"></i>
+        <div class="text-truncate" data-i18n="Dashboards">States</div>
+      </a>
+    </li>
+
+    <li class="menu-header small text-uppercase">
+      <span class="menu-header-text">Inquiry Management</span>
+    </li>
+
+    <li
+      class="menu-item {% if '/inquiries/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'inquiries' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-message"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Inquiries</div>
+      </a>
+    </li>
+    <li
+      class="menu-item {% if '/appointments/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'appointments' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-calendar"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Appointments</div>
+      </a>
+    </li>
+
+    <li class="menu-item {% if '/inquiry-headers/' in request.path %}active open{% endif %}">
+      <a href="{% url 'inquiry-headers' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-message-rounded-dots"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Inquiry Headers</div>
+      </a>
+    </li>
+
+    <li class="menu-item {% if '/promotional-images/' in request.path %}active open{% endif %}">
+      <a href="{% url 'promotional-images' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-image"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Promotional Images</div>
+      </a>
+    </li>
+
+    <li class="menu-header small text-uppercase">
+      <span class="menu-header-text">User Management</span>
+    </li>
+    <li
+      class="menu-item {% if '/user/' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'user-list' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-user"></i>
+        <div class="text-truncate" data-i18n="Dashboards">User</div>
+      </a>
+    </li> {% endcomment %}

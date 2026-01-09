@@ -1,0 +1,129 @@
+<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+  <!-- ! Hide app brand if navbar-full -->
+  {% if not navbar_full %}
+  <div class="app-brand demo">
+    <a href="{% url 'index' %}" class="app-brand-link" style="
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+  ">
+      <span class="app-brand-logo demo" style="
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          min-width: 48px;
+          max-width: 48px;
+          height: 48px;
+          overflow: hidden;
+          flex-shrink: 0;
+        ">
+        {% comment %} {% include 'partials/logo.html' with withbg="#696CFF" %}
+        {% endcomment %}
+        <img
+          src="{% static 'img/logo/logo.jpg' %}"
+          alt="Logo"
+           style="
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+          "
+        />
+      </span>
+      <span class="app-brand-text demo menu-text fw-bold ms-2 app-color">
+        <span class="app-color">{% get_theme_variables 'template_name' %}</span>
+      </span>
+    </a>
+
+    <a
+      href="javascript:void(0);"
+      class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none"
+    >
+      <i
+        class="bx bx-chevron-left bx-sm d-flex align-items-center justify-content-center"
+      ></i>
+    </a>
+  </div>
+  {% endif %}
+
+    <div class="menu-inner-shadow"></div>
+
+  <ul class="menu-inner py-1">
+   
+    {% if request.user.id in ADMIN_IDS %}
+      
+      {% include "layout/partials/menu/vertical/new_admin_sidebar.html" %}
+
+    {% elif request.user.role.name == 'Admin'  %}
+      
+      <li
+        class="menu-item {% if 'index' == request.resolver_match.url_name or '/dashboard/' in request.path %}active open{% endif %}"
+      >
+        <a href="{% url 'index' %}" class="menu-link">
+          <i class="menu-icon tf-icons bx bx-home-smile"></i>
+          <div class="text-truncate" data-i18n="Dashboards">Dashboard</div>
+        </a>
+      </li>
+      {% include "layout/partials/menu/vertical/admin_sidebar.html" %}
+
+    {% endif %}
+
+  
+    <div id="dynamic-sidebar-items"></div>
+  </ul>
+</aside>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const userRole = "{{ request.user.role.name }}";
+
+    if (userRole !== "Admin") {
+      fetch("/api/sidebar-permissions/")
+        .then((response) => response.json())
+        .then((data) => {
+          const sidebar = document.querySelector(".menu-inner");
+
+          // Optionally group items by category/module group
+          data.forEach((item) => {
+            const module = item.module;
+
+            // Add section headers if needed
+            if (module.url === "/inquiries/") {
+              const inquiryHeader = document.createElement("li");
+              inquiryHeader.className = "menu-header small text-uppercase";
+              inquiryHeader.innerHTML = `<span class="menu-header-text">Inquiry Management</span>`;
+              sidebar.appendChild(inquiryHeader);
+            }
+
+            if (module.url === "/user/") {
+              const userHeader = document.createElement("li");
+              userHeader.className = "menu-header small text-uppercase";
+              userHeader.innerHTML = `<span class="menu-header-text">User Management</span>`;
+              sidebar.appendChild(userHeader);
+            }
+
+            const isActive = window.location.pathname.startsWith(module.url)
+              ? "active open"
+              : "";
+
+            const li = document.createElement("li");
+            li.className = `menu-item ${isActive}`;
+
+            li.innerHTML = `
+            <a href="${module.url}" class="menu-link">
+              <i class="menu-icon tf-icons ${
+                module.icon || "bx bx-folder"
+              }"></i>
+              <div class="text-truncate">${module.name}</div>
+            </a>
+          `;
+
+            sidebar.appendChild(li);
+          });
+        })
+        .catch((err) => console.error("Failed to load sidebar modules", err));
+    }
+  });
+</script>

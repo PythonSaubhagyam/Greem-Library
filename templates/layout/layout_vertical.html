@@ -1,0 +1,155 @@
+{% extends 'layout/master.html' %}
+
+
+{% block layout %}
+<!-- Layout wrapper: Start -->
+<div class="layout-wrapper layout-content-navbar {{ is_menu|yesno:',layout-without-menu' }}">
+  <div class="layout-container">
+
+    {% if is_menu %}
+    <!-- Menu: Start -->
+    {% include "../layout/partials/menu/vertical/vertical_menu.html" %}
+    <!-- Menu: End -->
+    {% endif %}
+
+    <!-- Layout page: Start -->
+    <div class="layout-page">
+
+
+      {% if is_navbar %}
+      <!-- Navbar: Start -->
+      {% include "../layout/partials/navbar/navbar.html" %}
+      <!-- Navbar: End -->
+      {% endif %}
+
+
+      <!-- Content wrapper: Start -->
+      <div class="content-wrapper">
+        <!-- Content: Start -->
+        {% if is_flex %}
+        <div class="{{container_class}} d-flex align-items-stretch flex-grow-1 p-0">
+          {% else %}
+          <div class="{{container_class}} flex-grow-1 container-p-y">
+            {% endif %}
+            {% block content %}
+            {% endblock content %}
+
+          </div>
+          <!-- / Content: End -->
+
+          {% if is_footer %}
+          <!-- Footer: Start -->
+          {% include "../layout/partials/footer/footer.html" %}
+          <!-- Footer: End -->
+          {% endif %}
+
+          <div class="content-backdrop fade"></div>
+        </div>
+        <!--/ Content wrapper: End -->
+      </div>
+      <!-- / Layout page: End -->
+    </div>
+
+    {% if is_menu %}
+    <!-- Overlay -->
+    <div class="layout-overlay layout-menu-toggle"></div>
+    {% endif %}
+    <!-- Drag Target Area To SlideIn Menu On Small Screens -->
+    <div class="drag-target"></div>
+
+    {% include "../layout/partials/change_password_modal.html" %}
+
+    <div class="bs-toast toast toast-placement-ex m-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="2000" id="alert-box">
+      <div class="toast-header">
+        <i class="bx bx-bell me-2" id="toast-icon"></i>
+        <div class="me-auto fw-medium" id="toast-title">Notification</div>
+        <small class="toast-time">Now</small>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+        <div class="toast-body" id="toast-body">
+            <!-- Message goes here -->
+        </div>
+    </div>
+  </div>
+  <!-- Layout wrapper: End -->
+  {% endblock layout %}
+
+{% block page_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("changePasswordForm");
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const current = document.getElementById("currentPassword").value;
+    const new1 = document.getElementById("newPassword1").value;
+    const new2 = document.getElementById("newPassword2").value;
+
+    if (new1 !== new2) {
+      showToast("Error", "New passwords do not match.", "danger");
+      return;
+    }
+    
+    console.log("Access Token:", localStorage.getItem("access_token"));
+    fetch("{% url 'change-password' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+      },
+      body: JSON.stringify({
+        current_password: current,
+        new_password1: new1,
+        new_password2: new2,
+      }),
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showToast("Success", "Password changed successfully", "success");
+        form.reset();
+        setTimeout(() => {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('changePasswordModal'));
+          modal.hide();
+        }, 1500);
+      } else {
+        let errorMessage = data.error || "An error occurred.";
+        showToast("Error", errorMessage, "danger");      
+      }
+    })
+    .catch(err => {
+      showToast("Error", "Something went wrong.", "danger");
+      console.error(err);
+    });
+  });
+
+  function showToast(title, message, status = "primary") {
+    const toast = document.getElementById("alert-box");
+    const toastTitle = document.getElementById("toast-title");
+    const toastBody = document.getElementById("toast-body");
+    const toastIcon = document.getElementById("toast-icon");
+
+    toast.className = `bs-toast toast bg-${status} toast-placement-ex top-0 end-0 m-2 show`;
+    toastTitle.textContent = title;
+    toastBody.textContent = message;
+
+    toastIcon.className = `bx me-2 ${
+      status === "success" ? "bx-check-circle" : "bx-error"
+    }`;
+
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+  }
+  
+});
+
+// CSRF helper
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+</script>
+
+{% endblock%}

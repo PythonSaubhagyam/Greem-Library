@@ -1,0 +1,429 @@
+{% load i18n %}
+{% load static %}
+ 
+{% block css %}
+<style>
+  /* 🧭 Navbar */
+  nav#layout-navbar {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 1050;
+    background: #fff;
+  }
+ 
+  /* 🔔 Notification Badge */
+  #notification-count {
+    font-size: 0.65rem;
+    width: 18px;
+    height: 18px;
+    background: red;
+    color: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    right: -2px;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+  }
+ 
+  a#notification-link {
+    position: relative;
+    display: inline-block;
+    width: 43px;
+    text-align: center;
+  }
+ 
+  .active-notification {
+    background-color: #e3eaf7;
+    border-radius: 30px;
+    padding: 8px 8px;
+    color: #08397B !important;
+  }
+ 
+  #mobile-admin-menu {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 240px;
+    height: 100vh;
+    background: #fff;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    transition: left 0.3s ease-in-out;
+    z-index: 1200;
+    padding: 20px 15px;
+    overflow-y: auto;
+     display: block;
+  }
+ 
+  #mobile-admin-menu.active {
+    left: 0;
+  }
+ 
+  #mobile-admin-menu .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 10px;
+  }
+ 
+  #mobile-admin-menu .brand img {
+    width: 35px;
+    height: 35px;
+    border-radius: 6px;
+  }
+ 
+  #mobile-admin-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #8592A3;
+    font-weight: 600;
+    padding: 10px 8px;
+    border-radius: 6px;
+    text-decoration: none;
+    margin-bottom: 6px;
+    transition: background 0.2s;
+  }
+ 
+  #mobile-admin-menu a:hover {
+    background: #f1f4fa;
+    color: #696CFF;
+  }
+
+  #mobile-admin-menu a.active {
+    background: #f1f4fa;
+    color: #696CFF;
+  }
+ 
+  #mobile-admin-menu a i {
+    font-size: 18px;
+  }
+ 
+  /* 🔒 Overlay for dim background */
+  #menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 1100;
+  }
+ 
+  #menu-overlay.active {
+    display: block;
+  }
+  .desktop-admin-links {
+    display: none; /* hide on mobile */
+  }
+ 
+  @media (min-width: 426px) {
+    #mobile-admin-menu,
+    #menu-overlay,
+    .layout-menu-toggle { /* hide hamburger toggle */
+      display: none !important;
+    }
+ 
+    .desktop-admin-links {
+      display: flex !important; /* show desktop links */
+      align-items: center;
+      gap: 15px;
+    }
+  }
+@media (max-width: 1199px) {
+  .layout-menu-toggle-old {
+    display: flex !important; /* show on mobile and tablet */
+    align-items: center;
+  }
+}
+
+@media (min-width: 1200px) {
+  .layout-menu-toggle-old {
+    display: none !important; /* hide on large desktop */
+  }
+}
+
+  
+  .desktop-admin-links a {
+    color: #8592A3;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+  }  
+  .desktop-admin-links a i {
+    font-size: 18px;
+  }
+  .desktop-admin-links a:hover,
+  .desktop-admin-links a.active {
+    background: #f1f4fa;
+    color: #696CFF;
+  }
+  .layout-menu-toggle {
+    //display: flex;
+    align-items: center;
+  }
+  .custom-offcanvas {
+  width: 100% !important;
+  height: 100vh !important;
+  border-radius: 0;
+  background-color: #fff;
+  transform: translateY(-100%);
+  transition: transform 0.6s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.custom-offcanvas.show {
+  transform: translateY(0);
+}
+
+.mobile-menu {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-menu .menu-item {
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  font-weight: 600;
+  color: #495057;
+  text-decoration: none;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s ease-in-out;
+}
+
+.mobile-menu .menu-item i {
+  font-size: 18px;
+  color: #6c757d;
+  width: 22px;
+  text-align: center;
+}
+
+.mobile-menu .menu-item:hover {
+  background: #f8f9fa;
+  color: #7679FF;
+}
+
+.mobile-menu .menu-item.active {
+  background: #e9f1ff;
+  color: #7679FF;
+}
+
+.mobile-menu .menu-item.active i {
+  color: #7679FF;
+}
+</style>
+{% endblock %}
+ 
+ 
+{% block page_js %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // 🔔 Notification fetch
+  {% comment %} fetch("/api/upcoming-followups/")
+    .then(res => res.json())
+    .then(data => {
+      const count = data?.length || 0;
+      const badge = document.getElementById("notification-count");
+      if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = "flex";
+      } else {
+        badge.style.display = "none";
+      }
+    })
+    .catch(err => console.error("Notification fetch error:", err));
+ 
+  // 📱 Mobile drawer toggle
+  const toggle = document.getElementById("mobile-menu-toggle");
+  const menu = document.getElementById("mobile-admin-menu");
+  const overlay = document.getElementById("menu-overlay");
+ 
+  if (toggle && menu && overlay) {
+    toggle.addEventListener("click", () => {
+      const isActive = menu.classList.toggle("active");
+      overlay.classList.toggle("active", isActive);
+    });
+    overlay.addEventListener("click", () => {
+      menu.classList.remove("active");
+      overlay.classList.remove("active");
+    });
+  }
+  const offcanvasEl = document.getElementById('offcanvasTop');
+
+  if (!offcanvasEl) return;
+  const offcanvasLinks = offcanvasEl.querySelectorAll('.menu-item');
+
+  offcanvasLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+      if (offcanvas) {
+        offcanvas.hide(); // close the menu
+      }
+      // let the link navigate after a short delay (optional but smooth)
+      setTimeout(() => {
+        window.location.href = link.href;
+      }, 200);
+      e.preventDefault(); // prevent immediate navigation before close
+    });
+  }); {% endcomment %}
+});
+</script>
+{% endblock %}
+ 
+ 
+<nav class="layout-navbar {{container_class}} navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme" id="layout-navbar">
+{% if not navbar_hide_toggle %}
+
+  {% if request.user.id in ADMIN_IDS %}
+  <!-- 📱 NEW PANEL: Mobile Menu (Offcanvas Style) -->
+  <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+    <div>
+      <button class="btn p-0" type="button" data-bs-toggle="offcanvas"
+              id="mobile-menu-toggle" data-bs-target="#offcanvasTop" aria-controls="offcanvasTop">
+        <i class="bx bx-menu bx-md"></i>
+      </button>
+
+      <div class="offcanvas offcanvas-top custom-offcanvas" tabindex="-1"
+           id="offcanvasTop" aria-labelledby="offcanvasTopLabel">
+        <div class="offcanvas-header border-bottom py-2 px-3">
+          <div class="d-flex align-items-center gap-2">
+            <img src="{% static 'img/logo/logo.png' %}" alt="Logo" class="rounded" style="width:32px;height:32px;">
+            <h6 id="offcanvasTopLabel" class="mb-0 fw-semibold text-primary">ChatBot Admin</h6>
+          </div>
+          <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+
+        <div class="offcanvas-body px-0 py-0" style="overflow-y:visible; background-color:white;">
+          <nav class="mobile-menu">
+            <a href="/admin-dashboard/" class="menu-item {% if request.resolver_match.url_name == 'admin-dashboard' %}active{% endif %}">
+              <i class="bx bxs-home-smile"></i><span>Home</span>
+            </a>
+            <a href="/admin-search/" class="menu-item {% if request.resolver_match.url_name == 'property-filter' %}active{% endif %}">
+              <i class="bx bx-search"></i><span>Search</span>
+            </a>
+            <a href="/admin-premium-properties/" class="menu-item {% if request.resolver_match.url_name == 'admin-premium-properties' %}active{% endif %}">
+              <i class="bx bxs-crown"></i><span>Premium</span>
+            </a>
+            <a href="/admin-imp-properties/" class="menu-item {% if request.resolver_match.url_name == 'admin-imp-properties' %}active{% endif %}">
+              <i class="bx bxs-bookmark"></i><span>Important</span>
+            </a>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- 📱 OLD PANEL: Mobile Menu (Sidebar Toggle) -->
+  <div class="layout-menu-toggle layout-menu-toggle-old navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+    <a class="nav-item nav-link px-0" href="javascript:void(0)" id="mobile-menu-toggle" title="Menu">
+      <i class="bx bx-menu bx-md"></i>
+    </a>
+  </div>
+  {% endif %}
+
+{% endif %}
+ 
+  <div class="navbar-nav-right d-flex align-items-center w-100 justify-content-between nav-bread-mob" id="navbar-collapse">
+    {% include "../_breadcrumbs.html" %}
+ 
+    <ul class="navbar-nav flex-row align-items-center ms-auto">
+ 
+      {% comment %} {% if request.user.id not in ADMIN_IDS %}
+      <!-- 🔔 Notifications -->
+      <li class="nav-item dropdown me-3">
+        <a id="notification-link" class="nav-link dropdown-toggle hide-arrow {% if request.resolver_match.url_name == 'followup_notifications' %}active-notification{% endif %}"
+          href="{% url 'followup_notifications' %}" title="Notifications">
+          <i class="bx bx-bell"></i>
+          <span class="badge bg-danger rounded-pill" id="notification-count">0</span>
+        </a>
+      </li>
+      {% endif %} {% endcomment %}
+ 
+      {% if request.user.id in ADMIN_IDS %}
+      <!-- 🖥️ Desktop Admin Menu -->
+      <div class="desktop-admin-links d-none d-xl-flex align-items-center me-3">
+        <a href="/admin-dashboard/" class="{% if request.resolver_match.url_name == 'admin-dashboard' %}active{% endif %}">
+          <i class="bx bxs-home-smile"></i> Home
+        </a>
+        <a href="/admin-search/" class="{% if request.resolver_match.url_name == 'property-filter' %}active{% endif %}">
+          <i class="bx bx-search"></i> Search
+        </a>
+        <a href="/admin-premium-properties/" class="{% if request.resolver_match.url_name == 'admin-premium-properties' %}active{% endif %}">
+          <i class="bx bxs-crown"></i> Premium
+        </a>
+        <a href="/admin-imp-properties/" class="{% if request.resolver_match.url_name == 'admin-imp-properties' %}active{% endif %}">
+          <i class="bx bxs-bookmark"></i> Important
+        </a>
+      </div>
+      {% endif %}
+ 
+      <!-- 👤 User -->
+      <li class="nav-item dropdown dropdown-user">
+        <a class="nav-link dropdown-toggle hide-arrow p-0" href="#" data-bs-toggle="dropdown">
+          <img src="{% static 'img/logo/logo.jpg' %}" alt="User" class="w-px-40 h-auto rounded-circle">
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end shadow mob-admin-dropdown">
+          <li class="px-3 py-2">
+            <div class="d-flex align-items-center">
+              <img src="{% static 'img/logo/logo.jpg' %}" alt class="w-px-40 h-auto rounded-circle me-3">
+              <div>
+                <h6 class="mb-0">Admin</h6>
+                <small class="text-muted">Administrator</small>
+              </div>
+            </div>
+          </li>
+          <li><div class="dropdown-divider"></div></li>
+          <li>
+            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+              <i class="bx bx-lock me-2"></i> Change Password
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item" href="{% url 'auth-logout' %}">
+              <i class="bx bx-power-off me-2"></i> Log Out
+            </a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</nav>
+ 
+ 
+{% if request.user.id in ADMIN_IDS %}
+<!-- 📱 Mobile Drawer Menu -->
+{% comment %} <div id="mobile-admin-menu">
+  <div class="brand">
+    <img src="{% static 'img/logo/logo.png' %}" alt="Logo">
+  </div>
+  <a href="/admin-dashboard/" class="{% if request.resolver_match.url_name == 'admin-dashboard' %}active{% endif %}">
+    <i class="bx bxs-home-smile"></i> Home
+  </a>
+  <a href="/admin-search/" class="{% if request.resolver_match.url_name == 'property-filter' %}active{% endif %}">
+    <i class="bx bx-search"></i> Search
+  </a>
+  <a href="/admin-premium-properties/" class="{% if request.resolver_match.url_name == 'admin-premium-properties' %}active{% endif %}">
+    <i class="bx bxs-crown"></i> Premium
+  </a>
+  <a href="/admin-imp-properties/" class="{% if request.resolver_match.url_name == 'admin-imp-properties' %}active{% endif %}">
+    <i class="bx bxs-bookmark"></i> Important
+  </a>
+</div> {% endcomment %}
+ 
+<!-- Dim background overlay -->
+{% comment %} <div id="menu-overlay"></div> {% endcomment %}
+{% endif %}
+ 

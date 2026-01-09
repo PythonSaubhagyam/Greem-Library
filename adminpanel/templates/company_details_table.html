@@ -1,0 +1,283 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Company Data {% endblock %}
+
+{% block page_css %}
+<style>
+  .card {
+    border-radius: 0.6rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  #dynamicTable th {
+    white-space: nowrap;
+    background-color: #DBDEE0;
+    font-weight: 600;
+    vertical-align: middle;
+    text-align: center;
+  }
+
+  #dynamicTable td {
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  #dynamicTable {
+    table-layout: auto;
+    width: 100%;
+  }
+
+  #dynamicTable th:first-child,
+  #dynamicTable td:first-child {
+    width: 60px;
+    text-align: center;
+  }
+
+  /* 🧩 Limit width only for small columns */
+  #dynamicTable td:nth-child(3), /* Customer Name */
+  #dynamicTable td:nth-child(4), /* Customer Phone */
+  #dynamicTable td:nth-child(5), /* Total Amount */
+  #dynamicTable td:nth-child(6)  /* Sale Status */
+  {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 🟢 Allow long columns (like ORDER ID) to expand */
+  #dynamicTable td:nth-child(2) {
+    white-space: normal !important;       /* allow wrapping */
+    word-break: break-all !important;     /* break anywhere if needed */
+    overflow-wrap: anywhere !important;   /* force wrap if too long */
+    max-width: 220px;                     /* controls wrapping width */
+    line-height: 1.4;         /* better spacing between wrapped lines */
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <h5 id="tableTitle" class="mb-0"></h5>
+
+  <div class="d-flex align-items-center gap-2">
+    <div class="input-group input-group-sm" style="max-width: 250px;">
+          <span class="input-group-text bg-light">
+            <i class="bx bx-search"></i> <!-- 🔍 Icon before input -->
+          </span>
+          <input 
+            type="text" 
+            id="searchInput" 
+            class="form-control" 
+            placeholder="Search..."
+          >
+          <button id="clearSearch" class="btn btn-outline-secondary" type="button">×</button>
+        </div>
+      </div>
+    </div>
+
+  <div class="card-body">
+    <!-- Loader -->
+    <div id="table-loader" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Table -->
+    
+    <div class="table-responsive">
+      <table class="table table-hover table-bordered align-middle mb-0" id="dynamicTable" style="display: none;">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <label for="rowsPerPage" class="small mb-0">Rows per page:</label>
+        <select id="rowsPerPage" class="form-select form-select-sm" style="width: auto;">
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <small id="pagination-info" class="text-muted"></small>
+        <ul id="pagination" class="pagination pagination-sm mb-0"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const params = new URLSearchParams(window.location.search);
+  const type = params.get("type");
+  const company = params.get("company");
+  const loader = document.getElementById("table-loader");
+  const table = document.getElementById("dynamicTable");
+  const tableHead = document.getElementById("tableHead");
+  const tableBody = document.getElementById("tableBody");
+  const rowsPerPageSelect = document.getElementById("rowsPerPage");
+  const searchInput = document.getElementById("searchInput");
+  const clearSearchBtn = document.getElementById("clearSearch");
+  let searchQuery = "";
+  let searchTimeout = null;
+
+  const API_MAP = {
+    users: "/administrator/users-list/",
+    templates: "/api/get_message_templates/",
+    broadcast: "/administrator/broadcast-list/",
+    contacts: "/administrator/contacts-list/",
+    active_contacts: "/administrator/active-contacts-list/",
+    orders: "/administrator/orders-list/",
+    flows: "/administrator/flows-list/"
+  };
+
+  const TITLES = {
+    users: "Users List",
+    templates: "Templates",
+    broadcast: "Broadcast Groups",
+    contacts: "All Contacts",
+    active_contacts: "Active Contacts",
+    orders: "Orders",
+    flows: "Flows"
+  };
+
+  document.getElementById("tableTitle").textContent = TITLES[type] || "Data";
+
+  let currentPage = 1;
+
+  function fetchData(page = 1) {
+    window.currentPage = page;
+    loader.style.display = "block";
+    table.style.display = "none";
+    tableBody.innerHTML = "";
+
+    const rowsPerPage = rowsPerPageSelect.value;
+    const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : "";
+
+    fetch(API_MAP[type] + `?company=${company}&page=${page}&row_per_page=${rowsPerPage}${type === 'templates' ? '&admin_panel=true' : ''}${searchParam}`)
+      .then(res => res.json())
+      .then(data => {
+        loader.style.display = "none";
+        table.style.display = "table";
+        renderTable(data.results || data.data || data);
+        renderPagination(data);
+      })
+      .catch(err => {
+        loader.style.display = "none";
+        console.error("Error fetching:", err);
+      });
+  }
+
+  searchInput.addEventListener("input", function () {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      searchQuery = this.value.trim();
+      fetchData(1);
+    }, 500); // wait 0.5 sec before searching
+  });
+
+  // Clear search
+  clearSearchBtn.addEventListener("click", function () {
+    searchInput.value = "";
+    searchQuery = "";
+    fetchData(1);
+  });
+
+function renderTable(rows) {
+  if (!rows.length) {
+    tableHead.innerHTML = "";
+    tableBody.innerHTML = `<tr><td colspan='10' class='text-center text-muted py-3'>No data found.</td></tr>`;
+    return;
+  }
+
+  const headers = Object.keys(rows[0]);
+  const allHeaders = ["Sr no.", ...headers]; // Add index column at start
+
+  // Build table head
+  tableHead.innerHTML =
+    "<tr>" +
+    allHeaders.map(h => `<th>${h === "Sr no." ? "Sr no." : h.replaceAll("_", " ")}</th>`).join("") +
+    "</tr>";
+
+  // Get current page and rows per page from global values
+  const currentPage = window.currentPage || 1;
+  const rowsPerPage = parseInt(document.getElementById("rowsPerPage").value) || 50;
+
+  // Build table body with continuous index
+  tableBody.innerHTML = rows
+    .map(
+      (row, i) =>
+        `<tr>
+          <td>${(currentPage - 1) * rowsPerPage + (i + 1)}</td>
+          ${headers.map(h => `<td>${row[h] ?? "-"}</td>`).join("")}
+        </tr>`
+    )
+    .join("");
+}
+
+  function renderPagination(data) {
+  const pagination = document.getElementById("pagination");
+  const info = document.getElementById("pagination-info");
+  pagination.innerHTML = "";
+
+  const totalPages = data.total_pages || 1;
+  const currentPage = data.current_page || 1;
+  const totalCount = data.count || (data.data ? data.data.length : 0);
+
+  info.textContent = `Page ${currentPage} of ${totalPages} (${totalCount} records)`;
+
+  function addPage(num, label = null, disabled = false, active = false) {
+    pagination.insertAdjacentHTML(
+      "beforeend",
+      `<li class="page-item ${disabled ? "disabled" : ""} ${active ? "active" : ""}">
+         <a class="page-link" href="#" data-page="${num}">${label || num}</a>
+       </li>`
+    );
+  }
+
+  // Previous button
+  addPage(currentPage - 1, "Previous", currentPage === 1);
+
+  // Show first 2 pages always
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) addPage(i, null, false, i === currentPage);
+  } else {
+    addPage(1, null, false, currentPage === 1);
+    if (currentPage > 4) pagination.insertAdjacentHTML("beforeend", `<li class="page-item disabled"><span class="page-link">…</span></li>`);
+
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+
+    for (let i = start; i <= end; i++) addPage(i, null, false, i === currentPage);
+
+    if (currentPage < totalPages - 3) pagination.insertAdjacentHTML("beforeend", `<li class="page-item disabled"><span class="page-link">…</span></li>`);
+    addPage(totalPages, null, false, currentPage === totalPages);
+  }
+
+  // Next button
+  addPage(currentPage + 1, "Next", currentPage === totalPages);
+
+  // Add event listeners
+  pagination.querySelectorAll(".page-link").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.preventDefault();
+      const page = parseInt(btn.dataset.page);
+      if (!isNaN(page) && page >= 1 && page <= totalPages) fetchData(page);
+    });
+  });
+}
+
+
+  rowsPerPageSelect.addEventListener("change", () => fetchData(1));
+  fetchData();
+});
+</script>
+{% endblock %}
