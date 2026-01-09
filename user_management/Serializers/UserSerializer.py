@@ -5,7 +5,7 @@ class SignUpSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserModel
-        fields = ['id','first_name','last_name','email','mobile_no']
+        fields = ['id','first_name','last_name','email','mobile_no','password']
         
         
 class ProfileSerializer(serializers.ModelSerializer):

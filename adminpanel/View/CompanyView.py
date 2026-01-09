@@ -18,6 +18,7 @@ class UserAPIView(APIView):
         state = request.GET.get('state', None)
         city = request.GET.get('city', None)
         user = request.GET.get('user', None)
+        type1 = request.GET.get('type', None)
         q = request.GET.get('q', '').strip()  # get search query
         status= request.query_params.get('status', '')
         user_id = request.GET.get('id')
@@ -25,7 +26,8 @@ class UserAPIView(APIView):
         
         if user_id:
             users = users.filter(id=user_id)
-        
+        if type1:
+            users = users.filter(role__type__icontains=type1)
         # if country:
         #     country_name = CountryModel.objects.get(id=country)
         #     companies = companies.filter(user__country__iexact=country_name.country_name)

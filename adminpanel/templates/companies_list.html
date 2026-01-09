@@ -313,6 +313,7 @@ function showToast(title, message, status = "primary") {
       const state = stateSelect.value;
       const city = citySelect.value; {% endcomment %}
       const rowsPerPage = rowsPerPageSelect.value;
+      const type = urlParams.get("type") || "";
 
       const params = new URLSearchParams({
         q: query,
@@ -322,6 +323,7 @@ function showToast(title, message, status = "primary") {
         page: page || 1,
         row_per_page: rowsPerPage || 50,
         status: companyStatus || "", 
+        type: type,
       });
 
       fetch(`/administrator/companies-list/?${params.toString()}`, {

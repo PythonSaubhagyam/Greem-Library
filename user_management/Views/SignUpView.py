@@ -20,8 +20,9 @@ class SignUpView(APIView):
         mobile_no = request.data.get('mobile_no')
         first_name = request.data.get('first_name', '')
         last_name = request.data.get('last_name', '')
+        password = request.data.get('password', '')
         
-        if not email or not mobile_no or not first_name or not last_name:
+        if not email or not mobile_no or not first_name or not last_name and password:
             return Response({'status': False, 'message': 'Email, Mobile no, First name and Last name'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
