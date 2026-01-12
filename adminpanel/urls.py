@@ -22,4 +22,10 @@ urlpatterns = [
     # path("active-contacts-list/",ActiveContactList.as_view(),name='active-contacts-list'),
     # path("orders-list/",OrderListView.as_view(),name='orders-list'),
     # path("flows-list/",FlowListView.as_view(),name='flows-list'),
+    path('countries/',CountriesAPI.as_view(),name='countries'),
+    path('countries/<int:id>/',CountriesAPI.as_view(),name='countries'),
+    path('states/',StatesAPI.as_view(),name='states'),
+    path('states/<int:id>/',StatesAPI.as_view(),name='states'),
+    path('cities/',CitiesAPI.as_view(),name='cities'),
+    path('cities/<int:id>/',CitiesAPI.as_view(),name='cities'),
 ]

@@ -13,7 +13,7 @@ class UserAPIView(APIView):
     # permission_classes = [IsAuthenticated]
  
     def get(self, request):
-        company_id = request.GET.get('id')
+        # company_id = request.GET.get('id')
         country=request.GET.get('country', None)
         state = request.GET.get('state', None)
         city = request.GET.get('city', None)
@@ -86,37 +86,77 @@ class UserAPIView(APIView):
         serializer = UsersListSerializer(paginated_companies, many=True)
         return paginator.get_paginated_response(serializer.data)
     
-    def post(self,request):
-        data = request.data
-        role_type = request.data.get("role_type")
+    def post(self, request):
+        data = request.data.copy()
+
+        address_text = data.pop("address", None)
+        postal_code = data.pop("postal_code", None)
+        city = data.pop("city", None)
+        state = data.pop("state", None)
+        country = data.pop("country", None)
+
+        role_type = data.get("role_type")
 
         if role_type:
             try:
                 role = RoleModel.objects.get(name__iexact=role_type)
+                data["role"] = role.id
             except RoleModel.DoesNotExist:
                 return Response({"error": "Invalid role"}, status=400)
-        else:
-            role = None
-        data['role'] = role
-            
-        serializer = UserSerializer(data=data)
+
+        serializer = UserSerializer(
+            data=data,
+            context={
+                "request": request,
+                "address_text": address_text,
+                "postal_code": postal_code,
+                "city": city,
+                "state": state,
+                "country": country,
+            },
+        )
+
         if serializer.is_valid():
             serializer.save()
-            return Response({'message':'User created successfully'}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "User created successfully"}, status=201)
+
+        return Response(serializer.errors, status=400)
+
     
-    def patch(self,request,id):
-        data = request.data
+    def patch(self, request, id):
+        data = request.data.copy()
+
+        address_text = data.pop("address", None)
+        postal_code = data.pop("postal_code", None)
+        city = data.pop("city", None)
+        state = data.pop("state", None)
+        country = data.pop("country", None)
+
         try:
             user = UserModel.objects.get(id=id)
         except UserModel.DoesNotExist:
-            return Response({'error':'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-        serializer = UserSerializer(user, data=data, partial=True)
+            return Response({"error": "User not found"}, status=404)
+
+        serializer = UserSerializer(
+            user,
+            data=data,
+            partial=True,
+            context={
+                "request": request,
+                "address_text": address_text,
+                "postal_code": postal_code,
+                "city": city,
+                "state": state,
+                "country": country,
+            },
+        )
+
         if serializer.is_valid():
             serializer.save()
-            return Response({'message':'User updated successfully'}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "User updated successfully"})
+
+        return Response(serializer.errors, status=400)
+
     
     def delete(self,request,id):
         try:

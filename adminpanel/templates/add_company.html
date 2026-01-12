@@ -64,6 +64,9 @@
       margin: auto;
     }
   }
+  .password-field.hidden {
+  display: none;
+}
 </style>
 {% endblock %}
 
@@ -87,7 +90,11 @@
 
           <div class="row g-3">
             <div class="col-md-6">
-              <input type="text" id="companyName" class="form-control" placeholder="Enter Parents Name" required>
+              <input type="text" id="companyName" class="form-control" placeholder="Enter  First Name" required>
+            </div>
+
+            <div class="col-md-6">
+              <input type="text" id="last_name" class="form-control" placeholder="Enter Last Name" required>
             </div>
 
             <div class="col-md-6">
@@ -103,38 +110,39 @@
               <input type="text" id="mobile" class="form-control" placeholder="Enter Mobile Number" required>
             </div>
 
-            {% comment %} <div class="col-md-6 position-relative">
-              <input type="password" id="password" class="form-control" placeholder="Enter Password" required>
+            <div class="col-md-6 position-relative password-field">
+              <input type="password" id="password" class="form-control" placeholder="Enter Password">
               <i class="bx bx-show toggle-icon" id="togglePassword"></i>
             </div>
 
-            <div class="col-md-6 position-relative">
-              <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm Password" required>
-              <i class="bx bx-show toggle-icon" id="toggleConfirmPassword"></i>
-            </div> {% endcomment %}
+            <div class="col-md-6 position-relative password-field">
+             <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm Password">
 
-            <div class="col-md-6">
-              <input type="text" id="address" class="form-control" placeholder="Enter Address">
+              <i class="bx bx-show toggle-icon" id="toggleConfirmPassword"></i>
             </div>
 
             <div class="col-md-6">
-              <select id="country" class="form-select">
+              <input type="text" id="address" class="form-control" placeholder="Enter Address" required>
+            </div>
+
+            <div class="col-md-6">
+              <select id="country" class="form-select" required>
                 <option value="">Select Country</option>
-                <option value='India'>India</opiton>
+                {% comment %} <option value='India'>India</opiton> {% endcomment %}
               </select>
             </div>
 
             <div class="col-md-6">
-              <select id="state" class="form-select">
+              <select id="state" class="form-select" required>
                 <option value="">Select State</option>
-                <option value='Gujarat'>Gujarat</opiton>
+                {% comment %} <option value='Gujarat'>Gujarat</opiton> {% endcomment %}
               </select>
             </div>
 
             <div class="col-md-6">
               <select id="city" class="form-select">
                 <option value="">Select City</option>
-                <option value='Ahmedabad'>Ahmedabad</opiton>
+                {% comment %} <option value='Ahmedabad'>Ahmedabad</opiton> {% endcomment %}
               </select>
             </div> 
 
@@ -156,260 +164,171 @@
 
 {% block page_js %}
 <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
   const urlParams = new URLSearchParams(window.location.search);
   const roleType = urlParams.get("type");
-  const editUserId = urlParams.get("id");
-
-  if (roleType) {
-    document.getElementById("roleType").value = roleType;
-  }
+  const pathParts = window.location.pathname.split("/").filter(Boolean);
+  const editUserId = pathParts.includes("edit") ? pathParts[pathParts.length - 1] : null;
 
   const pageTitle = document.getElementById("pageTitle");
   const submitBtn = document.getElementById("submitBtn");
 
-  if (roleType === "parent") {
-  pageTitle.innerText = "Add Parent";
-}
+  /* ---------------- PAGE MODE ---------------- */
 
-if (roleType === "teacher") {
-  pageTitle.innerText = "Add Teacher";
-}
+  if (!editUserId) {
+    if (roleType === "parent") pageTitle.innerText = "Add Parent";
+    if (roleType === "teacher") pageTitle.innerText = "Add Teacher";
+  } else {
+    submitBtn.innerText = "Update";
 
-if (editUserId) {
-  pageTitle.innerText = "Update User";
-  submitBtn.innerText = "Update";
-  loadUserForEdit(editUserId);
-}
-document.addEventListener("DOMContentLoaded", function() {
-  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    if (roleType === "parent") pageTitle.innerText = "Update Parent";
+    if (roleType === "teacher") pageTitle.innerText = "Update Teacher";
 
-  // Load Country
-function loadCountries() {
-  fetch("/countries/", {
-    method: "GET",
-    headers: { "Content-Type": "application/json", "X-CSRFToken": csrftoken },
-  })
-  .then(res => res.json())
-  .then(data => {
-    const countrySelect = document.getElementById("country");
-    const countryCodeSelect = document.getElementById("countryCode");
+    document.querySelectorAll(".password-field").forEach(el => {
+    el.classList.add("hidden");
 
-    countrySelect.innerHTML = `<option value="">Select Country</option>`;
-    countryCodeSelect.innerHTML = `<option value="">Code</option>`;
-
-    data.data.forEach(c => {
-      // Add country dropdown option
-      countrySelect.insertAdjacentHTML(
-        "beforeend",
-        `<option value="${c.id}">${c.country_name}</option>`
-      );
-
-      // Add calling code option
-      if (c.calling_code) {
-        const isDefault = c.calling_code === "91" ? "selected" : "";
-        countryCodeSelect.insertAdjacentHTML(
-          "beforeend",
-          `<option value="${c.calling_code}" ${isDefault}>+${c.calling_code}</option>`
-        );
-      }
-    });
-  })
-  .catch(err => console.error("Error loading countries:", err));
-}
-
-function loadUserForEdit(userId) {
-  fetch(`/administrator/companies-list/?id=${userId}`)
-    .then(res => res.json())
-    .then(data => {
-      const user = data.results[0]; // paginated
-
-      document.getElementById("userId").value = user.id;
-      document.getElementById("companyName").value = user.first_name;
-      document.getElementById("email").value = user.email;
-      document.getElementById("mobile").value = user.mobile_no || "";
-      document.getElementById("address").value = user.address || "";
-
-      // Disable email in edit mode
-      document.getElementById("email").disabled = true;
-    })
-    .catch(err => console.error("Failed to load user:", err));
-}
-
-
-
-  document.getElementById("country").addEventListener("change", function() {
-    const countryId = this.value;
-    if (!countryId) return;
-    fetch(`/states/${countryId}/`, {
-      method: "GET",
-      headers: {"Content-Type": "application/json", "X-CSRFToken": csrftoken},
-    })
-    .then(res => res.json())
-    .then(data => {
-      const stateSelect = document.getElementById("state");
-      stateSelect.innerHTML = `<option value="">Select State</option>`;
-      data.data.forEach(s => {
-        stateSelect.insertAdjacentHTML("beforeend", `<option value="${s.id}">${s.name}</option>`);
-      });
-    });
+    const input = el.querySelector("input");
+    if (input) {
+      input.required = false;
+      input.disabled = true;
+    }
   });
+    loadUserForEdit(editUserId);
+  }
 
-  document.getElementById("state").addEventListener("change", function() {
-    const stateId = this.value;
-    if (!stateId) return;
-    fetch(`/cities/${stateId}/`, {
-      method: "GET",
-      headers: {"Content-Type": "application/json", "X-CSRFToken": csrftoken},
-    })
-    .then(res => res.json())
-    .then(data => {
-      const citySelect = document.getElementById("city");
-      citySelect.innerHTML = `<option value="">Select City</option>`;
-      data.data.forEach(c => {
-        citySelect.insertAdjacentHTML("beforeend", `<option value="${c.id}">${c.name}</option>`);
-      });
-    });
-  });
+  /* ---------------- PASSWORD TOGGLE ---------------- */
 
-  // Password toggle
-  function toggleVisibility(id, iconId) {
-    const input = document.getElementById(id);
+  function toggleVisibility(inputId, iconId) {
+    const input = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
+    if (!input || !icon) return;
+
     icon.addEventListener("click", () => {
       input.type = input.type === "password" ? "text" : "password";
       icon.classList.toggle("bx-show");
       icon.classList.toggle("bx-hide");
     });
   }
-  {% comment %} toggleVisibility("password", "togglePassword");
-  toggleVisibility("confirmPassword", "toggleConfirmPassword"); {% endcomment %}
 
-  // Submit Form
-  {% comment %} document.getElementById("companySignupForm").addEventListener("submit", function(e) {
+  toggleVisibility("password", "togglePassword");
+  toggleVisibility("confirmPassword", "toggleConfirmPassword");
+
+  /* ---------------- LOAD COUNTRIES ---------------- */
+
+  function loadCountries() {
+    fetch("/administrator/countries/")
+      .then(res => res.json())
+      .then(data => {
+        const countrySelect = document.getElementById("country");
+        const countryCodeSelect = document.getElementById("countryCode");
+
+        countrySelect.innerHTML = `<option value="">Select Country</option>`;
+        countryCodeSelect.innerHTML = `<option value="">Code</option>`;
+
+        data.data.forEach(c => {
+          countrySelect.innerHTML += `<option value="${c.id}">${c.country_name}</option>`;
+          if (c.calling_code) {
+            const selected = c.calling_code === "91" ? "selected" : "";
+            countryCodeSelect.innerHTML += `<option value="${c.calling_code}" ${selected}>+${c.calling_code}</option>`;
+          }
+        });
+      });
+  }
+
+  loadCountries();
+
+  document.getElementById("country").addEventListener("change", function () {
+    fetch(`/administrator/states/${this.value}/`)
+      .then(res => res.json())
+      .then(data => {
+        const state = document.getElementById("state");
+        state.innerHTML = `<option value="">Select State</option>`;
+        data.data.forEach(s => state.innerHTML += `<option value="${s.id}">${s.name}</option>`);
+      });
+  });
+
+  document.getElementById("state").addEventListener("change", function () {
+    fetch(`/administrator/cities/${this.value}/`)
+      .then(res => res.json())
+      .then(data => {
+        const city = document.getElementById("city");
+        city.innerHTML = `<option value="">Select City</option>`;
+        data.data.forEach(c => city.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+      });
+  });
+
+  /* ---------------- LOAD USER ---------------- */
+
+  function loadUserForEdit(id) {
+    fetch(`/administrator/companies-list/?id=${id}`)
+      .then(res => res.json())
+      .then(data => {
+        const user = data.results[0];
+
+        if (!roleType && user.role_type) {
+          if (user.role_type === "parent") pageTitle.innerText = "Update Parent";
+          if (user.role_type === "teacher") pageTitle.innerText = "Update Teacher";
+        }
+        
+        document.getElementById("userId").value = user.id;
+        document.getElementById("companyName").value = user.first_name;
+        document.getElementById("last_name").value = user.last_name;
+        document.getElementById("email").value = user.email;
+        document.getElementById("mobile").value = user.mobile_no || "";
+        document.getElementById("address").value = user.address || "";
+        document.getElementById("email").disabled = true;
+      });
+  }
+
+  /* ---------------- FORM SUBMIT ---------------- */
+
+  document.getElementById("companySignupForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    e.stopPropagation();
 
-    const countrySelect = document.getElementById("country");
-    const stateSelect = document.getElementById("state");
-    const citySelect = document.getElementById("city");
-    const countryCodeSelect = document.getElementById("countryCode");
+    const userId = document.getElementById("userId").value;
+    const countryCode = document.getElementById("countryCode").value;
+    const mobile = document.getElementById("mobile").value.trim();
 
-    // Get selected text, but blank if "Select ..." is chosen
-    const countryName = countrySelect.value ? countrySelect.options[countrySelect.selectedIndex].text : "";
-    const stateName = stateSelect.value ? stateSelect.options[stateSelect.selectedIndex].text : "";
-    const cityName = citySelect.value ? citySelect.options[citySelect.selectedIndex].text : "";
-
-    // Combine country code and mobile number (e.g. +91XXXXXXXXXX)
-    const countryCode = countryCodeSelect.value || "";
-    const mobileNumber = document.getElementById("mobile").value.trim();
-    const fullMobile = countryCode ? `+${countryCode}${mobileNumber}` : mobileNumber;
+    const fullMobile = countryCode ? `+${countryCode}${mobile}` : mobile;
 
     const payload = {
-      full_name: document.getElementById("companyName").value.trim(),
+      first_name: document.getElementById("companyName").value.trim(),
+      last_name: document.getElementById("last_name").value.trim(),
       email: document.getElementById("email").value.trim(),
-      mobile: fullMobile,
-      //password: document.getElementById("password").value,
-      //confirm_password: document.getElementById("confirmPassword").value,//
-      address_line: document.getElementById("address").value.trim(),
-      city: cityName,
-      state: stateName,
-      country: countryName,
-      postal_code: document.getElementById("zipCode").value.trim(),
+      mobile_no: fullMobile,
+      address: document.getElementById("address").value.trim(),
+      country: document.getElementById("country").value || null,
+      state: document.getElementById("state").value || null,
+      city: document.getElementById("city").value || null,
+      postal_code: document.getElementById("zipCode").value || null,
       is_active: true
     };
 
-    console.log("Final Payload Sent:", payload);
+    if (!userId) {
+      payload.role_type = roleType;
+      payload.password = document.getElementById("password").value;
+      payload.confirm_password = document.getElementById("confirmPassword").value;
+    }
 
-    fetch("/auth/signup/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": csrftoken
-      },
+    fetch(userId ? `/administrator/companies-list/${userId}/` : `/administrator/companies-list/`, {
+      method: userId ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": csrftoken },
       body: JSON.stringify(payload)
     })
     .then(res => res.json())
     .then(data => {
-      console.log("Signup response:", data);
-      if (data.status === true || data.status === "true" || data.status === "success") {
-        setTimeout(() => {
-          window.location.href = "/administrator/companies/";
-        }, 500);
+      if (data.message) {
+        const type = roleType ? `?type=${roleType}` : "";
+        window.location.href = `/administrator/companies/${type}`;
       } else {
-        alert("Error: " + (data.message || "Failed to register"));
+        alert(data.error || "Save failed");
       }
-    })
-    .catch(err => console.error("Error submitting form:", err));
-  }); {% endcomment %}
-
-  
-  document.getElementById("companySignupForm").addEventListener("submit", function (e) {
-  e.preventDefault();
-
-  const userId = document.getElementById("userId").value;
-
-  const payload = {
-    first_name: document.getElementById("companyName").value.trim(),
-    email: document.getElementById("email").value.trim(),
-    mobile_no: document.getElementById("mobile").value.trim(),
-    address_line: document.getElementById("address").value.trim(),
-    is_active: true
-  };
-
-  if (!userId && roleType) {
-    payload.role_type = roleType; // parent / teacher
-  }
-
-  // Only send password on ADD
-  //if (!userId) {
-    //payload.password = document.getElementById("password").value;
-    //payload.confirm_password = document.getElementById("confirmPassword").value;
-  //}
-
-  const url = userId
-    ? `/administrator/companies-list/${userId}/`
-    : `/administrator/companies-list/`;
-
-  const method = userId ? "PATCH" : "POST";
-
-  fetch(url, {
-    method: method,
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrftoken
-    },
-    body: JSON.stringify(payload)
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.message) {
-      window.location.href = "/administrator/companies/";
-    } else {
-      alert("Something went wrong");
-    }
-  })
-  .catch(err => console.error("Save failed:", err));
-});
-
-
-
-  loadCountries();
-  document.getElementById("country").addEventListener("change", function() {
-  const selectedId = this.value;
-  if (!selectedId) return;
-
-  fetch(`/countries/`, {
-    method: "GET",
-    headers: {"Content-Type": "application/json"},
-  })
-  .then(res => res.json())
-  .then(data => {
-    const selectedCountry = data.data.find(c => c.id == selectedId);
-    if (selectedCountry && selectedCountry.calling_code) {
-      document.getElementById("countryCode").value = selectedCountry.calling_code;
-    }
+    });
   });
-});
+
 });
 </script>
+
 {% endblock %}

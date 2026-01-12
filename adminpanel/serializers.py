@@ -50,18 +50,111 @@ class CitiesSerializer(serializers.ModelSerializer):
 class UsersListSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     date_joined = serializers.DateTimeField(format="%d-%m-%Y at %H:%M:%S", read_only=True)
+    city = serializers.SerializerMethodField()
+    state = serializers.SerializerMethodField()
+    country = serializers.SerializerMethodField()
+    city_id = serializers.SerializerMethodField()
+    state_id = serializers.SerializerMethodField()
+    country_id = serializers.SerializerMethodField()
+    address = serializers.SerializerMethodField()
     
-    def get_full_name(self,obj):
-        if obj.first_name or obj.last_name:
-            return f'{obj.first_name} {obj.last_name}'
+    def get_default_address(self, obj):
+        return obj.address.filter(is_default=True).first()
+
+    def get_city(self, obj):
+        addr = self.get_default_address(obj)
+        return addr.city if addr else None
+
+    def get_state(self, obj):
+        addr = self.get_default_address(obj)
+        return addr.state if addr else None
+
+    def get_country(self, obj):
+        addr = self.get_default_address(obj)
+        return addr.country if addr else None
+
+    def get_city_id(self, obj):
+        addr = self.get_default_address(obj)
+        return addr.fcity.id if addr and addr.fcity else None
+
+    def get_state_id(self, obj):
+        addr = self.get_default_address(obj)
+        return addr.fstate.id if addr and addr.fstate else None
+
+    def get_country_id(self, obj):
+        addr = self.get_default_address(obj)
+        return addr.fcountry.id if addr and addr.fcountry else None
+
+    def get_address(self, obj):
+        addr = self.get_default_address(obj)
+        return str(addr) if addr else None
+
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}"
     
     class Meta:
         model = UserModel
-        fields = ['id','full_name','email','mobile_no','date_joined']
-        
+        fields = [
+            "id","full_name","first_name","last_name","email","mobile_no",
+            "date_joined","address",
+            "city","state","country",
+            "city_id","state_id","country_id"
+        ]
         
 class UserSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = UserModel
-        fields = '__all__'
+        fields = "__all__"
+        extra_kwargs = {
+            "password": {"write_only": True},
+            "address": {"read_only": True},   # CRITICAL FIX
+        }
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        password = validated_data.pop("password", None)
+
+        user = UserModel.objects.create(**validated_data)
+
+        if password:
+            user.set_password(password)
+            user.save()
+
+        self.save_address(user)
+        return user
+
+    def update(self, instance, validated_data):
+        for k, v in validated_data.items():
+            setattr(instance, k, v)
+
+        instance.save()
+        self.save_address(instance)
+        return instance
+
+    def save_address(self, user):
+        address_text = self.context.get("address_text")
+        postal_code = self.context.get("postal_code")
+        city_id = self.context.get("city")
+        state_id = self.context.get("state")
+        country_id = self.context.get("country")
+
+        if not address_text:
+            return
+
+        city = CitiesModel.objects.get(id=city_id) if city_id else None
+        state = StatesModel.objects.get(id=state_id) if state_id else None
+        country = CountryModel.objects.get(id=country_id) if country_id else None
+
+        AddressModel.objects.filter(is_default=True).update(is_default=False)
+
+        address = AddressModel.objects.create(
+            address=address_text,
+            postal_code=postal_code,
+            fcity=city,
+            fstate=state,
+            fcountry=country,
+            is_default=True
+        )
+
+        user.address.add(address)
