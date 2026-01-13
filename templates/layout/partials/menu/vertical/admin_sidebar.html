@@ -1,11 +1,11 @@
 <li class="menu-header small text-uppercase">
-      <span class="menu-header-text">Companies Details</span>
+      <span class="menu-header-text">User Details</span>
     </li>
     <li
         class="menu-item {% if  request.GET.type == 'parent' %}active open{% endif %}"
     >
       <a href="{% url 'companies' %}?type=parent" class="menu-link">
-        <i class="menu-icon tf-icons bx bx-buildings"></i>
+        <i class="menu-icon tf-icons bx bx-home-alt-2"></i>
         <div class="text-truncate" data-i18n="Dashboards">Parents Management</div>
       </a>
     </li>
@@ -14,8 +14,17 @@
         class="menu-item {% if request.GET.type == 'teacher' %}active open{% endif %}"
     >
       <a href="{% url 'companies' %}?type=teacher" class="menu-link">
-        <i class="menu-icon tf-icons bx bx-buildings"></i>
+        <i class="menu-icon tf-icons bx bx-book-reader"></i>
         <div class="text-truncate" data-i18n="Dashboards">Teacher Management</div>
+      </a>
+    </li>
+
+    <li
+        class="menu-item {% if 'student' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'students' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-group"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Student Management</div>
       </a>
     </li>
 

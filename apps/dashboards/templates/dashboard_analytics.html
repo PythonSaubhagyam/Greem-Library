@@ -89,11 +89,11 @@
 
 <div class="row">
   <div class="col-md-6 col-xl-3 mb-4">
-    <div class="card h-100 hover-shadow cursor-pointer" onclick="window.location.href='{% url 'companies' %}'">
+    <div class="card h-100 hover-shadow cursor-pointer" onclick="window.location.href='{% url 'students' %}'">
       <div class="card-body">
         <div class="card-title d-flex align-items-start justify-content-between mb-4">
           <div class="avatar flex-shrink-0">
-            <img src="{% static 'img/icons/unicons/building.jpg' %}" alt="Total Companies" class="rounded">
+            <img src="{% static 'img/icons/unicons/graduate-hat.png' %}" alt="Total Students" class="rounded">
           </div>
         </div>
         <p class="mb-1">Total Students</p>
@@ -103,11 +103,11 @@
     </div>
   </div>
   <div class="col-md-6 col-xl-3 mb-4">
-    <div class="card h-100 hover-shadow cursor-pointer" onclick="window.location.href='{% url 'companies' %}?status=active'">
+    <div class="card h-100 hover-shadow cursor-pointer" onclick="window.location.href='{% url 'companies' %}?type=parent'">
       <div class="card-body">
         <div class="card-title d-flex align-items-start justify-content-between mb-4">
           <div class="avatar flex-shrink-0">
-            <img src="{% static 'img/icons/unicons/chart-growth.png' %}" alt="Active Companies" class="rounded">
+            <img src="{% static 'img/icons/unicons/family.png' %}" alt="Total Parents" class="rounded">
           </div>
         </div>
         <p class="mb-1">Total Parents</p>
@@ -117,11 +117,11 @@
     </div>
   </div>
   <div class="col-md-6 col-xl-3 mb-4">
-    <div class="card h-100 hover-shadow cursor-pointer" onclick="window.location.href='{% url 'companies' %}?status=inactive'">
+    <div class="card h-100 hover-shadow cursor-pointer" onclick="window.location.href='{% url 'companies' %}?type=teacher'">
       <div class="card-body">
         <div class="card-title d-flex align-items-start justify-content-between mb-4">
           <div class="avatar flex-shrink-0">
-            <img src="{% static 'img/icons/unicons/times-circle.png' %}" alt="Inactive Companies" class="rounded">
+            <img src="{% static 'img/icons/unicons/teacher.png' %}" alt="Total Teachers" class="rounded">
           </div>
         </div>
         <p class="mb-1">Total Teachers</p>
@@ -131,7 +131,7 @@
     </div>
   </div>
   <div class="col-md-6 col-xl-3 mb-4">
-    <div class="card h-100 hover-shadow cursor-pointer" onclick="window.location.href='{% url 'companies' %}?type=users&company={{admin_company_id}}'">
+    <div class="card h-100 hover-shadow cursor-pointer" >
       <div class="card-body">
         <div class="card-title d-flex align-items-start justify-content-between mb-4">
           <div class="avatar flex-shrink-0">

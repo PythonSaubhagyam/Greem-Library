@@ -42,8 +42,9 @@
    <h5 class="mb-0" id="pageTitle"></h5>
 
     <!-- Right: Filters + Search + Add Button -->
-    {% comment %} <div class="d-flex align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center flex-wrap gap-2">
       <!-- Country -->
+      {% comment %} 
       <select class="form-select form-select-sm" id="filterCountry" style="width: 130px;">
         <option value="">Country</option>
       </select>
@@ -234,7 +235,7 @@ function showToast(title, message, status = "primary") {
   }
 
   addBtn.onclick = function () {
-    window.location.href = `/administrator/companies/add/?type=${type || "parent"}`;
+    window.location.href = `/administrator/users/add/?type=${type || "parent"}`;
   };
 
 
@@ -348,7 +349,7 @@ function showToast(title, message, status = "primary") {
         type: type,
       });
 
-      fetch(`/administrator/companies-list/?${params.toString()}`, {
+      fetch(`/administrator/users-list/?${params.toString()}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -368,7 +369,7 @@ function showToast(title, message, status = "primary") {
           const companies = data.results || [];
 
           if (!companies.length) {
-            container.innerHTML = `<tr><td colspan="10" class="text-center text-muted">No companies found.</td></tr>`;
+            container.innerHTML = `<tr><td colspan="10" class="text-center text-muted">No ${type.charAt(0).toUpperCase() + type.slice(1) + "s"} found.</td></tr>`;
             document.getElementById("pagination").innerHTML = "";
             document.getElementById("pagination-info").textContent = "";
             return;
@@ -380,9 +381,9 @@ function showToast(title, message, status = "primary") {
                 <td>${(page - 1) * parseInt(rowsPerPageSelect.value) + index + 1}</td>
                 <td>
                   {% comment %} <img src="${getNextImage()}" alt="company" class="me-2 rounded" style="width: 35px; height: 35px;"> {% endcomment %}
-                  <a href="/administrator/companies/detail/${company.id}/" class="fw-semibold text-decoration-none">
+                  {% comment %} <a href="/administrator/companies/detail/${company.id}/" class="fw-semibold text-decoration-none"> {% endcomment %}
                     ${company.full_name || 'Unnamed Company'}
-                  </a>
+                  {% comment %} </a> {% endcomment %}
                 </td>
                 <td>${company.email || '-'}</td>
                 <td>${company.mobile_no || '-'}</td>
@@ -404,7 +405,7 @@ function showToast(title, message, status = "primary") {
                     <ul class="dropdown-menu dropdown-menu-end">
                       <li>
                         <a class="dropdown-item"
-                          href="/administrator/companies/edit/${company.id}/?type=${type}">
+                          href="/administrator/users/edit/${company.id}/?type=${type}">
                           <i class="bx bx-edit-alt me-1"></i> Edit
                         </a>
                       </li>
@@ -436,9 +437,16 @@ function showToast(title, message, status = "primary") {
     function renderPagination(data) {
         const pagination = document.getElementById("pagination");
         const info = document.getElementById("pagination-info");
+        const type = urlParams.get("type") || "";
+        pagination_label = ''
+        if (type === 'teacher') {
+            pagination_label = 'Teachers'
+        } else {
+            pagination_label = 'Parents'
+        }
 
         pagination.innerHTML = "";
-        info.textContent = `Showing page ${data.current_page} of ${data.total_pages} (${data.count} Total companies)`;
+        info.textContent = `Showing page ${data.current_page} of ${data.total_pages} (${data.count} ${pagination_label})`;
 
         // Previous button
         const prevDisabled = data.previous === null ? "disabled" : "";
@@ -493,7 +501,7 @@ function showToast(title, message, status = "primary") {
         deleteModal.hide();
 
         try {
-          const res = await fetch(`/administrator/companies-list/${propertyToDelete}/`, {
+          const res = await fetch(`/administrator/users-list/${propertyToDelete}/`, {
             method: "DELETE",
             headers: {
               "X-CSRFToken": getCookie("csrftoken"),

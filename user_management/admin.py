@@ -72,6 +72,7 @@ admin.site.register(UserModel, UserAdmin)
 
 @admin.register(StudentModel)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ("id","student_id", "parent", "student_name", "email", "student_class",)
+    list_display = ("id","student_id", "student_name", "email", "student_class",)
     search_fields = ("parent__email", "email", "student_id", "student_class",)
+    filter_horizontal = ("parent",)
     list_filter = ("email", "student_id",)

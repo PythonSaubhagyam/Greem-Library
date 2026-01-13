@@ -76,6 +76,31 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
         context['sub_slug'] = kwargs.get('sub_slug')
         context['inquiry_id'] = kwargs.get('id')
         context['company_id'] = kwargs.get('company')
+        context['detail_name'] = detail_name
+
+        LABEL_MAP = {
+            "parent": "Parents Management",
+            "teacher": "Teachers Management"
+        }
+
+        company_label = LABEL_MAP.get(detail_name, "User Management")
+
+        add_edit_label = ""
+
+        if "add" in self.request.path.lower() and detail_name == "parent":
+            add_edit_label = "Add Parent"
+        elif "add" in self.request.path.lower() and detail_name == "teacher":
+            add_edit_label = "Add Teacher"
+        elif "edit" in self.request.path.lower() and detail_name == "parent":
+            add_edit_label = "Edit Parent"
+        elif "edit" in self.request.path.lower() and detail_name == "teacher":
+            add_edit_label = "Edit Teacher"
+        elif "/students/add/" in self.request.path.lower():
+            add_edit_label = "Add Student"
+        elif "/students/edit/" in self.request.path.lower():
+            add_edit_label = "Edit Student"
+
+
         
         # context['ADMIN_IDS'] = settings.ADMIN_IDS
 
@@ -94,10 +119,12 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
 
         # Map templates to breadcrumbs
         route_map = {
-            "companies_list.html": ("User Management", None),
-            "company_detail.html": ("Companies", reverse('companies'), "Company Detail"),
+            "companies_list.html": (company_label, None),
+            "company_detail.html": (company_label, reverse('companies'), "Company Detail"),
             # "company_detail_table.html": ("Companies", reverse('companies'), reverse('company-detail', args=[company_id]),"In-Detail"),
-            "add_company.html": ("Companies", reverse('companies'), "Add Company"),
+            "add_company.html": (company_label, reverse('companies'), add_edit_label),
+            "Students_list.html": ("Students Management", None),
+            "students_add_update.html": ("Students Management", reverse('students'), add_edit_label),
             # "property_add.html": ("Properties", reverse("properties"), "Add Property"),
             # "property_edit.html": ("Properties", reverse("properties"), "Edit Property"),
 

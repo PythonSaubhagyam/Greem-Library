@@ -166,7 +166,7 @@ class UserModel(AbstractBaseUser, PermissionsMixin):
         
 class StudentModel(models.Model):
     student_id = models.CharField(max_length=255)
-    parent = models.ForeignKey(UserModel,on_delete=models.SET_NULL,null=True,blank=True)
+    parent = models.ManyToManyField(UserModel,blank=True)
     student_name = models.CharField(max_length=255)
     email = models.EmailField(null=True,blank=True)
     student_class = models.IntegerField(null=True,blank=True)

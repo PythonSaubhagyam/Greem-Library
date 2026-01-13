@@ -22,7 +22,7 @@ class UserAPIView(APIView):
         q = request.GET.get('q', '').strip()  # get search query
         status= request.query_params.get('status', '')
         user_id = request.GET.get('id')
-        users = UserModel.objects.filter(is_active=True) #   .order_by('-id')
+        users = UserModel.objects.filter(is_active=True).order_by('-id').exclude(role__type='Admin')
         
         if user_id:
             users = users.filter(id=user_id)
@@ -112,7 +112,7 @@ class UserAPIView(APIView):
                 "postal_code": postal_code,
                 "city": city,
                 "state": state,
-                "country": country,
+                "country": country, 
             },
         )
 
@@ -120,7 +120,7 @@ class UserAPIView(APIView):
             serializer.save()
             return Response({"message": "User created successfully"}, status=201)
 
-        return Response(serializer.errors, status=400)
+        return Response({'errors':serializer.errors}, status=400)
 
     
     def patch(self, request, id):

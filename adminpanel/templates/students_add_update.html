@@ -1,0 +1,192 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Student {% endblock %}
+
+{% block page_css %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 id="pageTitle">Add Student</h5>
+  </div>
+
+  <div class="card-body">
+    <form id="studentForm">
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Student ID</label>
+          <input type="text" id="student_id" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Student Name</label>
+          <input type="text" id="student_name" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Email</label>
+          <input type="email" id="email" class="form-control">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Class</label>
+          <input type="number" id="student_class" class="form-control">
+        </div>
+
+        <div class="col-md-12">
+          <label class="form-label">Parents</label>
+          <select id="parent" placeholder="Select parents or teachers..." multiple></select>
+        </div>
+      </div>
+
+      <div class="col-12 d-flex justify-content-end mt-3">
+        <button type="submit" class="btn btn-primary btn me-2" id="saveBtn">
+           Add
+        </button>
+        <button type="button" class="btn btn-secondary btn" onclick="window.location.href='/administrator/students/'; return false;">Cancel</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+<script>
+function showToast(title, message, status = "primary") {
+    const toast = document.getElementById("alert-box");
+    const toastTitle = document.getElementById("toast-title");
+    const toastBody = document.getElementById("toast-body");
+    const toastIcon = document.getElementById("toast-icon");
+
+    toast.className = `bs-toast toast bg-${status} toast-placement-ex top-0 end-0 m-2 show`;
+    toastTitle.textContent = title;
+    toastBody.textContent = message;
+
+    toastIcon.className = `bx me-2 ${status === "success" ? "bx-check-circle" : "bx-error"}`;
+
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
+document.addEventListener("DOMContentLoaded", function () {
+
+  const pathParts = window.location.pathname.split("/").filter(Boolean);
+  const editStudentId = pathParts.includes("edit") ? pathParts[pathParts.length - 1] : null;
+
+  const pageTitle = document.getElementById("pageTitle");
+  const saveBtn = document.getElementById("saveBtn");
+
+  if (editStudentId) {
+    pageTitle.innerText = "Update Student";
+    saveBtn.innerHTML = '<i class="bx bx-save"></i> Update Student';
+  }
+
+  let parentSelect;
+
+  /* ---------------- LOAD PARENTS + TEACHERS ---------------- */
+  fetch("/administrator/users-list/")
+    .then(res => res.json())
+    .then(data => {
+      const select = document.getElementById("parent");
+
+      data.results.forEach(u => {
+        const opt = document.createElement("option");
+        opt.value = u.id;
+        opt.textContent = `${u.full_name} (${u.role_name})`;
+        select.appendChild(opt);
+      });
+
+      parentSelect = new TomSelect("#parent", {
+        plugins: ['remove_button'],
+        persist: false,
+        create: false
+      });
+
+      if (editStudentId) loadStudent(editStudentId);
+    });
+
+
+  /* ---------------- LOAD STUDENT FOR EDIT ---------------- */
+  function loadStudent(id) {
+    fetch(`/administrator/students-api/?id=${id}`)
+      .then(res => res.json())
+      .then(s => {
+        const user = s.results[0];
+        document.getElementById("student_id").value = user.student_id;
+        document.getElementById("student_name").value = user.student_name;
+        document.getElementById("email").value = user.email || "";
+        document.getElementById("student_class").value = user.student_class || "";
+
+        if (user.parent) {
+          parentSelect.setValue(user.parent);
+        }
+      });
+  }
+
+
+  /* ---------------- SUBMIT ---------------- */
+  document.getElementById("studentForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const payload = {
+      student_id: student_id.value.trim(),
+      student_name: student_name.value.trim(),
+      email: email.value.trim(),
+      student_class: student_class.value,
+      parent: parentSelect.getValue()
+    };
+
+    const url = editStudentId
+      ? `/administrator/students-api/${editStudentId}/`
+      : `/administrator/students-api/`;
+
+    const method = editStudentId ? "PATCH" : "POST";
+
+    fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.message || data.id) {
+
+        const msg = editStudentId
+          ? "Student updated successfully"
+          : "Student added successfully";
+
+        showToast("Success", msg, "success");
+
+        setTimeout(() => {
+          window.location.href = "/administrator/students/";
+        }, 1200);
+
+      } else {
+        let errorMsg = "Something went wrong";
+
+        if (data.errors) {
+          const firstField = Object.keys(data.errors)[0];
+          if (data.errors[firstField]?.length) {
+            errorMsg = data.errors[firstField][0];
+          }
+        } else if (data.error) {
+          errorMsg = data.error;
+        }
+
+        showToast("Error", errorMsg, "danger");
+      }
+    });
+  });
+
+});
+</script>
+{% endblock %}

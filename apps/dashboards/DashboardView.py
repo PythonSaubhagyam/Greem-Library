@@ -18,10 +18,11 @@ class DashboardStatsAPIView(APIView):
     def get(self, request):
         # Total Companies
         users = UserModel.objects.filter(is_active=True).exclude(role__type__in=['Admin'])
-        total_users = users.count()
         total_parents = users.filter(role__type='Parent').count()
         total_teachers = users.filter(role__type='Teacher').count()
         total_students = StudentModel.objects.all().count()
+        
+        total_users = users.count() + total_students
 
         data = {
             "total_companies":total_students,     # total companies

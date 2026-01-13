@@ -57,9 +57,27 @@ class UsersListSerializer(serializers.ModelSerializer):
     state_id = serializers.SerializerMethodField()
     country_id = serializers.SerializerMethodField()
     address = serializers.SerializerMethodField()
+    postal_code = serializers.SerializerMethodField()
+    role_name = serializers.SerializerMethodField()
+    phone_no = serializers.SerializerMethodField()
+    country_code = serializers.SerializerMethodField()
+
+    def get_phone_no(self, obj):
+        if obj.mobile_no:
+            return obj.mobile_no.national_number
+        return None
     
+    def get_country_code(self, obj):
+        if obj.mobile_no:
+            return obj.mobile_no.country_code
+        return None
+
     def get_default_address(self, obj):
         return obj.address.filter(is_default=True).first()
+    
+    def get_postal_code(self, obj):
+        addr = self.get_default_address(obj)
+        return addr.postal_code if addr else None
 
     def get_city(self, obj):
         addr = self.get_default_address(obj)
@@ -87,10 +105,13 @@ class UsersListSerializer(serializers.ModelSerializer):
 
     def get_address(self, obj):
         addr = self.get_default_address(obj)
-        return str(addr) if addr else None
+        return str(addr.address) if addr else None
 
     def get_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"
+    
+    def get_role_name(self, obj):
+        return obj.role.type if obj.role else None
     
     class Meta:
         model = UserModel
@@ -98,7 +119,7 @@ class UsersListSerializer(serializers.ModelSerializer):
             "id","full_name","first_name","last_name","email","mobile_no",
             "date_joined","address",
             "city","state","country",
-            "city_id","state_id","country_id"
+            "city_id","state_id","country_id","postal_code","role_name","phone_no","country_code"
         ]
         
 class UserSerializer(serializers.ModelSerializer):
@@ -112,6 +133,7 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
+        print(validated_data,'-----------')
         request = self.context.get("request")
         password = validated_data.pop("password", None)
 
@@ -125,6 +147,7 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
+        print(validated_data,'---------')
         for k, v in validated_data.items():
             setattr(instance, k, v)
 
@@ -158,3 +181,50 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
         user.address.add(address)
+
+
+class StudentsSerializer(serializers.ModelSerializer):
+    parent_name = serializers.SerializerMethodField()
+    teacher_name = serializers.SerializerMethodField()
+
+    def get_parent_name(self, obj):
+        parents = []
+        if obj.parent.exists():
+            for parent in obj.parent.all():
+                if parent.role.type == 'Parent':
+                    parents.append(f"{parent.first_name} {parent.last_name}")
+            return parents
+
+        return ''
+    
+    def get_teacher_name(self, obj):
+        teachers = []
+        if obj.parent.exists():
+            for parent in obj.parent.all():
+                if parent.role.type == 'Teacher':
+                    teachers.append(f"{parent.first_name} {parent.last_name}")
+            return teachers
+                
+        return ''
+    
+    def create(self, validated_data):
+        request = self.context.get("request")
+        parent_ids = request.data.get("parent", [])
+        print(parent_ids,'parent_idsparent_idsparent_ids')
+        student = super().create(validated_data)
+        # if parent_ids:
+        #     parents = UserModel.objects.filter(id__in=parent_ids)
+        #     student.parent.set(parents)
+        return student
+    
+    def update(self, instance, validated_data):
+        parents = validated_data.get("parent", None)
+        print(parents,'parentsparentsparents')
+        instance = super().update(instance, validated_data)
+        # if parents is not None:
+        #     instance.parent.set(parents)
+        return instance 
+
+    class Meta:
+        model = StudentModel
+        fields = ['id', 'student_id','student_name', 'email','parent','parent_name','teacher_name','student_class']

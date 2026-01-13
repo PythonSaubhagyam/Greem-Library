@@ -2,17 +2,18 @@ from django.urls import path,include
 from adminpanel.View.CompanyView import UserAPIView
 from adminpanel.View.CountryStateCityView import *
 from adminpanel.View.CompanyDetailView import *
+from adminpanel.View.StudentsView import *
 from .views import DashboardsView
 
 urlpatterns = [
     
     
-    path('companies-list/', UserAPIView.as_view(), name='companies-list'),
-    path('companies-list/<int:id>/', UserAPIView.as_view(), name='companies-list'),
-    path("companies/",DashboardsView.as_view(template_name="companies_list.html"),name="companies"),
-    path('companies/add/', DashboardsView.as_view(template_name="add_company.html"),name="company-add"),
-    path('companies/edit/<int:id>/', DashboardsView.as_view(template_name="add_company.html"),name="company-edit"),
-    path("companies/detail/<int:pk>/",DashboardsView.as_view(template_name="company_detail.html"),name="company-detail",),
+    path('users-list/', UserAPIView.as_view(), name='companies-list'),
+    path('users-list/<int:id>/', UserAPIView.as_view(), name='companies-list'),
+    path("users/",DashboardsView.as_view(template_name="companies_list.html"),name="companies"),
+    path('users/add/', DashboardsView.as_view(template_name="add_company.html"),name="company-add"),
+    path('users/edit/<int:id>/', DashboardsView.as_view(template_name="add_company.html"),name="company-edit"),
+    path("users/detail/<int:pk>/",DashboardsView.as_view(template_name="company_detail.html"),name="company-detail",),
     # path("company-details/",CompanyDetailAPI.as_view(),name="company-details",),
     # path("broadcast-details/",BroadcastDetailsView.as_view(),name="broadcast-details",),
     path("company-details-table/", DashboardsView.as_view(template_name="company_details_table.html"), name="company-details-table"),
@@ -28,4 +29,10 @@ urlpatterns = [
     path('states/<int:id>/',StatesAPI.as_view(),name='states'),
     path('cities/',CitiesAPI.as_view(),name='cities'),
     path('cities/<int:id>/',CitiesAPI.as_view(),name='cities'),
+
+    path("students/",DashboardsView.as_view(template_name="Students_list.html"),name="students"),
+    path("students-api/",StudentsAPIView.as_view(),name="students-api"),
+    path("students-api/<int:id>/",StudentsAPIView.as_view(),name="students-api-id"),
+    path("students/add/",DashboardsView.as_view(template_name="students_add_update.html"),name="Students_add_update"),
+    path("students/edit/<int:id>/",DashboardsView.as_view(template_name="students_add_update.html"),name="Students_add_update"),
 ]

@@ -90,56 +90,77 @@
 
           <div class="row g-3">
             <div class="col-md-6">
-              <input type="text" id="companyName" class="form-control" placeholder="Enter  First Name" required>
+               <label class="form-label">First Name</label>
+              <input type="text" id="companyName" class="form-control" required>
             </div>
 
             <div class="col-md-6">
-              <input type="text" id="last_name" class="form-control" placeholder="Enter Last Name" required>
+              <label class="form-label">Last Name</label>
+              <input type="text" id="last_name" class="form-control" required>
             </div>
 
             <div class="col-md-6">
-              <input type="email" id="email" class="form-control" placeholder="Enter Email" required>
-            </div>
-
-            <div class="col-md-6 d-flex">
-              <select class="form-select me-2" id="countryCode" style="max-width: 100px;">
-                <option value="+91">+91</option>
-                <option value="+1">+1</option>
-                <option value="+44">+44</option>
-              </select>
-              <input type="text" id="mobile" class="form-control" placeholder="Enter Mobile Number" required>
-            </div>
-
-            <div class="col-md-6 position-relative password-field">
-              <input type="password" id="password" class="form-control" placeholder="Enter Password">
-              <i class="bx bx-show toggle-icon" id="togglePassword"></i>
-            </div>
-
-            <div class="col-md-6 position-relative password-field">
-             <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm Password">
-
-              <i class="bx bx-show toggle-icon" id="toggleConfirmPassword"></i>
+              <label class="form-label">Email</label>
+              <input type="email" id="email" class="form-control"  required>
             </div>
 
             <div class="col-md-6">
-              <input type="text" id="address" class="form-control" placeholder="Enter Address" required>
+              <label class="form-label">Mobile No.</label>
+              <div class="d-flex gap-2">
+                <select class="form-select" id="countryCode" style="max-width: 110px;">
+                  <option value="91">+91</option>
+                  <option value="1">+1</option>
+                  <option value="44">+44</option>
+                </select>
+
+                <input type="text" id="mobile" class="form-control" placeholder="Enter mobile number" required>
+              </div>
             </div>
 
             <div class="col-md-6">
-              <select id="country" class="form-select" required>
+              <label class="form-label">Password</label>
+              <div class="input-group">
+                <input type="password" id="password" class="form-control">
+                <span class="input-group-text">
+                  <i class="bx bx-show" id="togglePassword"></i>
+                </span>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Confirm Password</label>
+              <div class="input-group">
+                <input type="password" id="confirmPassword" class="form-control">
+                <span class="input-group-text">
+                  <i class="bx bx-show" id="toggleConfirmPassword"></i>
+                </span>
+              </div>
+            </div>
+
+
+            <div class="col-md-6">
+              <label class="form-label">Address</label>
+              <input type="text" id="address" class="form-control" >
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Country</label>
+              <select id="country" class="form-select" >
                 <option value="">Select Country</option>
                 {% comment %} <option value='India'>India</opiton> {% endcomment %}
               </select>
             </div>
 
             <div class="col-md-6">
-              <select id="state" class="form-select" required>
+              <label class="form-label">State</label>
+              <select id="state" class="form-select" >
                 <option value="">Select State</option>
                 {% comment %} <option value='Gujarat'>Gujarat</opiton> {% endcomment %}
               </select>
             </div>
 
             <div class="col-md-6">
+              <label class="form-label">City</label>
               <select id="city" class="form-select">
                 <option value="">Select City</option>
                 {% comment %} <option value='Ahmedabad'>Ahmedabad</opiton> {% endcomment %}
@@ -147,12 +168,13 @@
             </div> 
 
             <div class="col-md-6">
-              <input type="text" id="zipCode" class="form-control" placeholder="Enter Zip Code">
+              <label class="form-label">Zip Code</label>
+              <input type="text" id="zipCode" class="form-control" >
             </div>
 
             <div class="col-12 d-flex justify-content-end mt-3">
               <button type="submit" class="btn btn-primary btn me-2" id="submitBtn">Add</button>
-              <button type="button" class="btn btn-secondary btn" onclick="window.location.href='/administrator/companies/'; return false;">Cancel</button>
+              <button type="button" class="btn btn-secondary btn" onclick="window.location.href='/administrator/users/?type={{detail_name}}'; return false;">Cancel</button>
             </div>
           </div>
         </form>
@@ -164,6 +186,22 @@
 
 {% block page_js %}
 <script>
+
+function showToast(title, message, status = "primary") {
+    const toast = document.getElementById("alert-box");
+    const toastTitle = document.getElementById("toast-title");
+    const toastBody = document.getElementById("toast-body");
+    const toastIcon = document.getElementById("toast-icon");
+
+    toast.className = `bs-toast toast bg-${status} toast-placement-ex top-0 end-0 m-2 show`;
+    toastTitle.textContent = title;
+    toastBody.textContent = message;
+
+    toastIcon.className = `bx me-2 ${status === "success" ? "bx-check-circle" : "bx-error"}`;
+
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
 document.addEventListener("DOMContentLoaded", function () {
 
   const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
@@ -176,7 +214,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const submitBtn = document.getElementById("submitBtn");
 
   /* ---------------- PAGE MODE ---------------- */
-
+{% comment %} 
   if (!editUserId) {
     if (roleType === "parent") pageTitle.innerText = "Add Parent";
     if (roleType === "teacher") pageTitle.innerText = "Add Teacher";
@@ -196,6 +234,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
     loadUserForEdit(editUserId);
+  } {% endcomment %}
+
+  function setPageTitle(mode, type) {
+    const label = type === "teacher" ? "Teacher" : "Parent";
+    pageTitle.innerText = mode === "edit" ? `Update ${label}` : `Add ${label}`;
+    submitBtn.innerText = mode === "edit" ? "Update" : "Add";
+  }
+
+  if (editUserId) {
+    setPageTitle("edit", roleType);
+    loadUserForEdit(editUserId);
+  } else {
+    setPageTitle("add", roleType);
   }
 
   /* ---------------- PASSWORD TOGGLE ---------------- */
@@ -259,10 +310,48 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   });
 
+  function prefillLocation(countryId, stateId, cityId) {
+  if (!countryId) return;   // 🔥 stop if nothing saved
+
+  const waitForCountries = setInterval(() => {
+    const countrySelect = document.getElementById("country");
+
+    if (countrySelect.options.length > 1) {
+      clearInterval(waitForCountries);
+      countrySelect.value = countryId || "";
+
+      fetch(`/administrator/states/${countryId}/`)
+        .then(res => res.json())
+        .then(data => {
+          const stateSelect = document.getElementById("state");
+          stateSelect.innerHTML = `<option value="">Select State</option>`;
+          data.data.forEach(s => {
+            stateSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+          });
+
+          if (!stateId) return;
+          stateSelect.value = stateId;
+
+          fetch(`/administrator/cities/${stateId}/`)
+            .then(res => res.json())
+            .then(data => {
+              const citySelect = document.getElementById("city");
+              citySelect.innerHTML = `<option value="">Select City</option>`;
+              data.data.forEach(c => {
+                citySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+              });
+
+              if (cityId) citySelect.value = cityId;
+            });
+        });
+    }
+  }, 100);
+}
+
   /* ---------------- LOAD USER ---------------- */
 
   function loadUserForEdit(id) {
-    fetch(`/administrator/companies-list/?id=${id}`)
+    fetch(`/administrator/users-list/?id=${id}`)
       .then(res => res.json())
       .then(data => {
         const user = data.results[0];
@@ -276,9 +365,16 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("companyName").value = user.first_name;
         document.getElementById("last_name").value = user.last_name;
         document.getElementById("email").value = user.email;
-        document.getElementById("mobile").value = user.mobile_no || "";
         document.getElementById("address").value = user.address || "";
-        document.getElementById("email").disabled = true;
+        document.getElementById("zipCode").value = user.postal_code || "";  
+
+        document.getElementById("mobile").value = user.phone_no || "";
+        document.getElementById("countryCode").value = user.country_code || "91";
+
+
+      setTimeout(() => {
+        prefillLocation(user.country_id, user.state_id, user.city_id);
+      }, 300);
       });
   }
 
@@ -290,6 +386,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const userId = document.getElementById("userId").value;
     const countryCode = document.getElementById("countryCode").value;
     const mobile = document.getElementById("mobile").value.trim();
+    
 
     const fullMobile = countryCode ? `+${countryCode}${mobile}` : mobile;
 
@@ -306,13 +403,19 @@ document.addEventListener("DOMContentLoaded", function () {
       is_active: true
     };
 
+    const password = document.getElementById("password").value;
+
+
     if (!userId) {
       payload.role_type = roleType;
+    }
+
+    if (password) {
       payload.password = document.getElementById("password").value;
       payload.confirm_password = document.getElementById("confirmPassword").value;
     }
 
-    fetch(userId ? `/administrator/companies-list/${userId}/` : `/administrator/companies-list/`, {
+    fetch(userId ? `/administrator/users-list/${userId}/` : `/administrator/users-list/`, {
       method: userId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrftoken },
       body: JSON.stringify(payload)
@@ -321,9 +424,32 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(data => {
       if (data.message) {
         const type = roleType ? `?type=${roleType}` : "";
-        window.location.href = `/administrator/companies/${type}`;
+
+        const roleLabel = roleType === "parent" ? "Parent" : "Teacher";
+        const msg = userId
+          ? `${roleLabel} updated successfully`
+          : `${roleLabel} created successfully`;
+
+        showToast("Success", msg, "success");
+
+        setTimeout(() => {
+          window.location.href = `/administrator/users/${type}`;
+        }, 1200);
       } else {
-        alert(data.error || "Save failed");
+        {% comment %} alert(data.error || "Save failed"); {% endcomment %}
+        let errorMsg = "Something went wrong";
+
+        if (data.errors) {
+          const firstField = Object.keys(data.errors)[0];
+          if (data.errors[firstField]?.length) {
+            errorMsg = data.errors[firstField][0];
+          }
+        } else if (data.error) {
+          errorMsg = data.error;
+        }
+
+        showToast("Error", errorMsg, "danger");
+
       }
     });
   });
