@@ -1,0 +1,326 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Employee {% endblock %}
+
+{% block page_css %}
+<style>
+.password-row { display:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 id="pageTitle">Add Employee</h5>
+  </div>
+
+  <div class="card-body">
+
+    <form id="employeeForm">
+
+      <div class="row g-3">
+
+        <div class="col-md-6">
+          <label class="form-label">Employee ID</label>
+          <input type="text" id="employee_id" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Department</label>
+          <input type="text" id="department" class="form-control">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">First Name</label>
+          <input type="text" id="first_name" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Last Name</label>
+          <input type="text" id="last_name" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Email</label>
+          <input type="email" id="email" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+        <label class="form-label">Mobile No.</label>
+
+        <div class="d-flex gap-2">
+
+            <select class="form-select" id="countryCode" style="max-width:110px;">
+            </select>
+
+            <input
+            type="text"
+            id="mobile"
+            class="form-control"
+            placeholder="Enter mobile number"
+            required>
+
+        </div>
+        </div>
+
+
+        <!-- Password -->
+        <div class="col-md-6 password-row">
+          <label class="form-label">Password</label>
+
+          <div class="input-group">
+            <input type="password" id="password" class="form-control">
+
+            <span class="input-group-text" id="togglePassword">
+              <i class="bx bx-show"></i>
+            </span>
+          </div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="col-md-6 password-row">
+          <label class="form-label">Confirm Password</label>
+
+          <div class="input-group">
+            <input type="password" id="confirm_password" class="form-control">
+
+            <span class="input-group-text" id="toggleConfirmPassword">
+              <i class="bx bx-show"></i>
+            </span>
+          </div>
+        </div>
+
+
+      </div>
+
+      <div class="col-12 d-flex justify-content-end mt-4">
+
+        <button type="submit" class="btn btn-primary me-2" id="saveBtn">
+          Add
+        </button>
+
+        <button type="button" class="btn btn-secondary"
+          onclick="window.location.href='/administrator/employees/';">
+          Cancel
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+<script>
+function showToast(title, message, status = "primary") {
+  const toast = document.getElementById("alert-box");
+  const toastTitle = document.getElementById("toast-title");
+  const toastBody = document.getElementById("toast-body");
+  const toastIcon = document.getElementById("toast-icon");
+
+  toast.className = `bs-toast toast bg-${status} toast-placement-ex top-0 end-0 m-2 show`;
+  toastTitle.textContent = title;
+  toastBody.textContent = message;
+
+  toastIcon.className =
+    `bx me-2 ${status === "success" ? "bx-check-circle" : "bx-error"}`;
+
+  const bsToast = new bootstrap.Toast(toast);
+  bsToast.show();
+}
+document.addEventListener("DOMContentLoaded", function () {
+
+  const pathParts = window.location.pathname.split("/").filter(Boolean);
+  const editId = pathParts.includes("edit")
+    ? pathParts[pathParts.length - 1]
+    : null;
+
+  const pageTitle = document.getElementById("pageTitle");
+  const saveBtn = document.getElementById("saveBtn");
+  const passwordRow = document.querySelector(".password-row");
+  const passwordInput = document.getElementById("password");
+  const confirmPasswordInput = document.getElementById("confirm_password");
+
+  if (editId) {
+    pageTitle.innerText = "Update Employee";
+    saveBtn.innerHTML = 'Update';
+    passwordInput.removeAttribute("required");
+    confirmPasswordInput.removeAttribute("required");
+  } else {
+
+  // ADD MODE → password REQUIRED
+  passwordInput.setAttribute("required", "required");
+  confirmPasswordInput.setAttribute("required", "required");
+
+}
+  function togglePassword(inputId, toggleId) {
+  const input = document.getElementById(inputId);
+  const toggle = document.getElementById(toggleId);
+
+  toggle.addEventListener("click", () => {
+
+    if (input.type === "password") {
+      input.type = "text";
+      toggle.innerHTML = `<i class="bx bx-hide"></i>`;
+    } else {
+      input.type = "password";
+      toggle.innerHTML = `<i class="bx bx-show"></i>`;
+    }
+
+  });
+}
+
+togglePassword("password", "togglePassword");
+togglePassword("confirm_password", "toggleConfirmPassword");
+
+  document.querySelectorAll(".password-row").forEach(el => {
+    el.style.display = "block";
+    });
+
+
+  /* ---------------- LOAD EMPLOYEE FOR EDIT ---------------- */
+
+  if (editId) {
+
+    fetch(`/administrator/employees-api/${editId}/`)
+      .then(res => res.json())
+      .then(e => {
+
+        document.getElementById("employee_id").value = e.employee_id;
+        document.getElementById("department").value = e.department || "";
+
+        document.getElementById("first_name").value = e.user.first_name;
+        document.getElementById("last_name").value = e.user.last_name;
+        document.getElementById("email").value = e.user.email;
+        if (e.user.mobile_no) {
+
+        document.getElementById("mobile").value = e.user.mobile_no || "";
+
+        }
+
+      });
+
+  }
+
+  const countryCodeSelect = document.getElementById("countryCode");
+
+/* ------------ LOAD COUNTRY CODES ------------ */
+
+    fetch("/administrator/countries/")
+    .then(res => res.json())
+    .then(data => {
+
+        countryCodeSelect.innerHTML = "";
+
+        data.data.forEach(c => {
+
+        if (c.calling_code) {
+
+            const selected = c.calling_code === "91" ? "selected" : "";
+
+            countryCodeSelect.innerHTML += `
+            <option value="${c.calling_code}" ${selected}>
+                +${c.calling_code}
+            </option>
+            `;
+        }
+
+        });
+
+    });
+
+
+
+  /* ---------------- SUBMIT ---------------- */
+
+  document.getElementById("employeeForm")
+    .addEventListener("submit", function (e) {
+
+      e.preventDefault();
+
+      const passwordVal = document.getElementById("password").value;
+      const confirmPasswordVal = document.getElementById("confirm_password").value;
+
+      if (passwordVal || confirmPasswordVal) {
+
+            if (passwordVal !== confirmPasswordVal) {
+                showToast("Error", "Passwords do not match", "danger");
+                return;
+            }
+
+        }
+
+      const countryCode = countryCodeSelect.value;
+      const mobile = document.getElementById("mobile").value.trim();
+
+      const fullMobile =
+      countryCode && mobile
+            ? `+${countryCode}${mobile}`
+            : "";
+
+      const payload = {
+        employee_id: employee_id.value.trim(),
+        department: department.value.trim(),
+
+        first_name: first_name.value.trim(),
+        last_name: last_name.value.trim(),
+        email: email.value.trim(),
+        mobile_no: fullMobile
+      };
+
+      if (passwordVal) {
+        payload.password = password.value;
+      }
+
+      const url = editId
+        ? `/administrator/employees-api/${editId}/`
+        : `/administrator/employees-api/`;
+
+      const method = editId ? "PATCH" : "POST";
+
+      fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+
+        if (data.id || data.employee_id) {
+
+          const msg = editId
+            ? "Employee updated successfully"
+            : "Employee added successfully";
+
+          showToast("Success", msg, "success");
+
+          setTimeout(() => {
+            window.location.href = "/administrator/employees/";
+          }, 1200);
+
+        } else {
+
+          let errorMsg = "Something went wrong";
+
+          if (data.errors) {
+            const key = Object.keys(data.errors)[0];
+            errorMsg = data.errors[key][0];
+          } else if (data.error) {
+            errorMsg = data.error;
+          }
+
+          showToast("Error", errorMsg, "danger");
+        }
+
+      });
+
+    });
+
+});
+</script>
+{% endblock %}

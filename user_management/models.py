@@ -10,7 +10,7 @@ from rest_framework.authtoken.models import Token
 
 class RoleModel(models.Model):
     name = models.CharField(max_length=150)
-    type = models.CharField(choices=[('Admin','Admin'),('Teacher','Teacher'),('Parent','Parent')],max_length=100,null=True,blank=True)
+    type = models.CharField(choices=[('Admin','Admin'),('Teacher','Teacher'),('Parent','Parent'),('Employee','Employee'),('Customer','Customer')],max_length=100,null=True,blank=True)
 
     def __str__(self):
         return self.type
@@ -148,6 +148,7 @@ class UserModel(AbstractBaseUser, PermissionsMixin):
     firm_name = models.CharField(max_length=100,blank=True,null=True)
     token = models.CharField(max_length=255,blank=True,null=True)
     approved_status = models.CharField(max_length=100,null=True,blank=True,choices=[('Pending','Pending'),('Approved','Approved')])
+    profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
 
     objects = AccountManager()
 
@@ -155,7 +156,7 @@ class UserModel(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['first_name', 'last_name']
 
     def __str__(self):
-        return self.email
+        return f'{self.email} - {self.role.type if self.role else self.email}'
     
     def usergroups(self):
         return "".join([l.name for l in self.groups.all()])
@@ -170,4 +171,14 @@ class StudentModel(models.Model):
     student_name = models.CharField(max_length=255)
     email = models.EmailField(null=True,blank=True)
     student_class = models.IntegerField(null=True,blank=True)
-    
+
+class EmployeeModel(models.Model):
+    user = models.ForeignKey(UserModel,on_delete=models.CASCADE)
+    employee_id = models.CharField(max_length=255)
+    email = models.EmailField(null=True,blank=True)
+    department = models.CharField(max_length=255,null=True,blank=True)
+
+class DeviceModel(models.Model):
+    user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
+    imei_number = models.CharField(max_length=255,null=True,blank=True)
+    is_active = models.BooleanField(default=True)

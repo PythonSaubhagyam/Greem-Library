@@ -17,7 +17,7 @@ class StudentView(APIView):
     def get(self,request):
         students = StudentModel.objects.filter(parent_id=request.user.id)
         serializer = StudentSerializer(students,many=True)
-        return Response({'status':True,'data':serializer.data,'message':'Student successfully retreived'})
+        return Response({'status':True,'data':serializer.data,'message':'Student successfully retrieved'})
         
     
     def post(self,request):
@@ -25,7 +25,7 @@ class StudentView(APIView):
         serializer = StudentSerializer(data=request.data,context={'request':request})
         if serializer.is_valid():
             serializer.save()
-            return Response({'status':True,'data':serializer.data,'message':'Student Sucessfully added'})
+            return Response({'status':True,'data':serializer.data,'message':'Student Successfully added'})
         return Response({'status':False,'errors':serializer.errors},status=400)
     
     def patch(self,request,id):
