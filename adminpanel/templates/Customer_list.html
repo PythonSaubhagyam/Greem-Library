@@ -1,0 +1,837 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Customers {% endblock %}
+
+{% block page_css %}
+<style>
+.table td, .table th { vertical-align: middle; }
+
+.device-wrapper {
+  background: #f9fbff;
+  border: 1px solid #e3e9ff;
+  border-radius: 10px;
+  padding: 15px;
+}
+
+.device-header {
+  font-weight: 600;
+  color: #2f3a5f;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.device-item {
+  background: white;
+  border: 1px solid #e5e9f5;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.device-label {
+  font-size: 11px;
+  color: #8a92b2;
+  text-transform: uppercase;
+}
+
+.device-value {
+  font-weight: 600;
+  font-size: 14px;
+  color: #2d3560;
+  word-break: break-all;
+}
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5 class="mb-0">Customers</h5>
+
+    <div class="d-flex gap-2 align-items-center">
+
+      <div class="input-group input-group-sm" style="width:220px;">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bx bx-search text-muted"></i>
+        </span>
+        <input type="text"
+               id="searchCustomer"
+               class="form-control border-start-0"
+               placeholder="Search customer...">
+      </div>
+
+      <button class="btn btn-sm btn-outline-secondary" id="resetFilters">
+        <i class="bx bx-refresh me-1"></i> Reset
+      </button>
+
+      <a href="/administrator/customers/add/"
+         class="btn btn-sm btn-primary">
+        <i class="bx bx-plus"></i> Add Customer
+      </a>
+
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <div class="table-responsive">
+
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Sr</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Mobile</th>
+            <!-- <th>IMEI</th> -->
+            <th width="120px">Action</th>
+          </tr>
+        </thead>
+
+        <tbody id="customers-container"></tbody>
+      </table>
+
+      <div id="customers-loader" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+      </div>
+
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+
+      <!-- Left -->
+      <div class="d-flex align-items-center gap-2">
+        <label class="small mb-0">Rows per page:</label>
+        <select id="rowsPerPage" class="form-select form-select-sm w-auto">
+          <option>10</option>
+          <option>25</option>
+          <option selected>50</option>
+        </select>
+      </div>
+
+      <!-- Right -->
+      <div class="d-flex align-items-center gap-3">
+        <small id="pagination-info" class="text-muted"></small>
+        <ul id="pagination" class="pagination pagination-sm mb-0"></ul>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteConfirmModal">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5>Confirm Delete</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        Delete this customer?
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="deviceModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">
+          Devices — <span id="deviceCustomerName"></span>
+        </h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- SEARCH -->
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <input type="text"
+                   id="deviceModalSearch"
+                   class="form-control"
+                   placeholder="Search">
+          </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-responsive">
+
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>IMEI</th>
+                <th>Status</th>
+                <th width="120">Action</th>
+              </tr>
+            </thead>
+
+            <tbody id="deviceModalBody"></tbody>
+          </table>
+
+          <div id="deviceModalLoader"
+               class="text-center py-4 d-none">
+            <div class="spinner-border text-primary"></div>
+          </div>
+
+        </div>
+
+        <!-- PAGINATION -->
+        <div class="d-flex justify-content-between mt-3">
+
+          <small id="deviceModalPageInfo"></small>
+
+          <ul id="deviceModalPagination"
+              class="pagination pagination-sm mb-0">
+          </ul>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block page_js %}
+<script>
+
+const deviceModal = new bootstrap.Modal(
+  document.getElementById("deviceModal")
+);
+
+let activeCustomerId = null;
+let deviceModalPage = 1;
+
+function showToast(title, message, status = "primary") {
+
+  const toast = document.getElementById("alert-box");
+  const toastTitle = document.getElementById("toast-title");
+  const toastBody = document.getElementById("toast-body");
+  const toastIcon = document.getElementById("toast-icon");
+
+  toast.className =
+    `bs-toast toast bg-${status} toast-placement-ex top-0 end-0 m-2 show`;
+
+  toastTitle.textContent = title;
+  toastBody.textContent = message;
+
+  toastIcon.className =
+    `bx me-2 ${status === "success" ? "bx-check-circle" : "bx-error"}`;
+
+  new bootstrap.Toast(toast).show();
+}
+
+
+const container = document.getElementById("customers-container");
+const loader = document.getElementById("customers-loader");
+const search = document.getElementById("searchCustomer");
+const rowsSelect = document.getElementById("rowsPerPage");
+const pagination = document.getElementById("pagination");
+const paginationInfo = document.getElementById("pagination-info");
+
+let deleteId = null;
+let currentPage = 1;
+
+const deleteModal = new bootstrap.Modal(
+  document.getElementById("deleteConfirmModal")
+);
+
+
+/* ---------------- FETCH CUSTOMERS ---------------- */
+
+function fetchCustomers(page = 1) {
+
+  const q = search.value;
+  const rows = rowsSelect.value;
+
+  loader.style.display = "block";
+  container.innerHTML = "";
+
+  fetch(`/administrator/customers-api/?q=${q}&page=${page}&row_per_page=${rows}`)
+    .then(res => res.json())
+    .then(res => {
+
+      loader.style.display = "none";
+      currentPage = res.current_page;
+
+      if (!res.results.length) {
+
+        container.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center">
+              No customers found
+            </td>
+          </tr>
+        `;
+
+        pagination.innerHTML = "";
+        paginationInfo.innerHTML = "";
+        return;
+      }
+
+      renderRows(res.results);
+      renderPagination(res);
+    });
+}
+
+function loadDeviceModal(page = 1, q = "") {
+
+  const tbody = document.getElementById("deviceModalBody");
+  const loader = document.getElementById("deviceModalLoader");
+
+  loader.classList.remove("d-none");
+  tbody.innerHTML = "";
+
+  fetch(
+    `/administrator/customer-devices/?customer=${activeCustomerId}&page=${page}&q=${q}`
+  )
+    .then(res => res.json())
+    .then(res => {
+
+      loader.classList.add("d-none");
+
+      renderDeviceModalRows(res.results, page);
+      renderDeviceModalPagination(res);
+
+      document.getElementById("deviceModalPageInfo").innerText =
+        `Page ${res.current_page} of ${res.total_pages}`;
+
+    });
+
+}
+
+
+function renderDeviceModalRows(devices, page) {
+
+  const tbody = document.getElementById("deviceModalBody");
+
+  tbody.innerHTML = "";
+
+  if (!devices.length) {
+    tbody.innerHTML =
+      `<tr><td colspan="4" class="text-center text-muted">
+        No devices found
+      </td></tr>`;
+    return;
+  }
+
+  devices.forEach((d, i) => {
+
+    tbody.insertAdjacentHTML("beforeend", `
+
+      <tr>
+
+        <td>${(page - 1) * 10 + i + 1}</td>
+
+        <td>${d.imei_number}</td>
+
+        <td>
+          <span class="badge ${
+            d.status.toLowerCase() === "active"
+              ? "bg-success"
+              : "bg-danger"
+          }">
+            ${d.status}
+          </span>
+        </td>
+
+        <td>
+
+          <a href="/administrator/devices/edit/${d.id}/"
+             class="btn btn-sm btn-outline-primary">
+
+            Edit
+
+          </a>
+
+        </td>
+
+      </tr>
+
+    `);
+
+  });
+
+}
+
+function renderDeviceModalPagination(data) {
+
+  const pag =
+    document.getElementById("deviceModalPagination");
+
+  pag.innerHTML = "";
+
+  for (let i = 1; i <= data.total_pages; i++) {
+
+    pag.insertAdjacentHTML("beforeend", `
+
+      <li class="page-item ${
+        i === data.current_page ? "active" : ""
+      }">
+
+        <a href="#"
+           class="page-link"
+           data-page="${i}">
+          ${i}
+        </a>
+
+      </li>
+
+    `);
+
+  }
+
+  pag.querySelectorAll(".page-link").forEach(btn => {
+
+    btn.onclick = e => {
+
+      e.preventDefault();
+
+      loadDeviceModal(btn.dataset.page,
+        document.getElementById("deviceModalSearch").value);
+
+    };
+
+  });
+
+}
+
+document.getElementById("deviceModalSearch")
+  .addEventListener("input", e => {
+
+    deviceModalPage = 1;
+
+    loadDeviceModal(
+      1,
+      e.target.value
+    );
+
+  });
+
+
+
+/* ---------------- RENDER TABLE ---------------- */
+
+function renderRows(data) {
+
+  container.innerHTML = "";
+
+  data.forEach((c, i) => {
+
+    container.insertAdjacentHTML("beforeend", `
+      <tr>
+
+        <td>${(currentPage - 1) * rowsSelect.value + i + 1}</td>
+
+        <td>
+            <a href="#"
+                class="text-primary fw-semibold open-device-modal"
+                data-id="${c.id}"
+                data-name="${c.customer_name}">
+                ${c.customer_name}
+            </a>
+        </td>
+
+        <td>${c.email}</td>
+
+        <td>${c.mobile_no || "-"}</td>
+
+        {% comment %} <td>${c.imei_number}</td>  {% endcomment %}
+
+        <td>
+
+          <div class="dropdown">
+
+            <button
+              class="btn btn-sm btn-outline-secondary dropdown-toggle"
+              data-bs-toggle="dropdown">
+
+              Action
+
+            </button>
+
+            <ul class="dropdown-menu dropdown-menu-end">
+
+              <li>
+                <a class="dropdown-item"
+                   href="/administrator/customers/edit/${c.id}/">
+                  <i class="bx bx-edit"></i> Edit
+                </a>
+              </li>
+
+              <li>
+                <a class="dropdown-item text-danger"
+                   href="#"
+                   onclick="askDelete(${c.id})">
+
+                  <i class="bx bx-trash"></i> Delete
+
+                </a>
+              </li>
+
+            </ul>
+
+          </div>
+
+        </td>
+
+      </tr>
+
+       <!-- DEVICE DETAILS ROW -->
+   <tr class="device-row d-none" id="devices-${c.id}">
+     <td colspan="5">
+
+      <div class="device-wrapper">
+
+        <div class="device-header">
+          <i class="bx bx-mobile"></i>
+          Registered Devices (${c.devices.length})
+        </div>
+
+        <div class="device-header d-flex justify-content-between">
+          {% comment %}
+          // <div>
+          //   <i class="bx bx-mobile"></i>
+          //   Registered Devices (${c.device_count})
+          // </div>
+          {% endcomment %}
+
+          <div class="input-group input-group-sm" style="width:220px;">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="bx bx-search"></i>
+            </span>
+
+            <input type="text"
+                  class="form-control device-search"
+                  data-id="${c.id}"
+                  placeholder="Search device...">
+            
+            <button class="btn btn-outline-secondary device-reset"
+                    data-id="${c.id}"
+                    type="button"
+                    title="Clear filter">
+              <i class="bx bx-x"></i>
+            </button>
+                  
+          </div>
+
+        </div>
+
+        <div id="device-container-${c.id}" class="device-grid"></div>
+
+        <div class="d-flex justify-content-between align-items-center mt-2">
+
+          <small id="device-page-info-${c.id}" class="text-muted"></small>
+
+          <ul class="pagination pagination-sm mb-0"
+              id="device-pagination-${c.id}">
+          </ul>
+
+        </div>
+
+
+      </div>
+
+    </td>
+  </tr>
+
+        
+    `);
+
+  });
+
+
+
+
+
+
+
+document.addEventListener("input", e => {
+
+    if (e.target.classList.contains("device-search")) {
+
+      const id = e.target.dataset.id;
+
+      loadDevices(id, 1, e.target.value);
+
+    }
+
+  });
+
+document.addEventListener("click", e => {
+
+  const btn = e.target.closest(".open-device-modal");
+
+  if (!btn) return;
+
+  e.preventDefault();
+
+  activeCustomerId = btn.dataset.id;
+  console.log(btn,'btn')
+
+  document.getElementById("deviceCustomerName").innerText =
+    btn.dataset.name;
+
+  deviceModalPage = 1;
+
+  loadDeviceModal();
+
+  deviceModal.show();
+
+});
+
+
+document.querySelectorAll(".customer-toggle").forEach(el => {
+
+  el.onclick = e => {
+
+      e.preventDefault();
+
+      const id = el.dataset.id;
+      const row = document.getElementById(`devices-${id}`);
+
+      if (row.classList.contains("d-none")) {
+          loadDevices(id);   // 🔥 fetch only now
+      }
+      row.classList.toggle("d-none");
+
+  };
+
+  });
+}
+  
+
+/* ---------------- PAGINATION ---------------- */
+
+function renderPagination(data) {
+
+  pagination.innerHTML = "";
+
+  paginationInfo.textContent =
+    `Showing page ${data.current_page} of ${data.total_pages} (${data.count} Customers)`;
+
+
+  const prevDisabled = data.previous === null ? "disabled" : "";
+
+  pagination.insertAdjacentHTML("beforeend", `
+    <li class="page-item ${prevDisabled}">
+      <a class="page-link" href="#" data-page="${data.current_page - 1}">
+        Previous
+      </a>
+    </li>
+  `);
+
+
+  for (let i = 1; i <= data.total_pages; i++) {
+
+    const active = i === data.current_page ? "active" : "";
+
+    pagination.insertAdjacentHTML("beforeend", `
+      <li class="page-item ${active}">
+        <a class="page-link" href="#" data-page="${i}">
+          ${i}
+        </a>
+      </li>
+    `);
+
+  }
+
+
+  const nextDisabled = data.next === null ? "disabled" : "";
+
+  pagination.insertAdjacentHTML("beforeend", `
+    <li class="page-item ${nextDisabled}">
+      <a class="page-link" href="#" data-page="${data.current_page + 1}">
+        Next
+      </a>
+    </li>
+  `);
+
+
+  pagination.querySelectorAll(".page-link").forEach(btn => {
+
+    btn.addEventListener("click", e => {
+
+      e.preventDefault();
+
+      const page = parseInt(btn.dataset.page);
+
+      if (!isNaN(page) && page >= 1 && page <= data.total_pages) {
+        fetchCustomers(page);
+      }
+
+    });
+
+  });
+
+}
+
+function loadDevices(customerId, page = 1, q = "") {
+
+    fetch(`/administrator/customer-devices/?customer=${customerId}&page=${page}&q=${q}`)
+      .then(res => res.json())
+      .then(res => {
+
+        renderDeviceGrid(customerId, res.results);
+        renderDevicePagination(customerId, res);
+
+        document.getElementById(
+          `device-page-info-${customerId}`
+        ).textContent =
+          `Page ${res.current_page} of ${res.total_pages}`;
+
+      });
+
+  }
+
+function renderDevicePagination(customerId, data) {
+
+      const pag =
+        document.getElementById(`device-pagination-${customerId}`);
+
+      pag.innerHTML = "";
+
+      for (let i = 1; i <= data.total_pages; i++) {
+
+        pag.insertAdjacentHTML("beforeend", `
+          <li class="page-item ${i === data.current_page ? "active" : ""}">
+            <button
+              type="button"
+              class="page-link"
+              data-page="${i}"
+              data-id="${customerId}">
+              ${i}
+            </button>
+          </li>
+        `);
+
+      }
+
+      pag.querySelectorAll(".page-link").forEach(btn => {
+
+          btn.addEventListener("click", e => {
+
+            const page = btn.dataset.page;
+            const id = btn.dataset.id;
+
+            loadDevices(id, page);
+
+          });
+
+        });
+
+    }
+  
+function renderDeviceGrid(customerId, devices) {
+
+  const container =
+    document.getElementById(`device-container-${customerId}`);
+
+  container.innerHTML = "";
+
+  if (!devices.length) {
+    container.innerHTML =
+      `<div class="text-muted">No devices found</div>`;
+    return;
+  }
+
+  devices.forEach(d => {
+
+    container.insertAdjacentHTML("beforeend", `
+
+      <div class="device-item">
+
+        <div class="device-label">IMEI</div>
+        <div class="device-value">${d.imei_number}</div>
+
+        <div class="device-label mt-2">Status</div>
+        <div class="device-value">${d.status}</div>
+
+      </div>
+
+    `);
+
+  });
+
+}
+
+/* ---------------- DELETE ---------------- */
+
+function askDelete(id) {
+  deleteId = id;
+  deleteModal.show();
+}
+
+document.getElementById("confirmDeleteBtn").onclick = function () {
+
+  fetch(`/administrator/customers-api/${deleteId}/`, {
+    method: "DELETE"
+  })
+  .then(() => {
+
+    showToast("Deleted",
+      "Customer removed successfully",
+      "success");
+
+    fetchCustomers(currentPage);
+
+  });
+
+  deleteModal.hide();
+};
+
+
+/* ---------------- FILTERS ---------------- */
+
+search.addEventListener("input", () => fetchCustomers(1));
+rowsSelect.addEventListener("change", () => fetchCustomers(1));
+
+document.getElementById("resetFilters").onclick = () => {
+  search.value = "";
+  fetchCustomers(1);
+};
+
+// Reset filter button
+$(document).on("click", ".device-reset", function () {
+    const customerId = $(this).data("id");
+
+    const input = $(`.device-search[data-id="${customerId}"]`);
+    input.val("");
+
+    // reload devices without search query
+    loadDevices(customerId, 1, "");
+});
+
+fetchCustomers();
+
+</script>
+{% endblock %}

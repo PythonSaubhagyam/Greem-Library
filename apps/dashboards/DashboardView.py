@@ -21,6 +21,9 @@ class DashboardStatsAPIView(APIView):
         total_parents = users.filter(role__type='Parent').count()
         total_teachers = users.filter(role__type='Teacher').count()
         total_students = StudentModel.objects.all().count()
+        total_employees = EmployeeModel.objects.all().count()
+        total_customers = users.filter(role__type='Customer').count()
+        total_devices = DeviceModel.objects.all().count()
         
         total_users = users.count() + total_students
 
@@ -28,6 +31,9 @@ class DashboardStatsAPIView(APIView):
             "total_companies":total_students,     # total companies
             "active_companies": total_parents,     # active companies
             "inactive_companies":  total_teachers,       # inactive companies
+            "total_employees": total_employees,
+            "total_customers": total_customers,
+            "total_devices": total_devices,
             "total_users": total_users,         # total users
         }
         return Response(data)

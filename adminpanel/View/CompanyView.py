@@ -19,15 +19,18 @@ class UserAPIView(APIView):
         city = request.GET.get('city', None)
         user = request.GET.get('user', None)
         type1 = request.GET.get('type', None)
+        parentteacher = request.GET.get('parentteacher', None)
         q = request.GET.get('q', '').strip()  # get search query
         status= request.query_params.get('status', '')
         user_id = request.GET.get('id')
         users = UserModel.objects.filter(is_active=True).order_by('-id').exclude(role__type='Admin')
-        
         if user_id:
             users = users.filter(id=user_id)
         if type1:
             users = users.filter(role__type__icontains=type1)
+        if parentteacher:
+            if parentteacher == 'customer':
+                users = users.filter(Q(role__type__in=['Customer']))
         # if country:
         #     country_name = CountryModel.objects.get(id=country)
         #     companies = companies.filter(user__country__iexact=country_name.country_name)
@@ -99,7 +102,7 @@ class UserAPIView(APIView):
 
         if role_type:
             try:
-                role = RoleModel.objects.get(name__iexact=role_type)
+                role = RoleModel.objects.get(type__iexact=role_type)
                 data["role"] = role.id
             except RoleModel.DoesNotExist:
                 return Response({"error": "Invalid role"}, status=400)
@@ -166,9 +169,7 @@ class UserAPIView(APIView):
         
         user.is_active = False
         user.save()
-        return Response({'message':'User deleted successfully'}, status=status.HTTP_200_OK)
-        
-        
+        return Response({'message':'User deleted successfully'}, status=status.HTTP_200_OK)  
         
         
         

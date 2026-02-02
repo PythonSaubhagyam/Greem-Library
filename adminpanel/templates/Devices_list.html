@@ -1,0 +1,384 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Devices {% endblock %}
+
+{% block page_css %}
+<style>
+.table td, .table th {
+  vertical-align: middle;
+}
+
+.device-status {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-active {
+  background: #e7f7ee;
+  color: #1f9254;
+}
+
+.status-inactive {
+  background: #fdeaea;
+  color: #b42318;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+
+  <!-- HEADER -->
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+    <h5 class="mb-0">Device Management</h5>
+
+    <div class="d-flex gap-2 align-items-center">
+
+      <!-- SEARCH -->
+      <div class="input-group input-group-sm" style="width:220px;">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bx bx-search text-muted"></i>
+        </span>
+
+        <input type="text"
+               id="searchDevice"
+               class="form-control border-start-0"
+               placeholder="Search...">
+      </div>
+
+      <!-- RESET -->
+      <button class="btn btn-sm btn-outline-secondary" id="resetFilters">
+        <i class="bx bx-refresh me-1"></i> Reset
+      </button>
+
+      <!-- ADD -->
+      <a href="/administrator/devices/add/"
+         class="btn btn-sm btn-primary">
+        <i class="bx bx-plus"></i> Add Device
+      </a>
+
+    </div>
+
+  </div>
+
+  <!-- BODY -->
+  <div class="card-body">
+
+    <div class="table-responsive">
+
+      <table class="table table-hover align-middle">
+
+        <thead class="table-light">
+          <tr>
+            <th>Sr</th>
+            <th>Customer</th>
+            <th>Email</th>
+            <th>IMEI</th>
+            <th>Status</th>
+            <th width="120">Action</th>
+          </tr>
+        </thead>
+
+        <tbody id="devices-container"></tbody>
+
+      </table>
+
+      <!-- LOADER -->
+      <div id="devices-loader" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+      </div>
+
+    </div>
+
+    <!-- PAGINATION -->
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+
+      <div class="d-flex align-items-center gap-2">
+        <label class="small mb-0">Rows:</label>
+        <select id="rowsPerPage" class="form-select form-select-sm w-auto">
+          <option>10</option>
+          <option>25</option>
+          <option selected>50</option>
+        </select>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <small id="pagination-info" class="text-muted"></small>
+        <ul id="pagination" class="pagination pagination-sm mb-0"></ul>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade" id="deleteConfirmModal">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5>Confirm Delete</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        Delete this device?
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">
+          Delete
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+<script>
+
+const container = document.getElementById("devices-container");
+const loader = document.getElementById("devices-loader");
+const search = document.getElementById("searchDevice");
+const rowsSelect = document.getElementById("rowsPerPage");
+const pagination = document.getElementById("pagination");
+const paginationInfo = document.getElementById("pagination-info");
+
+let deleteId = null;
+let currentPage = 1;
+
+const deleteModal =
+  new bootstrap.Modal(
+    document.getElementById("deleteConfirmModal")
+  );
+
+/* ---------------- FETCH DEVICES ---------------- */
+
+function fetchDevices(page = 1) {
+
+  const q = search.value;
+  const rows = rowsSelect.value;
+
+  loader.style.display = "block";
+  container.innerHTML = "";
+
+  fetch(`/administrator/customer-devices/?q=${q}&page=${page}&row_per_page=${rows}`)
+    .then(res => res.json())
+    .then(res => {
+
+      loader.style.display = "none";
+      currentPage = res.current_page;
+
+      if (!res.results.length) {
+
+        container.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center">
+              No devices found
+            </td>
+          </tr>
+        `;
+
+        pagination.innerHTML = "";
+        paginationInfo.innerHTML = "";
+        return;
+      }
+
+      renderRows(res.results);
+      renderPagination(res);
+
+    });
+
+}
+
+/* ---------------- RENDER ROWS ---------------- */
+
+function renderRows(data) {
+
+  container.innerHTML = "";
+
+  data.forEach((d, i) => {
+
+    container.insertAdjacentHTML("beforeend", `
+
+      <tr>
+
+        <td>${(currentPage - 1) * rowsSelect.value + i + 1}</td>
+
+        <td>${d.customer_name || "-"}</td>
+
+        <td>${d.email || "-"}</td>
+
+        <td class="fw-semibold">${d.imei_number}</td>
+
+        <td>
+          <span class="device-status
+            ${d.status === "Active"
+              ? "status-active"
+              : "status-inactive"}">
+            ${d.status}
+          </span>
+        </td>
+
+        <td>
+
+          <div class="dropdown">
+
+            <button
+              class="btn btn-sm btn-outline-secondary dropdown-toggle"
+              data-bs-toggle="dropdown">
+
+              Action
+
+            </button>
+
+            <ul class="dropdown-menu dropdown-menu-end">
+
+              <li>
+                <a class="dropdown-item"
+                   href="/administrator/devices/edit/${d.id}/">
+                  <i class="bx bx-edit"></i> Edit
+                </a>
+              </li>
+
+              <li>
+                <a class="dropdown-item text-danger"
+                   href="#"
+                   onclick="askDelete(${d.id})">
+
+                  <i class="bx bx-trash"></i> Delete
+                </a>
+              </li>
+
+            </ul>
+
+          </div>
+
+        </td>
+
+      </tr>
+
+    `);
+
+  });
+
+}
+
+/* ---------------- PAGINATION ---------------- */
+
+function renderPagination(data) {
+
+  pagination.innerHTML = "";
+
+  paginationInfo.textContent =
+    `Page ${data.current_page} of ${data.total_pages}
+     (${data.count} Devices)`;
+
+
+  const prevDisabled =
+    data.previous === null ? "disabled" : "";
+
+  pagination.insertAdjacentHTML("beforeend", `
+    <li class="page-item ${prevDisabled}">
+      <a class="page-link" href="#" data-page="${data.current_page - 1}">
+        Previous
+      </a>
+    </li>
+  `);
+
+  for (let i = 1; i <= data.total_pages; i++) {
+
+    const active =
+      i === data.current_page ? "active" : "";
+
+    pagination.insertAdjacentHTML("beforeend", `
+      <li class="page-item ${active}">
+        <a class="page-link" href="#" data-page="${i}">
+          ${i}
+        </a>
+      </li>
+    `);
+
+  }
+
+  const nextDisabled =
+    data.next === null ? "disabled" : "";
+
+  pagination.insertAdjacentHTML("beforeend", `
+    <li class="page-item ${nextDisabled}">
+      <a class="page-link" href="#" data-page="${data.current_page + 1}">
+        Next
+      </a>
+    </li>
+  `);
+
+  pagination.querySelectorAll(".page-link")
+    .forEach(btn => {
+
+      btn.onclick = e => {
+
+        e.preventDefault();
+
+        const page =
+          parseInt(btn.dataset.page);
+
+        if (page >= 1 && page <= data.total_pages) {
+          fetchDevices(page);
+        }
+
+      };
+
+    });
+
+}
+
+/* ---------------- DELETE ---------------- */
+
+function askDelete(id) {
+  deleteId = id;
+  deleteModal.show();
+}
+
+document.getElementById("confirmDeleteBtn")
+  .onclick = function () {
+
+    fetch(`/administrator/customer-devices/${deleteId}/`, {
+      method: "DELETE"
+    })
+    .then(() => {
+
+      fetchDevices(currentPage);
+
+    });
+
+    deleteModal.hide();
+
+  };
+
+/* ---------------- FILTERS ---------------- */
+
+search.addEventListener("input", () => fetchDevices(1));
+
+rowsSelect.addEventListener("change", () => fetchDevices(1));
+
+document.getElementById("resetFilters").onclick = () => {
+  search.value = "";
+  fetchDevices(1);
+};
+
+/* INIT */
+fetchDevices();
+
+</script>
+{% endblock %}

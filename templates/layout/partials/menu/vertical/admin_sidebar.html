@@ -28,6 +28,33 @@
       </a>
     </li>
 
+    <li
+        class="menu-item {% if 'employee' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'employees_list' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-id-card"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Employees Management</div>
+      </a>
+    </li>
+
+    <li
+        class="menu-item {% if 'customer' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'customers' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-user-circle"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Customer Management</div>
+      </a>
+    </li>
+
+    <li
+        class="menu-item {% if 'device' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'devices' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-mobile-alt"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Device Management</div>
+      </a>
+    </li>
+
     {% comment %} <li
       class="menu-item {% if '/near-by-places/' in request.path %}active open{% endif %}"
     >
