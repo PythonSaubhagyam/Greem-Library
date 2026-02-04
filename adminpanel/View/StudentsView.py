@@ -12,11 +12,13 @@ from datetime import timedelta
 
 
 
-
 class StudentsAPIView(APIView):
     # permission_classes = [IsAuthenticated]
  
     def get(self, request):
+        teacher_id = request.query_params.get('teacher_id')
+        parent_id = request.query_params.get('parent_id')
+   
         student_id = request.GET.get('id')
         q = request.GET.get('q')
         students = StudentModel.objects.all().order_by('-id')
@@ -25,6 +27,12 @@ class StudentsAPIView(APIView):
             # print(student_id,'student_id')
             students = students.filter(id=student_id)
         
+        if parent_id:
+            students = students.filter(parent__id=parent_id)
+
+        elif teacher_id:
+            students = students.filter(parent__id=teacher_id)
+
         if q:
             print(q,'q')
             students = students.filter(

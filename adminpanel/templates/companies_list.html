@@ -382,7 +382,15 @@ function showToast(title, message, status = "primary") {
                 <td>
                   {% comment %} <img src="${getNextImage()}" alt="company" class="me-2 rounded" style="width: 35px; height: 35px;"> {% endcomment %}
                   {% comment %} <a href="/administrator/companies/detail/${company.id}/" class="fw-semibold text-decoration-none"> {% endcomment %}
-                    ${company.full_name || 'Unnamed Company'}
+                   <a 
+                      href="${
+                        type === 'teacher'
+                          ? `/administrator/students/?teacher_id=${company.id}`
+                          : `/administrator/students/?parent_id=${company.id}`
+                      }"
+                      class="fw-semibold text-decoration-none text-primary"
+                    >  
+                  ${company.full_name || 'Unnamed Company'}
                   {% comment %} </a> {% endcomment %}
                 </td>
                 <td>${company.email || '-'}</td>
@@ -417,6 +425,7 @@ function showToast(title, message, status = "primary") {
                           <i class="bx bx-trash me-1"></i> Delete
                         </a>
                       </li>
+
                     </ul>
                   </div>
                 </td>

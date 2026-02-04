@@ -108,6 +108,13 @@ const rowsSelect = document.getElementById("rowsPerPage");
 const pagination = document.getElementById("pagination");
 const paginationInfo = document.getElementById("pagination-info");
 
+// 🔹 Read teacher_id from URL
+const urlParams = new URLSearchParams(window.location.search);
+const teacherId = urlParams.get("teacher_id");
+const parentId = urlParams.get("parent_id");
+
+
+
 let deleteId = null;
 let currentPage = 1;
 
@@ -120,7 +127,11 @@ function fetchStudents(page = 1) {
   loader.style.display = "block";
   container.innerHTML = "";
 
-  fetch(`/administrator/students-api/?q=${q}&page=${page}&row_per_page=${rows}`)
+  fetch(
+    `/administrator/students-api/?q=${q}&page=${page}&row_per_page=${rows}` +
+    `&teacher_id=${teacherId || ""}&parent_id=${parentId || ""}`
+  )
+
     .then(res => res.json())
     .then(res => {
       loader.style.display = "none";
@@ -243,7 +254,8 @@ rowsSelect.addEventListener("change", () => fetchStudents(1));
 
 document.getElementById("resetFilters").onclick = () => {
   search.value = "";
-  fetchStudents(1);
+  window.location.href = "/administrator/students/";
+
 };
 
 fetchStudents();
