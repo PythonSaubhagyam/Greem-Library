@@ -1,6 +1,6 @@
 {% extends layout_path %}
 {% load static %}
-{% block title %} Students {% endblock %}
+{% block title %} Employees {% endblock %}
 
 {% block page_css %}
 <style>
@@ -13,52 +13,56 @@
 <div class="card">
 
   <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <h5 class="mb-0">Students</h5>
+    <h5 class="mb-0">Employees</h5>
 
     <div class="d-flex gap-2 align-items-center">
-      <div class="input-group input-group-sm" style="width: 220px;">
+
+      <div class="input-group input-group-sm" style="width:220px;">
         <span class="input-group-text bg-white border-end-0">
           <i class="bx bx-search text-muted"></i>
         </span>
-        <input type="text" id="searchStudent" class="form-control border-start-0" placeholder="Search student...">
+        <input type="text" id="searchEmployee" class="form-control border-start-0" placeholder="Search employee...">
       </div>
 
       <button class="btn btn-sm btn-outline-secondary" id="resetFilters">
         <i class="bx bx-refresh me-1"></i> Reset
       </button>
 
-      <a href="/administrator/students/add/" class="btn btn-sm btn-primary">
-        <i class="bx bx-plus"></i> Add Student
+      <a href="/administrator/employees/add/" class="btn btn-sm btn-primary">
+        <i class="bx bx-plus"></i> Add Employee
       </a>
+
     </div>
   </div>
 
   <div class="card-body">
 
     <div class="table-responsive">
+
       <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
             <th>Sr</th>
-            <th>Student ID</th>
+            <th>Employee ID</th>
             <th>Name</th>
             <th>Email</th>
-            <th>Class</th>
-            <th>Customer</th>
-            <!-- <th>Parents</th>
-            <th>Teachers</th> -->
+            <th>Department</th>
+            <!-- <th>Role</th> -->
             <th width="120px">Action</th>
           </tr>
         </thead>
-        <tbody id="students-container"></tbody>
+
+        <tbody id="employees-container"></tbody>
       </table>
 
-      <div id="students-loader" class="text-center py-5">
+      <div id="employees-loader" class="text-center py-5">
         <div class="spinner-border text-primary"></div>
       </div>
+
     </div>
 
     <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+
       <!-- Left -->
       <div class="d-flex align-items-center gap-2">
         <label class="small mb-0">Rows per page:</label>
@@ -74,8 +78,8 @@
         <small id="pagination-info" class="text-muted"></small>
         <ul id="pagination" class="pagination pagination-sm mb-0"></ul>
       </div>
-    </div>
 
+    </div>
 
   </div>
 </div>
@@ -84,15 +88,21 @@
 <div class="modal fade" id="deleteConfirmModal">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
+
       <div class="modal-header">
         <h5>Confirm Delete</h5>
         <button class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">Delete this student?</div>
+
+      <div class="modal-body">
+        Delete this employee?
+      </div>
+
       <div class="modal-footer">
         <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
       </div>
+
     </div>
   </div>
 </div>
@@ -101,44 +111,62 @@
 
 {% block page_js %}
 <script>
-const container = document.getElementById("students-container");
-const loader = document.getElementById("students-loader");
-const search = document.getElementById("searchStudent");
+
+function showToast(title, message, status = "primary") {
+  const toast = document.getElementById("alert-box");
+  const toastTitle = document.getElementById("toast-title");
+  const toastBody = document.getElementById("toast-body");
+  const toastIcon = document.getElementById("toast-icon");
+
+  toast.className = `bs-toast toast bg-${status} toast-placement-ex top-0 end-0 m-2 show`;
+  toastTitle.textContent = title;
+  toastBody.textContent = message;
+
+  toastIcon.className =
+    `bx me-2 ${status === "success" ? "bx-check-circle" : "bx-error"}`;
+
+  const bsToast = new bootstrap.Toast(toast);
+  bsToast.show();
+}
+
+const container = document.getElementById("employees-container");
+const loader = document.getElementById("employees-loader");
+const search = document.getElementById("searchEmployee");
 const rowsSelect = document.getElementById("rowsPerPage");
 const pagination = document.getElementById("pagination");
 const paginationInfo = document.getElementById("pagination-info");
 
-// 🔹 Read teacher_id from URL
-const urlParams = new URLSearchParams(window.location.search);
-const teacherId = urlParams.get("teacher_id");
-const parentId = urlParams.get("parent_id");
-
-
-
 let deleteId = null;
 let currentPage = 1;
 
-const deleteModal = new bootstrap.Modal(document.getElementById("deleteConfirmModal"));
+const deleteModal = new bootstrap.Modal(
+  document.getElementById("deleteConfirmModal")
+);
 
-function fetchStudents(page = 1) {
+
+/* ---------------- FETCH EMPLOYEES ---------------- */
+
+function fetchEmployees(page = 1) {
+
   const q = search.value;
   const rows = rowsSelect.value;
 
   loader.style.display = "block";
   container.innerHTML = "";
 
-  fetch(
-    `/administrator/students-api/?q=${q}&page=${page}&row_per_page=${rows}` +
-    `&teacher_id=${teacherId || ""}&parent_id=${parentId || ""}`
-  )
-
+  fetch(`/administrator/employees-api/?q=${q}&page=${page}&row_per_page=${rows}`)
     .then(res => res.json())
     .then(res => {
+
       loader.style.display = "none";
       currentPage = res.current_page;
 
       if (!res.results.length) {
-        container.innerHTML = `<tr><td colspan="8" class="text-center">No students found</td></tr>`;
+        container.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center">No employees found</td>
+          </tr>
+        `;
         pagination.innerHTML = "";
         paginationInfo.innerHTML = "";
         return;
@@ -149,94 +177,121 @@ function fetchStudents(page = 1) {
     });
 }
 
+
+/* ---------------- RENDER TABLE ---------------- */
+
 function renderRows(data) {
+
   container.innerHTML = "";
 
-  data.forEach((s, i) => {
+  data.forEach((e, i) => {
+
     container.insertAdjacentHTML("beforeend", `
       <tr>
         <td>${(currentPage - 1) * rowsSelect.value + i + 1}</td>
-        <td>${s.student_id}</td>
-        <td>${s.student_name}</td>
-        <td>${s.email || '-'}</td>
-        <td>${s.student_class || '-'}</td>
-        <td>${s.customer_name || '-'}</td>
-        {% comment %}<td>${s.parent_name || '-'}</td>
-        <td>${s.teacher_name || '-'}</td> {% endcomment %}
-         <td>
+        <td>${e.employee_id}</td>
+        <td>${e.user.first_name} ${e.user.last_name}</td>
+        <td>${e.user.email}</td>
+        <td>${e.department || "-"}</td>
+       {% comment %} <td>${e.user.role || "-"}</td> {% endcomment %}
+
+        <td>
           <div class="dropdown">
             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
               Action
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
+
               <li>
-                <a class="dropdown-item" href="/administrator/students/edit/${s.id}/">
+                <a class="dropdown-item" href="/administrator/employees/edit/${e.id}/">
                   <i class="bx bx-edit"></i> Edit
                 </a>
               </li>
+
               <li>
-                <a class="dropdown-item text-danger" href="#" onclick="askDelete(${s.id})">
+                <a class="dropdown-item text-danger" href="#" onclick="askDelete(${e.id})">
                   <i class="bx bx-trash"></i> Delete
                 </a>
               </li>
+
             </ul>
           </div>
         </td>
       </tr>
     `);
+
   });
 }
 
+
+/* ---------------- PAGINATION ---------------- */
+
 function renderPagination(data) {
-  const pagination = document.getElementById("pagination");
-  const info = document.getElementById("pagination-info");
 
   pagination.innerHTML = "";
 
-  info.textContent = `Showing page ${data.current_page} of ${data.total_pages} (${data.count} Students)`;
+  paginationInfo.textContent =
+    `Showing page ${data.current_page} of ${data.total_pages} (${data.count} Employees)`;
 
-  /* Previous */
+
+  // PREVIOUS
   const prevDisabled = data.previous === null ? "disabled" : "";
-  pagination.insertAdjacentHTML(
-    "beforeend",
-    `<li class="page-item ${prevDisabled}">
-      <a class="page-link" href="#" data-page="${data.current_page - 1}">Previous</a>
-    </li>`
-  );
 
-  /* Pages */
+  pagination.insertAdjacentHTML("beforeend", `
+    <li class="page-item ${prevDisabled}">
+      <a class="page-link" href="#" data-page="${data.current_page - 1}">
+        Previous
+      </a>
+    </li>
+  `);
+
+
+  // PAGES
   for (let i = 1; i <= data.total_pages; i++) {
+
     const active = i === data.current_page ? "active" : "";
-    pagination.insertAdjacentHTML(
-      "beforeend",
-      `<li class="page-item ${active}">
-        <a class="page-link" href="#" data-page="${i}">${i}</a>
-      </li>`
-    );
+
+    pagination.insertAdjacentHTML("beforeend", `
+      <li class="page-item ${active}">
+        <a class="page-link" href="#" data-page="${i}">
+          ${i}
+        </a>
+      </li>
+    `);
+
   }
 
-  /* Next */
-  const nextDisabled = data.next === null ? "disabled" : "";
-  pagination.insertAdjacentHTML(
-    "beforeend",
-    `<li class="page-item ${nextDisabled}">
-      <a class="page-link" href="#" data-page="${data.current_page + 1}">Next</a>
-    </li>`
-  );
 
-  /* Click handlers – same UX as Parents/Teachers */
-  pagination.querySelectorAll(".page-link").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
+  // NEXT
+  const nextDisabled = data.next === null ? "disabled" : "";
+
+  pagination.insertAdjacentHTML("beforeend", `
+    <li class="page-item ${nextDisabled}">
+      <a class="page-link" href="#" data-page="${data.current_page + 1}">
+        Next
+      </a>
+    </li>
+  `);
+
+
+  pagination.querySelectorAll(".page-link").forEach(btn => {
+
+    btn.addEventListener("click", e => {
       e.preventDefault();
+
       const page = parseInt(btn.dataset.page);
+
       if (!isNaN(page) && page >= 1 && page <= data.total_pages) {
-        fetchStudents(page);
+        fetchEmployees(page);
       }
     });
+
   });
+
 }
 
 
+/* ---------------- DELETE ---------------- */
 
 function askDelete(id) {
   deleteId = id;
@@ -244,21 +299,32 @@ function askDelete(id) {
 }
 
 document.getElementById("confirmDeleteBtn").onclick = function () {
-  fetch(`/administrator/students-api/${deleteId}/`, { method: "DELETE" })
-    .then(() => fetchStudents(currentPage));
+
+  fetch(`/administrator/employees-api/${deleteId}/`, {
+    method: "DELETE"
+  })
+  .then(() => {
+
+    showToast("Deleted", "Employee removed successfully", "success");
+
+    fetchEmployees(currentPage);
+  });
+
   deleteModal.hide();
 };
 
-search.addEventListener("input", () => fetchStudents(1));
-rowsSelect.addEventListener("change", () => fetchStudents(1));
+
+/* ---------------- FILTERS ---------------- */
+
+search.addEventListener("input", () => fetchEmployees(1));
+rowsSelect.addEventListener("change", () => fetchEmployees(1));
 
 document.getElementById("resetFilters").onclick = () => {
   search.value = "";
-  window.location.href = "/administrator/students/";
-
+  fetchEmployees(1);
 };
 
-fetchStudents();
-</script>
+fetchEmployees();
 
+</script>
 {% endblock %}

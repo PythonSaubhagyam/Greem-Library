@@ -76,3 +76,15 @@ class StudentAdmin(admin.ModelAdmin):
     search_fields = ("parent__email", "email", "student_id", "student_class",)
     filter_horizontal = ("parent",)
     list_filter = ("email", "student_id",)
+
+@admin.register(EmployeeModel)
+class EmployeeAdmin(admin.ModelAdmin):
+    list_display = ("id","employee_id", "email", "department",)
+    search_fields = ("user__email", "email", "employee_id", "department",)
+    list_filter = ("email", "employee_id",)
+
+@admin.register(DeviceModel)
+class DeviceAdmin(admin.ModelAdmin):
+    list_display = ("id","user", "imei_number",'is_active')
+    search_fields = ("user__email", "imei_number",)
+    list_filter = ("imei_number",)

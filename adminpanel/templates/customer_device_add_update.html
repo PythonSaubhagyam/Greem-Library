@@ -1,0 +1,437 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Device Management {% endblock %}
+
+{% block page_css %}
+<style>
+
+.customer-search-wrapper {
+  position: relative;
+}
+
+#customerResults {
+  position: absolute;
+  width: 100%;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 2000;
+}
+
+#customerResults button {
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  background: white;
+}
+
+#customerResults button:hover {
+  background: #f4f6ff;
+}
+
+/* ---------- DEVICE UI ---------- */
+
+.device-row {
+  background: #f9fbff;
+  border: 1px solid #e4e9ff;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.remove-device {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  cursor: pointer;
+  color: #dc3545;
+  font-size: 18px;
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+
+  <div class="card-header">
+    <h5 id="pageTitle">Add Devices</h5>
+  </div>
+
+  <div class="card-body">
+
+    <form id="deviceForm">
+
+      <!-- CUSTOMER SEARCH -->
+      <div class="col-md-6 customer-search-wrapper mb-4">
+
+        <label class="form-label">Customer</label>
+
+        <input type="text"
+               id="customerSearch"
+               class="form-control"
+               placeholder="Search customer by name or email"
+               autocomplete="off">
+
+        <input type="hidden" id="customerId">
+
+        <div id="customerResults" style="display:none"></div>
+
+      </div>
+
+      <hr>
+
+      <!-- DEVICES HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6>Devices</h6>
+
+        <button type="button"
+                class="btn btn-sm btn-outline-primary"
+                id="addDeviceBtn">
+          <i class="bx bx-plus"></i> Add Device
+        </button>
+      </div>
+
+      <!-- DEVICES -->
+      <div id="devicesContainer"></div>
+
+      <!-- ACTIONS -->
+      <div class="mt-4 d-flex justify-content-end">
+
+        <button type="submit"
+                class="btn btn-primary me-2"
+                id="saveBtn">
+          Save
+        </button>
+
+        <a href="/administrator/devices/"
+           class="btn btn-secondary">
+          Cancel
+        </a>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+<script>
+
+function showToast(title, message, status="primary") {
+
+  const toast = document.getElementById("alert-box");
+
+  toast.className =
+    `bs-toast toast bg-${status} toast-placement-ex top-0 end-0 m-2 show`;
+
+  document.getElementById("toast-title").innerText = title;
+  document.getElementById("toast-body").innerText = message;
+
+  new bootstrap.Toast(toast).show();
+}
+
+
+/* ================= CUSTOMER SEARCH ================= */
+
+const customerSearch   = document.getElementById("customerSearch");
+const customerResults  = document.getElementById("customerResults");
+const customerIdInput  = document.getElementById("customerId");
+
+let customerTimer = null;
+
+customerSearch.addEventListener("input", () => {
+
+  clearTimeout(customerTimer);
+
+  const q = customerSearch.value.trim();
+
+  if (q.length < 2) {
+    customerResults.style.display = "none";
+    return;
+  }
+
+  customerTimer = setTimeout(() => {
+
+    fetch(`/administrator/customers-api/?dropdown=1&q=${q}`)
+      .then(res => res.json())
+      .then(res => {
+
+        customerResults.innerHTML = "";
+
+        if (!res.results.length) {
+
+          customerResults.innerHTML =
+            `<div class="p-2 text-muted">No results</div>`;
+
+        } else {
+
+          res.results.forEach(c => {
+
+            customerResults.insertAdjacentHTML("beforeend", `
+              <button type="button"
+                      data-id="${c.id}"
+                      data-name="${c.customer_name}">
+                <strong>${c.customer_name}</strong><br>
+                <small>${c.email}</small>
+              </button>
+            `);
+
+          });
+
+        }
+
+        customerResults.style.display = "block";
+
+      });
+
+  }, 300);
+
+});
+
+
+customerResults.addEventListener("click", e => {
+
+  const btn = e.target.closest("button");
+
+  if (!btn) return;
+
+  customerSearch.value  = btn.dataset.name;
+  customerIdInput.value = btn.dataset.id;
+
+  customerResults.style.display = "none";
+
+});
+
+
+document.addEventListener("click", e => {
+
+  if (!customerSearch.contains(e.target) &&
+      !customerResults.contains(e.target)) {
+
+    customerResults.style.display = "none";
+  }
+
+});
+
+
+/* ================= PAGE MODE ================= */
+
+const pathParts = window.location.pathname.split("/").filter(Boolean);
+
+const editId = pathParts.includes("edit")
+  ? pathParts[pathParts.length - 1]
+  : null;
+
+if (editId) {
+  document.getElementById("pageTitle").innerText = "Update Devices";
+  document.getElementById("saveBtn").innerText  = "Update";
+}
+
+
+/* ================= DEVICE UI ================= */
+
+const devicesContainer = document.getElementById("devicesContainer");
+
+function addDeviceRow(device = {}) {
+
+  const row = document.createElement("div");
+  row.className = "device-row mb-3 border rounded p-3";
+
+  // if editing existing device
+  if (device.id) {
+    row.dataset.deviceId = device.id;
+  }
+
+  row.innerHTML = `
+
+    <div class="row">
+
+      <div class="col-md-6 mb-2">
+        <label class="form-label">IMEI Number</label>
+        <input type="text"
+               class="form-control imei-input"
+               value="${device.imei_number || ""}"
+               placeholder="Enter IMEI">
+      </div>
+
+    </div>
+
+    <i class="bx bx-trash remove-device"></i>
+  `;
+
+  row.querySelector(".remove-device").onclick = () => {
+
+    // existing device → mark deleted
+    if (row.dataset.deviceId) {
+      row.dataset.deleted = "1";
+      row.style.display = "none";
+    }
+    // new row → remove
+    else {
+      row.remove();
+    }
+
+  };
+
+  devicesContainer.appendChild(row);
+}
+
+document.getElementById("addDeviceBtn")
+  .addEventListener("click", () => addDeviceRow());
+
+
+addDeviceRow();
+
+
+/* ================= LOAD FOR EDIT ================= */
+
+if (editId) {
+
+  fetch(`/administrator/customer-devices/${editId}/`)
+    .then(res => res.json())
+    .then(res => {
+
+      const d = res.data;
+
+      // set customer
+      customerIdInput.value = d.user;
+      customerSearch.value = d.customer_name;
+      customerSearch.readOnly = true;
+
+      devicesContainer.innerHTML = "";
+
+      // load ONE existing device
+      addDeviceRow(d.device);
+
+    });
+
+}
+
+
+/* ================= SUBMIT ================= */
+
+document.getElementById("deviceForm")
+  .addEventListener("submit", e => {
+
+    e.preventDefault();
+
+    const customerId = customerIdInput.value;
+
+    if (!customerId) {
+      showToast("Error","Select customer","danger");
+      return;
+    }
+
+    const existing = [];
+    const added = [];
+    const deleted = [];
+
+    document.querySelectorAll(".device-row")
+      .forEach(row => {
+
+        const imei = row.querySelector(".imei-input").value.trim();
+        const id = row.dataset.deviceId;
+
+        if (row.dataset.deleted === "1") {
+          if (id) deleted.push(id);
+          return;
+        }
+
+        if (!imei) return;
+
+        if (id) {
+          existing.push({ id, imei_number: imei });
+        } else {
+          added.push({ imei_number: imei });
+        }
+
+      });
+
+    const requests = [];
+
+    // PATCH existing
+    existing.forEach(d => {
+
+      requests.push(
+        fetch(`/administrator/customer-devices/${d.id}/`, {
+          method: "PATCH",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ imei_number: d.imei_number })
+        })
+      );
+
+    });
+
+    // POST new
+    if (added.length) {
+
+      requests.push(
+        fetch(`/administrator/customer-devices/`, {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({
+            user: customerId,
+            devices: added
+          })
+        })
+      );
+
+    }
+
+    Promise.all(
+      requests.map(req =>
+        req.then(async res => {
+
+          const data = await res.json().catch(() => ({}));
+
+          return {
+            ok: res.ok,
+            status: res.status,
+            data
+          };
+
+        })
+      )
+    ).then(results => {
+
+      const failed = results.find(r => !r.ok);
+
+      if (failed) {
+
+        const msg =
+          failed.data?.errors
+            ? JSON.stringify(failed.data.errors)
+            : failed.data?.error || "Something went wrong";
+
+        showToast("Error", msg, "danger");
+
+        return;   // ⛔ stop success flow
+      }
+
+      // ✅ ALL SUCCESS
+      showToast(
+        "Success",
+        editId ? "Device(s) updated" : "Devices added",
+        "success"
+      );
+
+      setTimeout(() => {
+        window.location.href = "/administrator/devices/";
+      }, 1200);
+
+    });
+
+});
+
+
+</script>
+{% endblock %}

@@ -99,6 +99,19 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             add_edit_label = "Add Student"
         elif "/students/edit/" in self.request.path.lower():
             add_edit_label = "Edit Student"
+        elif "/employees/add/" in self.request.path.lower():
+            add_edit_label = "Add Employee"
+        elif "/employees/edit/" in self.request.path.lower():
+            add_edit_label = "Edit Employee" 
+        elif "/customers/add/" in self.request.path.lower():
+            add_edit_label = "Add Customer"
+        elif "/customers/edit/" in self.request.path.lower():
+            add_edit_label = "Edit Customer"
+        elif "/devices/add/" in self.request.path.lower():
+            add_edit_label = "Add Device"
+        elif "/devices/edit/" in self.request.path.lower():
+            add_edit_label = "Edit Device"
+       
 
 
         
@@ -125,6 +138,12 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             "add_company.html": (company_label, reverse('companies'), add_edit_label),
             "Students_list.html": ("Students Management", None),
             "students_add_update.html": ("Students Management", reverse('students'), add_edit_label),
+            "Employees_list.html": ("Employees Management", None),
+            "employees_add_update.html": ("Employees Management", reverse('employees'), add_edit_label),
+            "Customer_list.html": ("Customers Management", None),
+            "customer_add_update.html": ("Customers Management", reverse('customers'), add_edit_label),
+            "Devices_list.html": ("Devices Management", None),
+            "customer_device_add_update.html": ("Devices Management", reverse('devices'), add_edit_label),
             # "property_add.html": ("Properties", reverse("properties"), "Add Property"),
             # "property_edit.html": ("Properties", reverse("properties"), "Edit Property"),
 

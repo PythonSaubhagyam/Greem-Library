@@ -40,8 +40,8 @@
         </div>
 
         <div class="col-md-12">
-          <label class="form-label">Parents</label>
-          <select id="parent" placeholder="Select parents or teachers..." multiple></select>
+          <label class="form-label">Customer</label>
+          <select id="parent" placeholder="Select customer..." multiple></select>
         </div>
       </div>
 
@@ -87,13 +87,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (editStudentId) {
     pageTitle.innerText = "Update Student";
-    saveBtn.innerHTML = '<i class="bx bx-save"></i> Update Student';
+    saveBtn.innerHTML = 'Update';
   }
 
   let parentSelect;
 
   /* ---------------- LOAD PARENTS + TEACHERS ---------------- */
-  fetch("/administrator/users-list/")
+  fetch("/administrator/users-list/?parentteacher=customer")
     .then(res => res.json())
     .then(data => {
       const select = document.getElementById("parent");

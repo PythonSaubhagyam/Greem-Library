@@ -1,0 +1,334 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Customer {% endblock %}
+
+{% block page_css %}
+<style>
+.device-row { position: relative; }
+.remove-device {
+  position: absolute;
+  right: 10px;
+  top: 34px;
+  cursor: pointer;
+  color: #dc3545;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 id="pageTitle">Add Customer</h5>
+  </div>
+
+  <div class="card-body">
+
+    <form id="customerForm">
+
+      <!-- CUSTOMER INFO -->
+      <h6 class="mb-3">Customer Details</h6>
+
+      <div class="row g-3">
+
+        <div class="col-md-6">
+          <label class="form-label">First Name</label>
+          <input type="text" id="first_name" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Last Name</label>
+          <input type="text" id="last_name" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Email</label>
+          <input type="email" id="email" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+        <label class="form-label">Mobile No.</label>
+
+        <div class="d-flex gap-2">
+
+            <select class="form-select" id="countryCode" style="max-width:110px;">
+            </select>
+
+            <input
+            type="text"
+            id="mobile_no"
+            class="form-control"
+            placeholder="Enter mobile number"
+            required>
+
+        </div>
+        </div>
+
+      </div>
+
+      <!-- <hr class="my-4">
+
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6>Devices</h6>
+        <button type="button"
+                class="btn btn-sm btn-outline-primary"
+                id="addDeviceBtn">
+          <i class="bx bx-plus"></i> Add Device
+        </button>
+      </div>
+
+      <div id="devicesContainer"></div>  -->
+
+      <div class="col-12 d-flex justify-content-end mt-4">
+
+        <button type="submit"
+                class="btn btn-primary me-2"
+                id="saveBtn">
+          Add
+        </button>
+
+        <button type="button"
+                class="btn btn-secondary"
+                onclick="window.location.href='/administrator/customers/';">
+          Cancel
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+<script>
+
+function showToast(title, message, status="primary") {
+
+  const toast = document.getElementById("alert-box");
+  const toastTitle = document.getElementById("toast-title");
+  const toastBody = document.getElementById("toast-body");
+  const toastIcon = document.getElementById("toast-icon");
+
+  toast.className =
+    `bs-toast toast bg-${status} toast-placement-ex top-0 end-0 m-2 show`;
+
+  toastTitle.textContent = title;
+  toastBody.textContent = message;
+
+  toastIcon.className =
+    `bx me-2 ${status === "success" ? "bx-check-circle" : "bx-error"}`;
+
+  new bootstrap.Toast(toast).show();
+}
+
+
+/* ---------------- PAGE MODE ---------------- */
+
+const pathParts = window.location.pathname.split("/").filter(Boolean);
+
+const editId = pathParts.includes("edit")
+  ? pathParts[pathParts.length - 1]
+  : null;
+
+const pageTitle = document.getElementById("pageTitle");
+const saveBtn = document.getElementById("saveBtn");
+
+if (editId) {
+  pageTitle.innerText = "Update Customer";
+  saveBtn.innerText = "Update";
+}
+
+
+/* ---------------- DEVICES UI ---------------- */
+
+// const devicesContainer = document.getElementById("devicesContainer");
+
+// function addDeviceRow(value="") {
+
+//   const row = document.createElement("div");
+//   row.className = "row g-3 device-row mb-2";
+
+//   row.innerHTML = `
+//     <div class="col-md-6">
+//       <label class="form-label">IMEI Number</label>
+//       <input type="text"
+//              class="form-control imei-input"
+//              value="${value}">
+//     </div>
+
+//     <div class="col-md-1 d-flex align-items-end">
+//       <i class="bx bx-trash remove-device"></i>
+//     </div>
+//   `;
+
+//   row.querySelector(".remove-device")
+//      .onclick = () => row.remove();
+
+//   devicesContainer.appendChild(row);
+// }
+
+// document.getElementById("addDeviceBtn")
+//   .addEventListener("click", () => addDeviceRow());
+
+
+/* ---------------- LOAD FOR EDIT ---------------- */
+
+if (editId) {
+
+  fetch(`/administrator/customers-api/${editId}/`)
+    .then(res => res.json())
+    .then(res => {
+
+      const c = res.data;
+      console.log(c,'customer data customer data customer data');
+
+      first_name.value = c.first_name;
+      last_name.value = c.last_name;
+      email.value = c.email;
+      mobile_no.value = c.phone_no || "";
+
+      // c.devices.forEach(d => addDeviceRow(d.imei_number));
+
+    });
+
+} 
+// else {
+//   addDeviceRow();
+// }
+
+const countryCodeSelect = document.getElementById("countryCode");
+
+/* ------------ LOAD COUNTRY CODES ------------ */
+
+    fetch("/administrator/countries/")
+    .then(res => res.json())
+    .then(data => {
+
+        countryCodeSelect.innerHTML = "";
+
+        data.data.forEach(c => {
+
+        if (c.calling_code) {
+
+            const selected = c.calling_code === "91" ? "selected" : "";
+
+            countryCodeSelect.innerHTML += `
+            <option value="${c.calling_code}" ${selected}>
+                +${c.calling_code}
+            </option>
+            `;
+        }
+
+        });
+
+    });
+
+
+
+/* ---------------- SUBMIT ---------------- */
+
+document.getElementById("customerForm")
+  .addEventListener("submit", e => {
+
+    e.preventDefault();
+
+    // const devices = [];
+
+    // document.querySelectorAll(".imei-input")
+    //   .forEach(i => {
+    //     if (i.value.trim()) {
+    //       devices.push({ imei_number: i.value.trim() });
+    //     }
+    //   });
+    
+    const countryCode = countryCodeSelect.value;
+    const mobile = document.getElementById("mobile_no").value.trim();
+
+    const fullMobile =
+    countryCode && mobile
+            ? `+${countryCode}${mobile}`
+            : "";
+
+    const payload = {
+
+      first_name: first_name.value.trim(),
+      last_name: last_name.value.trim(),
+      email: email.value.trim(),
+      mobile_no: fullMobile,
+
+      // devices: devices
+    };
+
+    const url = editId
+      ? `/administrator/customers-api/${editId}/`
+      : `/administrator/customers-api/`;
+
+    const method = editId ? "PATCH" : "POST";
+
+    fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(async res => {
+
+      const data = await res.json();
+
+      // ❌ HTTP error (400/500)
+      if (!res.ok) {
+
+        let errorMsg = "Something went wrong";
+
+        const errorsObj = data.errors || data;
+
+        if (errorsObj && typeof errorsObj === "object") {
+
+          errorMsg = Object.values(errorsObj)
+            .flat()
+            .join(", ");
+        }
+
+        showToast("Error", errorMsg, "danger");
+        return;
+      }
+
+      // ✅ success response
+      if (data.status) {
+
+        const msg = editId
+          ? "Customer updated successfully"
+          : "Customer added successfully";
+
+        showToast("Success", msg, "success");
+
+        setTimeout(() => {
+          window.location.href = "/administrator/customers/";
+        }, 1200);
+
+      } else {
+
+        let errorMsg = "Something went wrong";
+
+        if (data.errors) {
+          errorMsg = Object.values(data.errors)
+            .flat()
+            .join(", ");
+        }
+
+        showToast("Error", errorMsg, "danger");
+      }
+
+    })
+    .catch(() => {
+      showToast("Error", "Network error occurred", "danger");
+    });
+
+});
+
+
+</script>
+{% endblock %}

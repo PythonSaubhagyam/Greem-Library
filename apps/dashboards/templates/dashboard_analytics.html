@@ -26,6 +26,9 @@
         document.getElementById("total-companies").innerText = data.total_companies;
         document.getElementById("active-companies").innerText = data.active_companies;
         document.getElementById("inactive-companies").innerText = data.inactive_companies;
+        document.getElementById("total-employees").innerText = data.total_employees;
+        document.getElementById("total-customers").innerText = data.total_customers;
+        document.getElementById("total-devices").innerText = data.total_devices;
         document.getElementById("total-users").innerText = data.total_users;
 
       })
@@ -131,7 +134,49 @@
     </div>
   </div>
   <div class="col-md-6 col-xl-3 mb-4">
-    <div class="card h-100 hover-shadow cursor-pointer" >
+    <div class="card h-100 hover-shadow cursor-pointer" onclick="window.location.href='{% url 'employees_list' %}'">
+      <div class="card-body">
+        <div class="card-title d-flex align-items-start justify-content-between mb-4">
+          <div class="avatar flex-shrink-0">
+            <img src="{% static 'img/icons/unicons/employee.png' %}" alt="Total Employees" class="rounded">
+          </div>
+        </div>
+        <p class="mb-1">Total Employees</p>
+        <h4 class="card-title mb-3" id="total-employees">0</h4>
+        {% comment %} <small class="text-danger fw-medium"><i class='bx bx-down-arrow-alt'></i> -14.82%</small> {% endcomment %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3 mb-4">
+    <div class="card h-100 hover-shadow cursor-pointer" onclick="window.location.href='{% url 'customers' %}'">
+      <div class="card-body">
+        <div class="card-title d-flex align-items-start justify-content-between mb-4">
+          <div class="avatar flex-shrink-0">
+            <img src="{% static 'img/icons/unicons/customers.png' %}" alt="Total Employees" class="rounded">
+          </div>
+        </div>
+        <p class="mb-1">Total Customers</p>
+        <h4 class="card-title mb-3" id="total-customers">0</h4>
+        {% comment %} <small class="text-danger fw-medium"><i class='bx bx-down-arrow-alt'></i> -14.82%</small> {% endcomment %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3 mb-4">
+    <div class="card h-100 hover-shadow cursor-pointer" onclick="window.location.href='{% url 'devices' %}'">
+      <div class="card-body">
+        <div class="card-title d-flex align-items-start justify-content-between mb-4">
+          <div class="avatar flex-shrink-0">
+            <img src="{% static 'img/icons/unicons/devices.png' %}" alt="Total Devices" class="rounded">
+          </div>
+        </div>
+        <p class="mb-1">Total Devices</p>
+        <h4 class="card-title mb-3" id="total-devices">0</h4>
+        {% comment %} <small class="text-danger fw-medium"><i class='bx bx-down-arrow-alt'></i> -14.82%</small> {% endcomment %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3 mb-4">
+    <div class="card h-100 hover-shadow" >
       <div class="card-body">
         <div class="card-title d-flex align-items-start justify-content-between mb-4">
           <div class="avatar flex-shrink-0">
