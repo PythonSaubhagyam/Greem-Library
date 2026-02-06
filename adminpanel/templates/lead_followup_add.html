@@ -1,0 +1,146 @@
+{% load static %}
+
+
+<!-- Styles -->
+{% block page_css %}
+<style>
+/* Center the modal content and make it small */
+.modal-dialog {
+    max-width: 460px;
+    margin: 1rem auto;
+}
+
+/* Reduce padding inside modal body */
+.modal-body {
+    padding: 1.2rem 1.5rem;
+}
+
+/* Tight spacing for rows */
+.modal-body .row.g-2 {
+    margin-bottom: 0.25rem;
+}
+
+/* Small labels */
+.modal-body label.form-label.small {
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Compact inputs */
+.modal-body .form-control-sm,
+.modal-body .form-select-sm {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Compact textarea */
+.modal-body textarea.form-control-sm {
+    padding: 0.25rem 0.5rem;
+}
+
+/* Button container spacing */
+.modal-body .d-flex.justify-content-end {
+    margin-top: 0.5rem;
+}
+
+/* Optional: add title directly above first field */
+.modal-body .form-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+
+  <!-- TITLE -->
+  <div class="form-title">
+    {% if is_edit %}
+      Edit Lead Follow-Up
+    {% else %}
+      Add Lead Follow-Up
+    {% endif %}
+  </div>
+
+  
+  <!-- Add/Edit Form -->
+    
+  <form method="post"
+      id="followupForm"
+      action="
+      {% if is_edit %}/administrator/lead-followups/edit/{{ followup.id }}/
+      {% else %}/administrator/lead-followups/add/{% endif %}">
+
+  
+    {% csrf_token %}
+    
+    <div class="row g-2"> 
+
+      <!-- LEAD -->
+      <div class="col-12">
+        <label class="form-label small">Tablet Lead</label>
+        <select name="tablet_lead_id" class="form-select form-select-sm" required>
+          <option value="">Select Lead</option>
+          {% for lead in leads %}
+            <option value="{{ lead.id }}" {% if followup and followup.tablet_lead_id == lead.id %}selected{% endif %}>
+              {{ lead.name }} ({{ lead.mobile }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- FOLLOW-UP TYPE -->
+      <div class="col-12">
+        <label class="form-label small">Follow-Up Type</label>
+        <select name="followup_type" class="form-select form-select-sm" required>
+          {% for type in followup_types %}
+            <option value="{{ type }}" {% if followup and followup.followup_type == type %}selected{% endif %}>
+              {{ type|capfirst }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- FOLLOW-UP DATE -->
+      <div class="col-12">
+        <label class="form-label small">Follow-Up Date & Time</label>
+        <input type="datetime-local"
+               name="followup_date"
+               class="form-control form-control-sm"
+               value="{{ followup.followup_date|date:'Y-m-d\\TH:i' }}"
+               required>
+      </div>
+
+      <!-- NEXT FOLLOW-UP -->
+      <div class="col-12">
+        <label class="form-label small">Next Follow-Up Date & Time</label>
+        <input type="datetime-local"
+               name="next_followup_date"
+               class="form-control form-control-sm"
+               value="{{ followup.next_followup_date|date:'Y-m-d\\TH:i' }}">
+      </div>
+
+      <!-- COMMENT -->
+      <div class="col-12">
+        <label class="form-label small">Comment</label>
+        <textarea name="comment" class="form-control form-control-sm" rows="2">{{ followup.comment|default:'' }}</textarea>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="col-12 d-flex justify-content-end gap-2 mt-2">
+        <button type="submit" class="btn btn-primary btn-sm">
+          {% if is_edit %}Update{% else %}Save{% endif %}
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+          Cancel
+        </button>
+      </div>
+
+    </div>
+  </form>
+
+
+{% endblock %}
+

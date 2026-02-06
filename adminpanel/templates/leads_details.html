@@ -1,0 +1,320 @@
+{% extends layout_path %} 
+{% load static %}
+
+{% block title %}Tablet Leads{% endblock %}
+
+{% block page_css %}
+<style>
+.table td, .table th { vertical-align: middle; }
+
+/* Toast position for Bootstrap 5 */
+.toast { position: fixed; top: 2rem; right: 1rem; z-index: 9999; }
+
+
+/* Delete Modal - Compact */
+#deleteConfirmModal .modal-dialog {
+    max-width: 380px;
+}
+
+#deleteConfirmModal .modal-header {
+    padding: 0.5rem 0.75rem;
+}
+
+#deleteConfirmModal .modal-header h5 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+#deleteConfirmModal .modal-body {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+#deleteConfirmModal .modal-footer {
+    padding: 0.4rem 0.75rem;
+    gap: 0.25rem;
+}
+
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <!-- CSRF token for JS delete -->
+  <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5 class="mb-0">Tablet Leads</h5>
+    <div class="d-flex gap-2 align-items-center">
+      <div class="input-group input-group-sm" style="width: 220px;">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bx bx-search text-muted"></i>
+        </span>
+        <input type="text" id="searchLead" class="form-control border-start-0" placeholder="Search lead...">
+      </div>
+      <button class="btn btn-sm btn-outline-secondary" id="resetFilters"><i class="bx bx-refresh me-1"></i> Reset</button>
+      <a href="/administrator/leads/add/" class="btn btn-sm btn-primary"><i class="bx bx-plus"></i> Add Lead</a>
+      <button id="openFollowupBtn" class="btn btn-sm btn-outline-info"><i class="bx bx-history me-1"></i> Lead Follow-Up</button>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Sr</th>
+            <th>Name</th>
+            <th>Mobile</th>
+            <th>Email</th>
+            <th>Customer Type</th>
+            <th>Tablet Model</th>
+            <th>Variant</th>
+            <th>Quantity</th>
+            <th>Price/Unit</th>
+            <th>Total Price</th>
+            <th>Stage</th>
+            <th>Comment</th>
+            <th>Demo Required</th>
+            <th>Demo Done</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="leads-container"></tbody>
+      </table>
+      <div id="leads-loader" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <label class="small mb-0">Rows per page:</label>
+        <select id="rowsPerPage" class="form-select form-select-sm w-auto">
+          <option>10</option>
+          <option>25</option>
+          <option selected>50</option>
+        </select>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <small id="pagination-info" class="text-muted"></small>
+        <ul id="pagination" class="pagination pagination-sm mb-0"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Follow-Up Modal -->
+<div class="modal fade" id="followupModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="followupModalBody">
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteConfirmModal">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5>Confirm Delete</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">Delete this lead?</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="alert-box" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+  <div class="toast-header">
+    <i id="toast-icon" class="bx me-2"></i>
+    <strong class="me-auto" id="toast-title"></strong>
+    <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+  </div>
+  <div class="toast-body" id="toast-body"></div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    const container = document.getElementById("leads-container");
+    const loader = document.getElementById("leads-loader");
+    const search = document.getElementById("searchLead");
+    const deleteModal = new bootstrap.Modal(document.getElementById("deleteConfirmModal"));
+    let deleteId = null;
+
+    
+    window.askDelete = function(id){
+        deleteId = id;
+        deleteModal.show();
+    };
+
+    function showToast(title, message, status="success"){
+        const toast = document.getElementById("alert-box");
+        const toastTitle = document.getElementById("toast-title");
+        const toastBody = document.getElementById("toast-body");
+        const toastIcon = document.getElementById("toast-icon");
+
+        let bgClass="bg-primary", iconClass="bx-info-circle";
+        if(status==="success"){ bgClass="bg-success"; iconClass="bx-check-circle"; }
+        else if(status==="danger"){ bgClass="bg-danger"; iconClass="bx-x-circle"; }
+        else if(status==="info"){ bgClass="bg-info"; iconClass="bx-info-circle"; }
+
+        toast.className = `bs-toast toast ${bgClass} toast-placement-ex top-0 end-0 m-2 show`;
+        toastTitle.textContent = title;
+        toastBody.textContent = message;
+        toastIcon.className = `bx me-2 ${iconClass}`;
+
+        new bootstrap.Toast(toast, { delay: 5000, autohide: true }).show();
+    }
+
+    function fetchLeads() {
+        const q = search.value;
+        loader.style.display="block";
+        container.innerHTML="";
+        fetch(`/administrator/lead/?q=${q}`)
+            .then(res => res.json())
+            .then(res => {
+                loader.style.display="none";
+                const data = res.data || [];
+                if(!data.length){
+                    container.innerHTML = `<tr><td colspan="15" class="text-center">No leads found</td></tr>`;
+                    return;
+                }
+                container.innerHTML="";
+                data.forEach((lead,i)=>{
+                    container.insertAdjacentHTML("beforeend", `
+                        <tr>
+                          <td>${i+1}</td>
+                          <td>${lead.name}</td>
+                          <td>${lead.mobile}</td>
+                          <td>${lead.email||'-'}</td>
+                          <td>${lead.customer_type||'-'}</td>
+                          <td>${lead.tablet_model||'-'}</td>
+                          <td>${lead.tablet_variant||'-'}</td>
+                          <td>${lead.quantity}</td>
+                          <td>₹ ${lead.price_per_unit||'-'}</td>
+                          <td>₹ ${lead.total_price||'-'}</td>
+                          <td>${lead.stage||'-'}</td>
+                          <td>${lead.comment || '-'}</td>
+                          <td>${lead.demo_required?'Yes':'No'}</td>
+                          <td>${lead.demo_done?'Yes':'No'}</td>
+                          <td>
+                            <div class="dropdown">
+                              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Action</button>
+                              <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="/administrator/leads/edit/${lead.id}/"><i class="bx bx-edit"></i> Edit</a></li>
+                                <li><a class="dropdown-item text-primary" href="/administrator/lead-followups/lead/${lead.id}/"><i class="bx bx-show"></i> View Follow-Ups</a></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="askDelete(${lead.id})"><i class="bx bx-trash"></i> Delete</a></li>
+                              </ul>
+                            </div>
+                          </td>
+                        </tr>
+                    `);
+                });
+            })
+            .catch(err=>{ loader.style.display="none"; console.error(err); });
+    }
+
+    
+    document.getElementById("confirmDeleteBtn").onclick = function(){
+        if(!deleteId) return;
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+        fetch(`/administrator/lead/${deleteId}/`, {
+            method: "DELETE",
+            headers: {
+                "X-CSRFToken": csrftoken,
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+
+        .then(res => res.json())
+        .then(res => {
+            if(res.status || res.success){
+                showToast("Success", res.message || "Lead deleted successfully", "success");
+                fetchLeads(); 
+            } else {
+                showToast("Error", res.error || "Failed to delete", "danger");
+            }
+        })
+        .catch(()=>showToast("Error","Server error","danger"))
+        .finally(()=>deleteModal.hide());
+    };
+
+    
+    search.addEventListener("input", fetchLeads);
+    document.getElementById("resetFilters").onclick = ()=>{ search.value=""; fetchLeads(); };
+
+    fetchLeads();
+
+    
+    document.getElementById("openFollowupBtn").addEventListener("click", function(){  
+      const modalBody = document.getElementById("followupModalBody");
+      const followupModalEl = document.getElementById("followupModal");
+      const followupModal =
+      bootstrap.Modal.getInstance(followupModalEl)
+      || new bootstrap.Modal(followupModalEl);
+
+
+      modalBody.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>`;
+      followupModal.show();
+
+      fetch("/administrator/lead-followups/add/")
+      .then(res => res.text())
+      .then(html => {
+        modalBody.innerHTML = html;
+
+        
+        modalBody.querySelectorAll('[data-bs-dismiss="modal"], .btn-close')
+          .forEach(btn => {
+            btn.addEventListener('click', () => followupModal.hide());
+          });
+
+
+        const form = modalBody.querySelector("#followupForm");
+        if (form) {
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+                fetch(form.action, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": form.querySelector('[name=csrfmiddlewaretoken]').value,
+                        "X-Requested-With": "XMLHttpRequest"
+                    },
+                    body: new FormData(form)
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success) {
+                        followupModal.hide();
+                        showToast("Success", res.message || "Follow-up added successfully", "success");
+                        fetchLeads();
+                    } else {
+                        showToast("Error", res.error || "Failed to save follow-up", "danger");
+                    }
+                })
+                .catch(() => showToast("Error", "Server error", "danger"));
+          });
+        }
+      })
+      .catch(() => { modalBody.innerHTML = `<div class="text-danger text-center py-3">Failed to load form</div>`; });
+    });
+
+});
+</script>
+{% endblock %}
