@@ -1,0 +1,288 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}
+  {% if is_edit %}Edit Tablet Lead{% else %}Add Tablet Lead{% endif %}
+{% endblock %}
+
+{% block page_css %}
+<style>
+.form-label { font-weight: 600; }
+
+/* Toast position for Bootstrap 5 */
+.toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5 class="mb-0">
+      {% if is_edit %}Edit Tablet Lead{% else %}Add Tablet Lead{% endif %}
+    </h5>
+  </div>
+
+  <div class="card-body">
+    <form method="POST" id="leadForm">
+      {% csrf_token %}
+
+      <div class="row g-3">
+
+        <!-- BASIC INFO -->
+        <div class="col-md-4">
+          <label class="form-label">Name</label>
+          <input type="text" name="name" class="form-control"
+                 value="{{ lead.name|default:'' }}" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Mobile</label>
+          <input type="text" name="mobile" class="form-control"
+                 value="{{ lead.mobile|default:'' }}" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control"
+                 value="{{ lead.email|default:'' }}">
+        </div>
+
+        <!-- CUSTOMER INFO -->
+        <div class="col-md-4">
+          <label class="form-label">Customer Type</label>
+          <select name="customer_type" class="form-select" required>
+            <option value="">Select Type</option>
+            {% for val in customer_types %}
+              <option value="{{ val }}" {% if lead and lead.customer_type|default:'' == val %}selected{% endif %}>
+                {{ val }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">School / Institute</label>
+          <input type="text" name="school_name" class="form-control"
+                 value="{{ lead.school_name|default:'' }}">
+        </div>
+
+        <!-- TABLET INFO -->
+        <div class="col-md-4">
+          <label class="form-label">Tablet Model</label>
+          <input type="text" name="tablet_model" class="form-control"
+                 value="{{ lead.tablet_model|default:'' }}" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Tablet Variant</label>
+          <input type="text" name="tablet_variant" class="form-control"
+                 value="{{ lead.tablet_variant|default:'' }}">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Quantity</label>
+          <input type="number" name="quantity" class="form-control"
+                 value="{{ lead.quantity|default:1 }}" min="1" required>
+        </div>
+
+        <!-- PRICING -->
+        <div class="col-md-4">
+          <label class="form-label">Price / Unit</label>
+          <input type="number" name="price_per_unit" class="form-control"
+                 value="{{ lead.price_per_unit|default:0 }}" step="0.01" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Total Price</label>
+          <input type="number" name="total_price" class="form-control"
+                 value="{{ lead.total_price|default:0 }}" readonly>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Payment Status</label>
+          <select name="payment_status" class="form-select" required>
+            {% for val in payment_statuses %}
+              <option value="{{ val }}" {% if lead and lead.payment_status == val %}selected{% endif %}>
+                {{ val }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- DEMO -->
+        <div class="col-md-4">
+          <label class="form-label">Demo Required</label>
+          <select name="demo_required" class="form-select">
+            <option value="true" {% if lead and lead.demo_required %}selected{% endif %}>Yes</option>
+            <option value="false" {% if lead and not lead.demo_required %}selected{% endif %}>No</option>
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Demo Done</label>
+          <select name="demo_done" class="form-select">
+            <option value="true" {% if lead and lead.demo_done %}selected{% endif %}>Yes</option>
+            <option value="false" {% if lead and not lead.demo_done %}selected{% endif %}>No</option>
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Demo Date</label>
+          <input type="date" name="demo_date" class="form-control"
+                 value="{{ lead.demo_date|date:'Y-m-d' }}" onfocus="this.showPicker()">
+        </div>
+
+        <!-- STAGE -->
+        <div class="col-md-4">
+          <label class="form-label">Lead Stage</label>
+          <select name="stage" class="form-select" required>
+            {% for val in lead_stages %}
+              <option value="{{ val }}" {% if lead and lead.stage == val %}selected{% endif %}>
+                {{ val }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Delivery Date</label>
+          <input type="date" name="delivery_date" class="form-control"
+                 value="{{ lead.delivery_date|date:'Y-m-d' }}" onfocus="this.showPicker()">
+        </div>
+
+        <!-- ASSIGNED TO -->
+        <div class="col-md-4">
+          <label class="form-label">Assigned To</label>
+          <select name="assigned_to" class="form-select">
+            <option value="">Select User</option>
+            {% for user in users %}
+              <option value="{{ user.id }}"
+                {% if lead and lead.assigned_to_id|stringformat:"s" == user.id|stringformat:"s" %}selected{% endif %}>
+                {{ user.first_name }} {{ user.last_name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- COMMENT -->
+        <div class="col-12">
+          <label class="form-label">Comment</label>
+          <textarea name="comment" class="form-control" rows="2">{{ lead.comment|default:'' }}</textarea>
+        </div>
+
+      </div>
+
+      <div class="col-12 d-flex justify-content-end mt-3">
+        <button type="submit" class="btn btn-primary me-2">
+          {% if is_edit %}<i class="bx bx-edit me-1"></i> Update Lead{% else %}<i class="bx bx-save me-1"></i> Save Lead{% endif %}
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='/administrator/lead-management/?type={{detail_name}}'; return false;">
+          Cancel
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<div id="alert-box" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+  <div class="toast-header">
+    <i id="toast-icon" class="bx me-2"></i>
+    <strong class="me-auto" id="toast-title"></strong>
+    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+  </div>
+  <div class="toast-body" id="toast-body"></div>
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+
+<script>
+
+  function showToast(title, message, status = "primary") {
+    const toast = document.getElementById("alert-box");
+    const toastTitle = document.getElementById("toast-title");
+    const toastBody = document.getElementById("toast-body");
+    const toastIcon = document.getElementById("toast-icon");
+    
+    toast.className = `bs-toast toast bg-${status} toast-placement-ex top-0 end-0 m-2 show`;
+    toastTitle.textContent = title;
+    toastBody.textContent = message;
+
+    toastIcon.className = `bx me-2 ${status === "success" ? "bx-check-circle" : "bx-error"}`;
+
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
+
+// Auto-calc total price
+const price = document.querySelector('[name="price_per_unit"]');
+const qty = document.querySelector('[name="quantity"]');
+const total = document.querySelector('[name="total_price"]');
+function calculateTotal() {
+  const p = parseFloat(price.value) || 0;
+  const q = parseInt(qty.value) || 0;
+  total.value = (p * q).toFixed(2);
+}
+price.addEventListener("input", calculateTotal);
+qty.addEventListener("input", calculateTotal);
+
+
+
+document.getElementById("leadForm").addEventListener("submit", function(e){
+    e.preventDefault();
+
+    const leadId = "{{ lead.id|default:'null' }}"; 
+    const url = leadId && leadId !== "null" ? `/administrator/leads/edit/${leadId}/` : `/administrator/leads/add/`;
+    const method = "POST";
+
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const formData = new FormData(this);
+
+    fetch(url, {
+        method: method,
+        headers: { "X-CSRFToken": csrftoken },
+        body: formData
+    })
+    .then(res => {
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            return res.json();
+        } else {
+            return { success: true };
+        }
+    })
+    .then(res => {
+        if(res.success || res.message){
+            const msg = leadId ? "Lead updated successfully" : "Lead created successfully";
+            showToast("Success", msg, "success");
+
+            setTimeout(()=>{ window.location.href = "/administrator/lead-management/"; },1200);
+        } else {
+            let errMsg = res.error || "Something went wrong";
+            if(res.errors){
+                const firstField = Object.keys(res.errors)[0];
+                if(res.errors[firstField]?.length){
+                    errMsg = res.errors[firstField][0];
+                }
+            }
+            showToast("Error", errMsg, "danger");
+        }
+    })
+    .catch(err=>{
+        showToast("Error","Something went wrong. Please try again.","danger");
+        console.error(err);
+    });
+});
+
+
+</script>
+
+{% endblock %}
