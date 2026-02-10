@@ -1,0 +1,411 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Student Details {% endblock %}
+
+{% block page_css %}
+<style>
+.stat-card h4 { font-weight: 600; }
+.stat-card small { color: #888; }
+
+.nav-tabs .nav-link.active {
+  font-weight: 600;
+}
+
+.tab-pane table td,
+.tab-pane table th {
+  vertical-align: middle;
+}
+
+.search-box {
+  max-width: 300px;
+}
+
+.pagination {
+  justify-content: end;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Summary Cards -->
+<div class="d-flex flex-wrap gap-3 mb-4">
+
+  <div class="flex-fill card stat-card p-3">
+    <small>Total PDFs</small>
+    <h4 id="pdfCount">0</h4>
+  </div>
+
+  <div class="flex-fill card stat-card p-3">
+    <small>Groups</small>
+    <h4 id="groupCount">0</h4>
+  </div>
+
+  <div class="flex-fill card stat-card p-3">
+    <small>Tests Taken</small>
+    <h4 id="testCount">0</h4>
+  </div>
+
+  <div class="flex-fill card stat-card p-3">
+    <small>Completed Tests</small>
+    <h4 id="completedCount">0</h4>
+  </div>
+
+  <div class="flex-fill card stat-card p-3">
+    <small>Incomplete Tests</small>
+    <h4 id="incompleteCount">0</h4>
+  </div>
+
+</div>
+
+<!-- 🔍 SEARCH BAR -->
+<div class="d-flex justify-content-end mb-3">
+  <input type="text" id="globalSearch"
+         class="form-control search-box"
+         placeholder="Search...">
+</div>
+
+<!-- Tabs -->
+<div class="card">
+
+  <div class="card-header">
+    <ul class="nav nav-tabs card-header-tabs" id="studentTabs">
+
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pdfTab">
+          Uploaded PDFs
+        </button>
+      </li>
+
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#groupTab">
+          Group of Pdfs
+        </button>
+      </li>
+
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#testTab">
+          Tests
+        </button>
+      </li>
+
+    </ul>
+  </div>
+
+  <div class="card-body tab-content">
+
+    <!-- PDFs -->
+    <div class="tab-pane fade show active" id="pdfTab">
+
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Title</th>
+              <th>Pages</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="pdfTable"></tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-end mt-3">
+        <nav>
+          <ul class="pagination" id="pdfPagination"></ul>
+        </nav>
+      </div>
+
+
+    </div>
+
+    <!-- Groups -->
+    <div class="tab-pane fade" id="groupTab">
+
+      <table class="table table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Pdfs</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody id="groupTable"></tbody>
+      </table>
+
+      <div class="d-flex justify-content-end mt-3">
+        <nav>
+          <ul class="pagination" id="groupPagination"></ul>
+        </nav>
+      </div>
+
+    </div>
+
+    <!-- Tests -->
+    <div class="tab-pane fade" id="testTab">
+
+      <table class="table table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Test</th>
+            <th>Questions</th>
+            <th>Type</th>
+            <th>Total Marks</th>
+            <th>Score</th>
+            <th>Duration</th>
+            <th>Status</th>
+            <th>Started</th>
+            <th>Completed</th>
+          </tr>
+        </thead>
+        <tbody id="testTable"></tbody>
+      </table>
+
+      <div class="d-flex justify-content-end mt-3">
+        <nav>
+          <ul class="pagination" id="testPagination"></ul>
+        </nav>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+<script>
+
+const studentId = window.location.pathname.split("/").filter(Boolean).pop();
+
+let currentTab = "pdf";
+let pages = {
+  pdf: 1,
+  group: 1,
+  test: 1
+};
+
+let query = "";
+
+const searchInput = document.getElementById("globalSearch");
+
+searchInput.addEventListener("keyup", e => {
+  query = e.target.value;
+  pages[currentTab] = 1;
+
+  reloadCurrentTab();
+});
+
+
+loadStudentSummary();
+
+function loadStudentSummary() {
+
+  fetch(`/administrator/students/summary/${studentId}/`)
+    .then(r => r.json())
+    .then(res => {
+
+      if (!res.status) return;
+
+      document.getElementById("pdfCount").innerText =
+        res.counts.pdfs || 0;
+
+      document.getElementById("groupCount").innerText =
+        res.counts.groups || 0;
+
+      document.getElementById("testCount").innerText =
+        res.counts.tests_attempted || 0;
+
+      document.getElementById("completedCount").innerText =
+        res.counts.completed_tests || 0;
+
+      document.getElementById("incompleteCount").innerText =
+        res.counts.incomplete_tests || 0;
+
+    })
+    .catch(err => console.error("Summary API error:", err));
+}
+
+// TAB SWITCH
+document.querySelectorAll("#studentTabs button").forEach(btn => {
+  btn.addEventListener("shown.bs.tab", e => {
+
+    const target = e.target.dataset.bsTarget;
+
+    if (target === "#pdfTab") currentTab = "pdf";
+    if (target === "#groupTab") currentTab = "group";
+    if (target === "#testTab") currentTab = "test";
+
+    reloadCurrentTab();
+  });
+});
+
+
+// ---------------- LOADERS -----------------
+
+loadPDFs();
+
+function reloadCurrentTab() {
+  if (currentTab === "pdf") loadPDFs();
+  if (currentTab === "group") loadGroups();
+  if (currentTab === "test") loadTests();
+}
+
+
+function loadPDFs() {
+
+  fetch(`/administrator/students/pdfs/${studentId}/?page=${pages.pdf}&q=${query}`)
+    .then(r => r.json())
+    .then(res => {
+
+      const tbody = document.getElementById("pdfTable");
+      tbody.innerHTML = "";
+
+      res.results.forEach((p, i) => {
+        tbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${(pages.pdf - 1) * res.rows_per_page
+ + i + 1}</td>
+            <td>${p.title}</td>
+            <td>${p.total_pages}</td>
+            <td>${p.created_at}</td>
+          </tr>
+        `);
+      });
+
+      renderPagination(res, "pdfPagination", "pdf");
+
+    });
+}
+
+
+function loadGroups() {
+
+  fetch(`/administrator/students/pdfs-groups/${studentId}/?page=${pages.group}&q=${query}`)
+    .then(r => r.json())
+    .then(res => {
+
+      const tbody = document.getElementById("groupTable");
+      tbody.innerHTML = "";
+
+      res.results.forEach((g, i) => {
+        tbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${(pages.group - 1) * res.rows_per_page
+ + i + 1}</td>
+            <td>${g.name}</td>
+            <td>${g.pdfs_counts}</td>
+            <td>${g.created_at}</td>
+          </tr>
+        `);
+      });
+
+      renderPagination(res, "groupPagination", "group");
+
+    });
+}
+
+
+function loadTests() {
+
+  fetch(`/administrator/students/tests/${studentId}/?page=${pages.test}&q=${query}`)
+    .then(r => r.json())
+    .then(res => {
+
+      const tbody = document.getElementById("testTable");
+      tbody.innerHTML = "";
+
+      res.results.forEach((t, i) => {
+
+        const status = t.is_completes
+          ? `<span class="badge bg-success">Completed</span>`
+          : `<span class="badge bg-warning">Pending</span>`;
+
+        tbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${(pages.test - 1) * res.rows_per_page
+ + i + 1}</td>
+            <td>${t.test_title}</td>
+            <td>${t.number_of_questions}</td>
+            <td>${t.question_type}</td>
+            <td>${t.total_marks}</td>
+            <td><strong>${t.score}</strong></td>
+            <td>${t.duration_minutes || '-'} min</td>
+            <td>${status}</td>
+            <td>${t.started_at}</td>
+            <td>${t.completed_at || '-'}</td>
+          </tr>
+        `);
+      });
+
+      renderPagination(res, "testPagination", "test");
+
+    });
+}
+
+
+
+// ---------------- PAGINATION -----------------
+
+function renderPagination(res, containerId, type) {
+
+  const ul = document.getElementById(containerId);
+  ul.innerHTML = "";
+
+
+
+  // PREVIOUS
+  ul.insertAdjacentHTML("beforeend", `
+    <li class="page-item ${res.previous ? "" : "disabled"}">
+      <a class="page-link" href="#" data-page="${res.current_page - 1}">
+        Previous
+      </a>
+    </li>
+  `);
+
+  // PAGE NUMBERS
+  for (let i = 1; i <= res.total_pages; i++) {
+
+    ul.insertAdjacentHTML("beforeend", `
+      <li class="page-item ${i === res.current_page ? "active" : ""}">
+        <a class="page-link" href="#" data-page="${i}">
+          ${i}
+        </a>
+      </li>
+    `);
+
+  }
+
+  // NEXT
+  ul.insertAdjacentHTML("beforeend", `
+    <li class="page-item ${res.next ? "" : "disabled"}">
+      <a class="page-link" href="#" data-page="${res.current_page + 1}">
+        Next
+      </a>
+    </li>
+  `);
+
+  // CLICK HANDLER
+  ul.querySelectorAll("a.page-link").forEach(link => {
+
+    link.addEventListener("click", e => {
+      e.preventDefault();
+
+      const page = parseInt(link.dataset.page);
+
+      if (!page || page < 1 || page > res.total_pages) return;
+
+      pages[type] = page;
+      reloadCurrentTab();
+    });
+
+  });
+}
+
+</script>
+
+{% endblock %}

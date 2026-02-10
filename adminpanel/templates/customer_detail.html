@@ -1,0 +1,520 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Customer Details {% endblock %}
+
+{% block page_css %}
+<style>
+.stat-card h4 {
+  font-weight: 600;
+}
+.stat-card small {
+  color: #888;
+}
+
+.nav-tabs .nav-link.active {
+  font-weight: 600;
+}
+
+.tab-pane table td,
+.tab-pane table th {
+  vertical-align: middle;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ================= SUMMARY CARDS ================= -->
+<div class="d-flex flex-wrap gap-3 mb-4">
+
+  <div class="flex-fill card stat-card p-3">
+    <small>Total Students</small>
+    <h4 id="studentCount">0</h4>
+  </div>
+
+  <div class="flex-fill card stat-card p-3">
+    <small>Parents</small>
+    <h4 id="parentCount">0</h4>
+  </div>
+
+  <div class="flex-fill card stat-card p-3">
+    <small>Teachers</small>
+    <h4 id="teacherCount">0</h4>
+  </div>
+
+  <div class="flex-fill card stat-card p-3">
+    <small>Devices</small>
+    <h4 id="deviceCount">0</h4>
+  </div>
+
+</div>
+
+<div class="mb-3 d-flex justify-content-end">
+  <input
+    type="text"
+    id="customerSearch"
+    class="form-control w-25"
+    placeholder="Search..."
+  >
+</div>
+
+<!-- ================= TABS ================= -->
+
+<div class="card">
+
+  <div class="card-header">
+    <ul class="nav nav-tabs card-header-tabs" id="customerTabs">
+
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#studentsTab">
+          Students
+        </button>
+      </li>
+
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#parentsTab">
+          Parents
+        </button>
+      </li>
+
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#teachersTab">
+          Teachers
+        </button>
+      </li>
+
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#devicesTab">
+          Devices
+        </button>
+      </li>
+
+    </ul>
+  </div>
+
+  <div class="card-body tab-content">
+
+    <!-- ================= STUDENTS ================= -->
+    <div class="tab-pane fade show active" id="studentsTab">
+
+      <table class="table table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Class</th>
+            <th>Email</th>
+          </tr>
+        </thead>
+        <tbody id="studentTable"></tbody>
+      </table>
+      
+      <div class="d-flex justify-content-between align-items-center mt-3">
+
+        <small id="studentsPageInfo" class="text-muted"></small>
+
+        <ul id="studentsPagination"
+            class="pagination pagination-sm mb-0">
+        </ul>
+
+      </div>
+
+    </div>
+
+    <!-- ================= PARENTS ================= -->
+    <div class="tab-pane fade" id="parentsTab">
+
+      <table class="table table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Mobile</th>
+          </tr>
+        </thead>
+        <tbody id="parentTable"></tbody>
+      </table>
+
+      <div class="d-flex justify-content-between align-items-center mt-3">
+
+        <small id="parentsPageInfo" class="text-muted"></small>
+
+        <ul id="parentsPagination"
+            class="pagination pagination-sm mb-0">
+        </ul>
+
+      </div>
+
+
+    </div>
+
+    <!-- ================= TEACHERS ================= -->
+    <div class="tab-pane fade" id="teachersTab">
+
+      <table class="table table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Mobile</th>
+          </tr>
+        </thead>
+        <tbody id="teacherTable"></tbody>
+      </table>
+
+      <div class="d-flex justify-content-between align-items-center mt-3">
+
+        <small id="teachersPageInfo" class="text-muted"></small>
+
+        <ul id="teachersPagination"
+            class="pagination pagination-sm mb-0">
+        </ul>
+
+      </div>
+
+    </div>
+
+    <!-- ================= DEVICES ================= -->
+    <div class="tab-pane fade" id="devicesTab">
+
+      <table class="table table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>IMEI</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="deviceTable"></tbody>
+      </table>
+
+      <div class="d-flex justify-content-between align-items-center mt-3">
+
+        <small id="devicesPageInfo" class="text-muted"></small>
+
+        <ul id="devicesPagination"
+            class="pagination pagination-sm mb-0">
+        </ul>
+
+      </div>
+
+
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+<script>
+
+let studentsPage = 1;
+let parentsPage  = 1;
+let teachersPage = 1;
+let devicesPage  = 1;
+
+let currentSearch = "";
+
+const customerId = window.location.pathname
+  .split("/")
+  .filter(Boolean)
+  .pop();
+
+// ================= SUMMARY =================
+
+fetch(`/administrator/customers/summary/${customerId}/`)
+  .then(res => res.json())
+  .then(data => {
+
+    studentCount.innerText = data.counts.students;
+    parentCount.innerText  = data.counts.parents;
+    teacherCount.innerText = data.counts.teachers;
+    deviceCount.innerText  = data.counts.devices;
+
+  });
+
+
+// ================= INITIAL LOAD =================
+
+loadStudents(1);
+
+
+// ================= TAB HANDLER =================
+
+document.querySelectorAll("#customerTabs button")
+  .forEach(btn => {
+
+    btn.addEventListener("shown.bs.tab", e => {
+
+      const target = e.target.dataset.bsTarget;
+
+      if (target === "#studentsTab") loadStudents(1);
+      if (target === "#parentsTab")  loadParents(1);
+      if (target === "#teachersTab") loadTeachers(1);
+      if (target === "#devicesTab")  loadDevices(1);
+
+    });
+
+  });
+
+
+// =====================================================
+// STUDENTS
+// =====================================================
+
+function loadStudents(page = 1) {
+
+  studentsPage = page;
+
+  fetch(`/administrator/students-api/?parent_id=${customerId}&page=${page}&q=${encodeURIComponent(currentSearch)}`)
+    .then(r => r.json())
+    .then(res => {
+
+      const tbody = document.getElementById("studentTable");
+      tbody.innerHTML = "";
+
+      res.results.forEach((s, i) => {
+
+        tbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${(page-1)*10 + i + 1}</td>
+            <td>${s.student_name}</td>
+            <td>${s.student_class}</td>
+            <td>${s.email || "-"}</td>
+          </tr>
+        `);
+
+      });
+
+      renderTabPagination(
+        res,
+        "studentsPagination",
+        "studentsPageInfo",
+        loadStudents
+      );
+
+    });
+}
+
+
+// =====================================================
+// PARENTS
+// =====================================================
+
+function loadParents(page = 1) {
+
+  parentsPage = page;
+
+  fetch(`/administrator/users-list/?customer_id=${customerId}&is_parent=true&page=${page}&q=${encodeURIComponent(currentSearch)}`)
+    .then(r => r.json())
+    .then(res => {
+
+      const tbody = document.getElementById("parentTable");
+      tbody.innerHTML = "";
+
+      res.results.forEach((p, i) => {
+
+        tbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${(page-1)*10 + i + 1}</td>
+            <td>${p.full_name}</td>
+            <td>${p.email}</td>
+            <td>${p.mobile_no || "-"}</td>
+          </tr>
+        `);
+
+      });
+
+      renderTabPagination(
+        res,
+        "parentsPagination",
+        "parentsPageInfo",
+        loadParents
+      );
+
+    });
+}
+
+
+
+// =====================================================
+// TEACHERS
+// =====================================================
+
+function loadTeachers(page = 1) {
+
+  teachersPage = page;
+
+  fetch(`/administrator/users-list/?customer_id=${customerId}&is_teacher=true&page=${page}&q=${encodeURIComponent(currentSearch)}`)
+    .then(r => r.json())
+    .then(res => {
+
+      const tbody = document.getElementById("teacherTable");
+      tbody.innerHTML = "";
+
+      res.results.forEach((t, i) => {
+
+        tbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${(page-1)*10 + i + 1}</td>
+            <td>${t.full_name}</td>
+            <td>${t.email}</td>
+            <td>${t.mobile_no || "-"}</td>
+          </tr>
+        `);
+
+      });
+
+      renderTabPagination(
+        res,
+        "teachersPagination",
+        "teachersPageInfo",
+        loadTeachers
+      );
+
+    });
+}
+
+
+// =====================================================
+// DEVICES
+// =====================================================
+
+function loadDevices(page = 1) {
+
+  devicesPage = page;
+
+  fetch(`/administrator/customer-devices/?customer=${customerId}&page=${page}&q=${encodeURIComponent(currentSearch)}`)
+    .then(r => r.json())
+    .then(res => {
+
+      const tbody = document.getElementById("deviceTable");
+      tbody.innerHTML = "";
+
+      res.results.forEach((d, i) => {
+
+        tbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${(page-1)*10 + i + 1}</td>
+            <td>${d.imei_number}</td>
+            <td>${d.status || "-"}</td>
+          </tr>
+        `);
+
+      });
+
+      renderTabPagination(
+        res,
+        "devicesPagination",
+        "devicesPageInfo",
+        loadDevices
+      );
+
+    });
+}
+
+const searchInput = document.getElementById("customerSearch");
+
+let searchTimer = null;
+
+searchInput.addEventListener("keyup", () => {
+
+  clearTimeout(searchTimer);
+
+  searchTimer = setTimeout(() => {
+
+    currentSearch = searchInput.value.trim();
+
+    // reload active tab from page 1
+    const activeTab = document
+      .querySelector("#customerTabs .nav-link.active")
+      .dataset.bsTarget;
+
+    if (activeTab === "#studentsTab") loadStudents(1);
+    if (activeTab === "#parentsTab")  loadParents(1);
+    if (activeTab === "#teachersTab") loadTeachers(1);
+    if (activeTab === "#devicesTab")  loadDevices(1);
+
+  }, 300);
+
+});
+
+function renderTabPagination(data, pagId, infoId, callback) {
+
+  const pag  = document.getElementById(pagId);
+  const info = document.getElementById(infoId);
+
+  pag.innerHTML = "";
+
+  info.textContent =
+    `Showing page ${data.current_page} of ${data.total_pages}`;
+
+  // PREVIOUS
+  pag.insertAdjacentHTML("beforeend", `
+    <li class="page-item ${data.previous === null ? "disabled" : ""}">
+      <a href="#" class="page-link"
+         data-page="${data.current_page - 1}">
+        Previous
+      </a>
+    </li>
+  `);
+
+  // NUMBERS
+  for (let i = 1; i <= data.total_pages; i++) {
+
+    pag.insertAdjacentHTML("beforeend", `
+      <li class="page-item ${i === data.current_page ? "active" : ""}">
+        <a href="#" class="page-link" data-page="${i}">
+          ${i}
+        </a>
+      </li>
+    `);
+
+  }
+
+  // NEXT
+  pag.insertAdjacentHTML("beforeend", `
+    <li class="page-item ${data.next === null ? "disabled" : ""}">
+      <a href="#" class="page-link"
+         data-page="${data.current_page + 1}">
+        Next
+      </a>
+    </li>
+  `);
+
+  // CLICK HANDLER
+  pag.querySelectorAll(".page-link").forEach(btn => {
+
+    btn.onclick = e => {
+
+      e.preventDefault();
+
+      const page = parseInt(btn.dataset.page);
+
+      if (!isNaN(page) &&
+          page >= 1 &&
+          page <= data.total_pages) {
+
+        callback(page);
+
+      }
+
+    };
+
+  });
+
+}
+
+
+// =====================================================
+// UNIVERSAL PAGINATION RENDERER
+// =====================================================
+
+
+
+</script>
+
+{% endblock %}

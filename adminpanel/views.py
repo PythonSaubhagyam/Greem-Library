@@ -14,6 +14,7 @@ from django.urls import reverse
 from .models import *
 # from account.models import FacebookMetadata
 from django.conf import settings
+from user_management.models import *
 
 """
 This file is a view controller for multiple pages as a module.
@@ -86,6 +87,8 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
         company_label = LABEL_MAP.get(detail_name, "User Management")
 
         add_edit_label = ""
+        student_name = ''
+        customer_name = ''
 
         if "add" in self.request.path.lower() and detail_name == "parent":
             add_edit_label = "Add Parent"
@@ -112,7 +115,13 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
         elif "/devices/edit/" in self.request.path.lower():
             add_edit_label = "Edit Device"
        
-
+        if "administrator/students/detail/" in self.request.path.lower():
+            student_id = self.kwargs.get("id")
+            student_name = StudentModel.objects.filter(id=student_id).first().student_name
+        elif "administrator/customers/detail/" in self.request.path.lower():
+            user_id = self.kwargs.get("id")
+            customer = UserModel.objects.filter(id=user_id).first()
+            customer_name = customer.first_name + " " + customer.last_name if customer else ""
 
         
         # context['ADMIN_IDS'] = settings.ADMIN_IDS
@@ -138,12 +147,14 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             "add_company.html": (company_label, reverse('companies'), add_edit_label),
             "Students_list.html": ("Students Management", None),
             "students_add_update.html": ("Students Management", reverse('students'), add_edit_label),
+            "student_details.html":("Students Management", reverse('students'),student_name),
             "Employees_list.html": ("Employees Management", None),
             "employees_add_update.html": ("Employees Management", reverse('employees'), add_edit_label),
             "Customer_list.html": ("Customers Management", None),
             "customer_add_update.html": ("Customers Management", reverse('customers'), add_edit_label),
             "Devices_list.html": ("Devices Management", None),
             "customer_device_add_update.html": ("Devices Management", reverse('devices'), add_edit_label),
+            "customer_detail.html": ("Customers Management", reverse('customers'), customer_name),
             # "property_add.html": ("Properties", reverse("properties"), "Add Property"),
             # "property_edit.html": ("Properties", reverse("properties"), "Edit Property"),
 

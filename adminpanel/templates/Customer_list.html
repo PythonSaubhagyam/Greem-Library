@@ -57,7 +57,9 @@
 <div class="card">
 
   <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <h5 class="mb-0">Customers</h5>
+    <h5 class="mb-0">Customers
+        <span class="text-bold ms-1" id="datacount"></span>
+    </h5>
 
     <div class="d-flex gap-2 align-items-center">
 
@@ -300,6 +302,13 @@ function fetchCustomers(page = 1) {
 
       renderRows(res.results);
       renderPagination(res);
+      
+      const countEl = document.getElementById("datacount");
+      if (countEl) {
+        countEl.innerText = `(${res.count})`;
+        console.log(countEl)
+      }
+
     });
 }
 
@@ -321,9 +330,10 @@ function loadDeviceModal(page = 1, q = "") {
 
       renderDeviceModalRows(res.results, page);
       renderDeviceModalPagination(res);
-
       document.getElementById("deviceModalPageInfo").innerText =
         `Page ${res.current_page} of ${res.total_pages}`;
+      
+      
 
     });
 
@@ -451,7 +461,7 @@ function renderRows(data) {
       <tr>
 
         <td>${(currentPage - 1) * rowsSelect.value + i + 1}</td>
-
+        {% comment %}
         <td>
             <a href="#"
                 class="text-primary fw-semibold open-device-modal"
@@ -459,6 +469,10 @@ function renderRows(data) {
                 data-name="${c.customer_name}">
                 ${c.customer_name}
             </a>
+        </td> {% endcomment %}
+
+        <td>
+                ${c.customer_name}
         </td>
 
         <td>${c.email}</td>
@@ -469,36 +483,36 @@ function renderRows(data) {
 
         <td>
 
-          <div class="dropdown">
+          <div class="d-flex gap-2 align-items-center">
 
-            <button
-              class="btn btn-sm btn-outline-secondary dropdown-toggle"
-              data-bs-toggle="dropdown">
+            <!-- VIEW -->
+            <a href="/administrator/customers/detail/${c.id}/"
+              class="text-info"
+              title="View">
+              <i class="bx bx-show fs-4"></i>
+            </a>
 
-              Action
+            <!-- EDIT -->
+            <a href="/administrator/customers/edit/${c.id}/"
+              class="text-warning"
+              title="Edit">
+              <i class="bx bx-edit-alt fs-4"></i>
+            </a>
 
-            </button>
+            {% comment %}<!-- ADD STUDENT -->
+            <a href="/administrator/students/add/?customer=${c.id}"
+              class="text-primary"
+              title="Add Student">
+              <i class="bx bx-user-plus fs-4"></i>
+            </a>  {% endcomment %}
 
-            <ul class="dropdown-menu dropdown-menu-end">
-
-              <li>
-                <a class="dropdown-item"
-                   href="/administrator/customers/edit/${c.id}/">
-                  <i class="bx bx-edit"></i> Edit
-                </a>
-              </li>
-
-              <li>
-                <a class="dropdown-item text-danger"
-                   href="#"
-                   onclick="askDelete(${c.id})">
-
-                  <i class="bx bx-trash"></i> Delete
-
-                </a>
-              </li>
-
-            </ul>
+            <!-- DELETE -->
+            <a href="#"
+              onclick="askDelete(${c.id})"
+              class="text-danger"
+              title="Delete">
+              <i class="bx bx-trash-alt fs-4"></i>
+            </a>
 
           </div>
 
