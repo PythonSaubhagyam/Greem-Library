@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 
 from user_management.models import EmployeeModel
-from ..serializers import EmployeeDetailSerializer, EmployeeCreateSerializer
+from adminpanel.Serializer.EmployeeSerializer import EmployeeDetailSerializer, EmployeeCreateSerializer
 from ..pagination import ListPagination
 
 

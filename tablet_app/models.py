@@ -1,5 +1,5 @@
 from django.db import models
-from user_management.models import UserModel
+from user_management.models import *
 
 
 class pdfGroupModel(models.Model):
@@ -14,10 +14,10 @@ class pdfLibraryModel(models.Model):
     title = models.CharField(max_length=255, null=True, blank=True)
     pdf_file = models.FileField(upload_to='files', null=True, blank=True)
     total_pages = models.IntegerField()
-    group = models.ManyToManyField(pdfGroupModel)
+    group = models.ManyToManyField(pdfGroupModel,blank=True)
     is_custom = models.BooleanField(default=False)
     is_favorite = models.BooleanField(default=False)
-    student = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name='library')
+    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE,blank=True,null=True, related_name='library')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -26,7 +26,7 @@ class pdfLibraryModel(models.Model):
 
 class TestModel(models.Model):
     title = models.CharField(max_length=255, null=True, blank=True)
-    pdf = models.ForeignKey(pdfLibraryModel, on_delete=models.CASCADE, related_name='test')
+    pdf = models.ManyToManyField(pdfLibraryModel, related_name='test')
     number_of_questions = models.IntegerField()
     question_type = models.CharField(
         choices=(
@@ -42,7 +42,7 @@ class TestModel(models.Model):
     total_marks = models.IntegerField()
     shuffle_questions = models.BooleanField(default=False)
     enable_timer = models.BooleanField(default=False)
-    student = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name='students')
+    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE, related_name='students')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -68,7 +68,7 @@ class QuestionOptionsModel(models.Model):
     
 
 class StudentTestAttemptModel(models.Model):
-    student = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name='student')
+    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE, related_name='student')
     test = models.ForeignKey(TestModel, on_delete=models.CASCADE, related_name='testattempt')
     score = models.IntegerField()
     started_at = models.DateTimeField(auto_now_add=True)

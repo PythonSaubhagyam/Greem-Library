@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from user_management.models import *
-from ..serializers import  *
+from adminpanel.Serializer.CustomerSerializer import  *
 from ..pagination import ListPagination
 from django.db.models import Q
 

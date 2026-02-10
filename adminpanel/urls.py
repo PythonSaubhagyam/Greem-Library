@@ -1,5 +1,5 @@
 from django.urls import path,include
-from adminpanel.View.CompanyView import UserAPIView
+from adminpanel.View.CompanyView import *
 from adminpanel.View.CountryStateCityView import *
 from adminpanel.View.CompanyDetailView import *
 from adminpanel.View.StudentsView import *
@@ -33,6 +33,7 @@ urlpatterns = [
     path('cities/<int:id>/',CitiesAPI.as_view(),name='cities'),
 
     path("students/",DashboardsView.as_view(template_name="Students_list.html"),name="students"),
+    path("students/detail/<int:id>/",DashboardsView.as_view(template_name="student_details.html"),name="student-details"),
     path("students-api/",StudentsAPIView.as_view(),name="students-api"),
     path("students-api/<int:id>/",StudentsAPIView.as_view(),name="students-api-id"),
     path("students/add/",DashboardsView.as_view(template_name="students_add_update.html"),name="Students_add_update"),
@@ -46,11 +47,19 @@ urlpatterns = [
     path("customers/",DashboardsView.as_view(template_name="Customer_list.html"),name='customers'),
     path("customers/add/",DashboardsView.as_view(template_name="customer_add_update.html"),name='customers-add-update'),
     path("customers/edit/<int:id>/",DashboardsView.as_view(template_name="customer_add_update.html"),name='customers-add-update'),
+    path("customers/detail/<int:id>/",DashboardsView.as_view(template_name="customer_detail.html"),name='customers-view'),
     path("customers-api/", CustomerViewAPI.as_view(),name='customers-api'),
     path("customers-api/<int:pk>/", CustomerViewAPI.as_view(),name='customers-detail'),
+    path("customers/summary/<int:id>/", CustomerSummaryAPIView.as_view(), name="customer-summary"),
     path("devices/", DashboardsView.as_view(template_name="Devices_list.html"),name='devices'),
     path("devices/add/", DashboardsView.as_view(template_name="customer_device_add_update.html"),name='devices-add-update'),
     path("devices/edit/<int:id>/", DashboardsView.as_view(template_name="customer_device_add_update.html"),name='devices-add-update'),
     path("customer-devices/", CustomerDeviceAPI.as_view(),name='customer-devices'),
     path("customer-devices/<int:pk>/", CustomerDeviceAPI.as_view(),name='customer-devices'),
-]
+    path("students-import/", StudentImportAPI.as_view(),name='student-import'),
+
+    path("students/pdfs/<int:pk>/",pdfLibraryAPI.as_view(),name="students-pdfs"),
+    path("students/pdfs-groups/<int:pk>/",pdfGroupAPI.as_view(),name="students-pdfs-groups"),
+    path("students/tests/<int:pk>/",StudentsTestResultView.as_view(),name="students-tests"),
+    path("students/summary/<int:student_id>/",StudentSummaryAPIView.as_view(),name="student-summary"),
+]     
