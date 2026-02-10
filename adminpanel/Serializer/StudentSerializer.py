@@ -67,6 +67,9 @@ class StudentsSerializer(serializers.ModelSerializer):
               raise serializers.ValidationError({"error": "This IMEI is already assigned to another student."})
             try:
                 device = DeviceModel.objects.get(imei_number=imei_number)
+                if device.user != validated_data.get("parent", None):
+                    name = f"{device.user.first_name} {device.user.last_name}"
+                    raise serializers.ValidationError({"error": f"This Device is already assigned to the {name}."})
                 instance.device_id = device
             except DeviceModel.DoesNotExist:
                 raise serializers.ValidationError("Device with this IMEI does not exist.")
