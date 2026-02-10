@@ -244,7 +244,7 @@ document.addEventListener("DOMContentLoaded", function () {
       .then(res => res.json())
       .then(s => {
         const user = s.results[0];
-        document.getElementById("imei_number").value =  user.device?.imei_number || "";
+        document.getElementById("imei_number").value =  user.device_imei_number || "";
         document.getElementById("student_name").value = user.student_name;
         document.getElementById("email").value = user.email || "";
         document.getElementById("student_class").value = user.student_class || "";

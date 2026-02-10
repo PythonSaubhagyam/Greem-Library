@@ -265,6 +265,21 @@ function loadPDFs() {
       const tbody = document.getElementById("pdfTable");
       tbody.innerHTML = "";
 
+      if (!res.results.length) {
+
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" class="text-center text-muted">
+              No PDFs found.
+            </td>
+          </tr>
+        `;
+
+        document.getElementById("pdfPagination").innerHTML = "";
+
+        return;
+      }
+
       res.results.forEach((p, i) => {
         tbody.insertAdjacentHTML("beforeend", `
           <tr>
@@ -292,6 +307,21 @@ function loadGroups() {
       const tbody = document.getElementById("groupTable");
       tbody.innerHTML = "";
 
+      if (!res.results.length) {
+
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" class="text-center text-muted">
+              No groups found.
+            </td>
+          </tr>
+        `;
+
+        document.getElementById("groupPagination").innerHTML = "";
+
+        return;
+      }
+
       res.results.forEach((g, i) => {
         tbody.insertAdjacentHTML("beforeend", `
           <tr>
@@ -318,6 +348,21 @@ function loadTests() {
 
       const tbody = document.getElementById("testTable");
       tbody.innerHTML = "";
+
+      if (!res.results.length) {
+
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" class="text-center text-muted">
+              No tests found.
+            </td>
+          </tr>
+        `;
+
+        document.getElementById("testPagination").innerHTML = "";
+
+        return;
+      }
 
       res.results.forEach((t, i) => {
 

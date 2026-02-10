@@ -276,6 +276,22 @@ function loadStudents(page = 1) {
       const tbody = document.getElementById("studentTable");
       tbody.innerHTML = "";
 
+      if (!res.results.length) {
+
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="10" class="text-center text-muted">
+            No students found.
+          </td>
+        </tr>
+      `;
+
+      document.getElementById("studentsPagination").innerHTML = "";
+      document.getElementById("studentsPageInfo").textContent = "";
+
+      return;
+    }
+
       res.results.forEach((s, i) => {
 
         tbody.insertAdjacentHTML("beforeend", `
@@ -314,6 +330,22 @@ function loadParents(page = 1) {
 
       const tbody = document.getElementById("parentTable");
       tbody.innerHTML = "";
+
+      if (!res.results.length) {
+
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" class="text-center text-muted">
+              No parents found.
+            </td>
+          </tr>
+        `;
+
+        document.getElementById("parentsPagination").innerHTML = "";
+        document.getElementById("parentsPageInfo").textContent = "";
+
+        return;
+      }
 
       res.results.forEach((p, i) => {
 
@@ -355,6 +387,22 @@ function loadTeachers(page = 1) {
       const tbody = document.getElementById("teacherTable");
       tbody.innerHTML = "";
 
+      if (!res.results.length) {
+
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" class="text-center text-muted">
+              No teachers found.
+            </td>
+          </tr>
+        `;
+
+        document.getElementById("teachersPagination").innerHTML = "";
+        document.getElementById("teachersPageInfo").textContent = "";
+
+        return;
+      }
+
       res.results.forEach((t, i) => {
 
         tbody.insertAdjacentHTML("beforeend", `
@@ -393,6 +441,22 @@ function loadDevices(page = 1) {
 
       const tbody = document.getElementById("deviceTable");
       tbody.innerHTML = "";
+
+      if (!res.results.length) {
+
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" class="text-center text-muted">
+              No devices found.
+            </td>
+          </tr>
+        `;
+
+        document.getElementById("devicesPagination").innerHTML = "";
+        document.getElementById("devicesPageInfo").textContent = "";
+
+        return;
+      }
 
       res.results.forEach((d, i) => {
 

@@ -40,6 +40,7 @@ class StudentsSerializer(serializers.ModelSerializer):
         return ''
     
     def create(self, validated_data):
+        print(validated_data,'validated_datavalidated_datavalidated_data')
         request = self.context.get("request")
         imei_number = validated_data.pop("imei_number", None)
         if StudentModel.objects.filter(device_id__imei_number=imei_number).exists():
@@ -48,6 +49,9 @@ class StudentsSerializer(serializers.ModelSerializer):
             device = DeviceModel.objects.get(imei_number=imei_number)
         except DeviceModel.DoesNotExist:
             raise serializers.ValidationError({"error": "Device with this IMEI does not exist."})
+        if device.user != validated_data.get("parent", None):
+            name = f"{device.user.first_name} {device.user.last_name}"
+            raise serializers.ValidationError({"error": f"This Device is already assigned to the {name}."})
         validated_data["device_id"] = device
         student = super().create(validated_data)
         # if parent_ids:
