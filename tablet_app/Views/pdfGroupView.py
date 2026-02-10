@@ -9,18 +9,7 @@ from adminpanel.pagination import ListPagination
 class pdfGroupAPI(APIView):
     pagination_class = ListPagination
 
-    def post(self, request, *args, **kwargs):
-        try:
-            serializer = pdfGroupSerializer(data=request.data, context={'request': request})
-            if serializer.is_valid():
-                serializer.save()
-                return Response({'status': True, 'data': serializer.data, 'message': 'pdf Group created successfully'}, status=status.HTTP_201_CREATED)
-            return Response({'status': False, 'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        except Exception as e:
-            return Response({'status': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
-    
     def get(self, request, pk=None):
         try:
             if pk:
@@ -38,6 +27,17 @@ class pdfGroupAPI(APIView):
         
         except pdfGroupModel.DoesNotExist:
             return Response({'status': False, 'message': 'Pdf group not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({'status': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    def post(self, request, *args, **kwargs):
+        try:
+            serializer = pdfGroupSerializer(data=request.data, context={'request': request})
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'status': True, 'data': serializer.data, 'message': 'pdf Group created successfully'}, status=status.HTTP_201_CREATED)
+            return Response({'status': False, 'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             return Response({'status': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)

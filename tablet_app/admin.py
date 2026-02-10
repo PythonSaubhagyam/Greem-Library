@@ -16,13 +16,15 @@ class pdfLibraryAdmin(admin.ModelAdmin):
     list_display = ('title', 'pdf_file', 'total_pages', 'is_custom', 'is_favorite', 'student', 'created_at')
     search_fields = ('title', 'pdf_file', 'created_at', )
     ordering = ("-id",)
+    filter_horizontal = ("group",)
 
 
 @admin.register(TestModel)
 class TestAdmin(admin.ModelAdmin):
-    list_display = ('title', 'pdf', 'number_of_questions', 'question_type', 'duration_minutes', 'total_marks', 
+    list_display = ('title', 'number_of_questions', 'question_type', 'duration_minutes', 'total_marks', 
                     'shuffle_questions','enable_timer', 'student', 'created_at')
     search_fields = ('title', 'question_type', 'shuffle_questions', 'enable_timer',)
+    filter_horizontal = ("pdf",)
     ordering = ("-id",)
 
 

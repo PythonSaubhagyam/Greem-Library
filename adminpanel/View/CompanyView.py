@@ -8,6 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from ..pagination import ListPagination
 from django.utils import timezone
 from datetime import timedelta
+from django.shortcuts import get_object_or_404
+
  
 class UserAPIView(APIView):
     # permission_classes = [IsAuthenticated]
@@ -23,6 +25,10 @@ class UserAPIView(APIView):
         q = request.GET.get('q', '').strip()  # get search query
         status= request.query_params.get('status', '')
         user_id = request.GET.get('id')
+        customer_id = request.GET.get('customer_id')
+        is_parent = request.GET.get('is_parent')
+        is_teacher = request.GET.get('is_teacher')
+
         users = UserModel.objects.filter(is_active=True).order_by('-id').exclude(role__type='Admin')
         if user_id:
             users = users.filter(id=user_id)
@@ -31,6 +37,31 @@ class UserAPIView(APIView):
         if parentteacher:
             if parentteacher == 'customer':
                 users = users.filter(Q(role__type__in=['Customer']))
+        if customer_id:
+            students = StudentModel.objects.filter(parent__id=customer_id)
+            users = users.filter(studentmodel__in=students)
+
+            if is_parent:
+                users = users.filter(role__type="Parent")
+
+            if is_teacher:
+                users = users.filter(role__type="Teacher")
+
+            users = users.distinct()
+            # print(students,'+++++++++++')
+            # teacher_ids = []
+            # parent_ids = []
+            # for student in students:
+            #     if student.parent.all():
+            #         for pt in student.parent.all():
+            #             if pt.role.type == 'Teacher' and is_teacher:
+            #                 teacher_ids.append(pt.id)
+            #             if pt.role.type == 'Parent' and is_parent:
+            #                  parent_ids.append(pt.id)
+            # if is_parent:
+            #    users = users.filter(id__in=parent_ids)
+            # else:               
+            #    users = users.filter(id__in=teacher_ids)
         # if country:
         #     country_name = CountryModel.objects.get(id=country)
         #     companies = companies.filter(user__country__iexact=country_name.country_name)
@@ -171,6 +202,26 @@ class UserAPIView(APIView):
         user.save()
         return Response({'message':'User deleted successfully'}, status=status.HTTP_200_OK)  
         
+class CustomerSummaryAPIView(APIView):
+
+    def get(self, request, id=None):
+
+        students = StudentModel.objects.filter(parent__id=id).distinct()
+        total_students = students.count()
         
+        users = UserModel.objects.filter(studentmodel__in=students).distinct()
+        total_parents = users.filter(role__type='Parent').count()
+        total_teachers = users.filter(role__type='Teacher').count()
+        total_devices = DeviceModel.objects.filter(user__id=id).distinct().count()
+
+        return Response({
+            "counts": {
+                "students": total_students,
+                "parents": total_parents,
+                "teachers": total_teachers,
+                "devices": total_devices,
+            },
+        }, status=status.HTTP_200_OK)
+       
         
         

@@ -34,7 +34,9 @@
   <!-- HEADER -->
   <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
 
-    <h5 class="mb-0">Device Management</h5>
+    <h5 class="mb-0">Device Management
+      <span class="text-bold ms-1" id="datacount"></span>
+    </h5>
 
     <div class="d-flex gap-2 align-items-center">
 
@@ -198,6 +200,14 @@ function fetchDevices(page = 1) {
       renderRows(res.results);
       renderPagination(res);
 
+      
+      const countEl = document.getElementById("datacount");
+      if (countEl) {
+        countEl.innerText = `(${res.count})`;
+        console.log(countEl)
+      }
+
+
     });
 
 }
@@ -232,40 +242,26 @@ function renderRows(data) {
         </td>
 
         <td>
+            <div class="d-flex gap-2 align-items-center">
 
-          <div class="dropdown">
+              <!-- EDIT -->
+              <a href="/administrator/devices/edit/${d.id}/"
+                class="text-warning"
+                title="Edit">
+                <i class="bx bx-edit-alt fs-4"></i>
+              </a>
 
-            <button
-              class="btn btn-sm btn-outline-secondary dropdown-toggle"
-              data-bs-toggle="dropdown">
+              <!-- DELETE -->
+              <a href="#"
+                onclick="askDelete(${d.id})"
+                class="text-danger"
+                title="Delete">
+                <i class="bx bx-trash-alt fs-4"></i>
+              </a>
 
-              Action
-
-            </button>
-
-            <ul class="dropdown-menu dropdown-menu-end">
-
-              <li>
-                <a class="dropdown-item"
-                   href="/administrator/devices/edit/${d.id}/">
-                  <i class="bx bx-edit"></i> Edit
-                </a>
-              </li>
-
-              <li>
-                <a class="dropdown-item text-danger"
-                   href="#"
-                   onclick="askDelete(${d.id})">
-
-                  <i class="bx bx-trash"></i> Delete
-                </a>
-              </li>
-
-            </ul>
-
-          </div>
-
+            </div>
         </td>
+
 
       </tr>
 

@@ -164,13 +164,24 @@ class UserModel(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = 'user'
         verbose_name_plural = 'users'
+
+class DeviceModel(models.Model):
+    user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
+    imei_number = models.CharField(max_length=255,null=True,blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.imei_number
         
 class StudentModel(models.Model):
-    student_id = models.CharField(max_length=255)
-    parent = models.ManyToManyField(UserModel,blank=True)
+    device_id = models.ForeignKey(DeviceModel,on_delete=models.DO_NOTHING,null=True,blank=True)
+    parent = models.ManyToManyField(UserModel,blank=True) # stores all customers, parents and teachers
     student_name = models.CharField(max_length=255)
     email = models.EmailField(null=True,blank=True)
     student_class = models.IntegerField(null=True,blank=True)
+
+    def __str__(self):
+        return self.student_name
 
 class EmployeeModel(models.Model):
     user = models.ForeignKey(UserModel,on_delete=models.CASCADE)
@@ -178,7 +189,15 @@ class EmployeeModel(models.Model):
     email = models.EmailField(null=True,blank=True)
     department = models.CharField(max_length=255,null=True,blank=True)
 
-class DeviceModel(models.Model):
+
+class VendorModel(models.Model):
     user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
-    imei_number = models.CharField(max_length=255,null=True,blank=True)
-    is_active = models.BooleanField(default=True)
+    contact_email = models.EmailField(null=True,blank=True)
+    contact_phone = PhoneNumberField(null=True,blank=True)
+
+class InventoryModel(models.Model):
+    vendor = models.ForeignKey(VendorModel, on_delete=models.CASCADE)
+    item_name = models.CharField(max_length=255)
+    quantity = models.IntegerField(validators=[MinValueValidator(0)])
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    

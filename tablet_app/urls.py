@@ -12,45 +12,24 @@ urlpatterns = [
 
     path('pdf-group/', pdfGroupAPI.as_view(), name='list-pdf-group'),
     path('pdf-group/<int:pk>/', pdfGroupAPI.as_view(), name='retrieve-pdf-group'),
-    path('pdf-group/create/', pdfGroupAPI.as_view(), name='create-pdf-group'),
-    path('pdf-group/update/<int:pk>/', pdfGroupAPI.as_view(), name='update-pdf-group'),
-    path('pdf-group/delete/<int:pk>/', pdfGroupAPI.as_view(), name='delete-pdf-group'),
+   
+    path('pdf-library/', pdfLibraryAPI.as_view(), name='pdf-library'),
+    path('pdf-library/<int:pk>/', pdfLibraryAPI.as_view(), name='pdf-library'),
+   
+    path('test/', TestAPI.as_view(), name='test'),
+    path('test/<int:pk>/', TestAPI.as_view(), name='test'),
 
-    path('pdf-library/', pdfLibraryAPI.as_view(), name='list-pdf-library'),
-    path('pdf-library/<int:pk>/', pdfLibraryAPI.as_view(), name='list-pdf-library'),
-    path('pdf-library/create/', pdfLibraryAPI.as_view(), name='create-pdf-library'),
-    path('pdf-library/update/<int:pk>/', pdfLibraryAPI.as_view(), name='update-pdf-library'),
-    path('pdf-library/delete/<int:pk>/', pdfLibraryAPI.as_view(), name='delete-pdf-library'),
+    path('questions-api/', QuestionsAPI.as_view(), name='questions'),
+    path('questions-api/<int:pk>/', QuestionsAPI.as_view(), name='questions'),
 
-    path('test/', TestAPI.as_view(), name='test-retrieve'),
-    path('test/<int:pk>/', TestAPI.as_view(), name='test-list'),
-    path('test/create/', TestAPI.as_view(), name='test-create'),
-    path('test/update/<int:pk>/', TestAPI.as_view(), name='update-test'),
-    path('test/delete/<int:pk>/', TestAPI.as_view(), name='delete-test'),
+    path('option/list/', QuestionOptionsAPI.as_view(), name='option'),
+    path('option/list/<int:pk>/', QuestionOptionsAPI.as_view(), name='option'),
 
-    path('question/list/', QuestionsAPI.as_view(), name='list-questions'),
-    path('question/list/<int:pk>/', QuestionsAPI.as_view(), name='list-questions'),
-    path('question/create/', QuestionsAPI.as_view(), name='create-question'),
-    path('question/update/<int:pk>/', QuestionsAPI.as_view(), name='update-question'),
-    path('question/delete/<int:pk>/', QuestionsAPI.as_view(), name='delete-question'),
+    path('studenttestattempt/', StudentTestAttemptAPI.as_view(), name='student'),
+    path('studenttestattempt/<int:pk>/', StudentTestAttemptAPI.as_view(), name='student'),
 
-    path('option/list/', QuestionOptionsAPI.as_view(), name='list-option'),
-    path('option/list/<int:pk>/', QuestionOptionsAPI.as_view(), name='retrieve-option'),
-    path('option/create/', QuestionOptionsAPI.as_view(), name='create-option'),
-    path('option/update/<int:pk>/', QuestionOptionsAPI.as_view(), name='update-option'),
-    path('option/delete/<int:pk>/', QuestionOptionsAPI.as_view(), name='delete-option'),
-
-    path('studenttestattempt/list/', StudentTestAttemptAPI.as_view(), name='list-student'),
-    path('studenttestattempt/list/<int:pk>/', StudentTestAttemptAPI.as_view(), name='retrieve-student'),
-    path('studenttestattempt/create/', StudentTestAttemptAPI.as_view(), name='create-student'),
-    path('studenttestattempt/update/<int:pk>/', StudentTestAttemptAPI.as_view(), name='update-student'),
-    path('studenttestattempt/delete/<int:pk>/', StudentTestAttemptAPI.as_view(), name='delete-student'),
-
-    path('studentanswer/', StudentAnswerAPI.as_view(), name='list-student-answer'),
-    path('studentanswer/<int:pk>/', StudentAnswerAPI.as_view(), name='retrieve-student-answer'),
-    path('studentanswer/create/', StudentAnswerAPI.as_view(), name='create-student-answer'),
-    path('studentanswer/update/<int:pk>/', StudentAnswerAPI.as_view(), name='update-student-answer'),
-    path('studentanswer/delete/<int:pk>/', StudentAnswerAPI.as_view(), name='delete-student-answer'),
+    path('studentanswer/', StudentAnswerAPI.as_view(), name='student-answer'),
+    path('studentanswer/<int:pk>/', StudentAnswerAPI.as_view(), name='student-answer'),
 
     path('studenttestattempt/finish/', StudentTestFinishAPI.as_view(),name='finish-test-attempt'),
 

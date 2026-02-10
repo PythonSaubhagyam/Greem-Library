@@ -13,7 +13,9 @@
 <div class="card">
 
   <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <h5 class="mb-0">Students</h5>
+    <h5 class="mb-0">Students
+        <span class="text-bold ms-1" id="datacount"></span>
+    </h5>
 
     <div class="d-flex gap-2 align-items-center">
       <div class="input-group input-group-sm" style="width: 220px;">
@@ -40,13 +42,13 @@
         <thead class="table-light">
           <tr>
             <th>Sr</th>
-            <th>Student ID</th>
             <th>Name</th>
+            <th>IMEI Number</th>
             <th>Email</th>
             <th>Class</th>
+            <th>Parents</th>
+            <th>Teachers</th>
             <th>Customer</th>
-            <!-- <th>Parents</th>
-            <th>Teachers</th> -->
             <th width="120px">Action</th>
           </tr>
         </thead>
@@ -146,6 +148,11 @@ function fetchStudents(page = 1) {
 
       renderRows(res.results);
       renderPagination(res);
+
+      const countEl = document.getElementById("datacount");
+      if (countEl) {
+        countEl.innerText = `(${res.count})`;
+      }
     });
 }
 
@@ -156,30 +163,40 @@ function renderRows(data) {
     container.insertAdjacentHTML("beforeend", `
       <tr>
         <td>${(currentPage - 1) * rowsSelect.value + i + 1}</td>
-        <td>${s.student_id}</td>
         <td>${s.student_name}</td>
+        <td>${s.device_imei_number}</td>
         <td>${s.email || '-'}</td>
         <td>${s.student_class || '-'}</td>
+        <td>${s.parent_name || '-'}</td>
+        <td>${s.teacher_name || '-'}</td>
         <td>${s.customer_name || '-'}</td>
-        {% comment %}<td>${s.parent_name || '-'}</td>
-        <td>${s.teacher_name || '-'}</td> {% endcomment %}
-         <td>
-          <div class="dropdown">
-            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-              Action
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li>
-                <a class="dropdown-item" href="/administrator/students/edit/${s.id}/">
-                  <i class="bx bx-edit"></i> Edit
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item text-danger" href="#" onclick="askDelete(${s.id})">
-                  <i class="bx bx-trash"></i> Delete
-                </a>
-              </li>
-            </ul>
+        <td>
+          <div class="d-flex gap-2 align-items-center">
+
+            
+            <!-- VIEW DETAILS -->
+            <a href="/administrator/students/detail/${s.id}/"
+              class="text-info"
+              title="View Details">
+              <i class="bx bx-show fs-4"></i>
+            </a>
+
+
+            <!-- EDIT -->
+            <a href="/administrator/students/edit/${s.id}/"
+              class="text-warning"
+              title="Edit">
+              <i class="bx bx-edit-alt fs-4"></i>
+            </a>
+
+            <!-- DELETE -->
+            <a href="#"
+              onclick="askDelete(${s.id})"
+              class="text-danger"
+              title="Delete">
+              <i class="bx bx-trash-alt fs-4"></i>
+            </a>
+
           </div>
         </td>
       </tr>

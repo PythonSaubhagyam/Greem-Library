@@ -10,18 +10,6 @@ class pdfLibraryAPI(APIView):
     permission_classes = [IsAuthenticated]
     pagination_classes = ListPagination
 
-    def post(self, request):
-        try:
-            serializer = pdfLibrarySerializer(data=request.data, context={'request': request})
-            if serializer.is_valid():
-                serializer.save()
-                return Response({'status': True, 'data': serializer.data, 'message': 'pdf Library created successfully'}, status=status.HTTP_201_CREATED)
-            return Response({'status': False, 'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-        
-        except Exception as e:
-            return Response({'status': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
-
     def get(self, request, pk=None):
         try:
 
@@ -48,6 +36,18 @@ class pdfLibraryAPI(APIView):
         except pdfLibraryModel.DoesNotExist:
             return Response({'status': False, 'message': 'Pdf library not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        except Exception as e:
+            return Response({'status': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    
+    def post(self, request):
+        try:
+            serializer = pdfLibrarySerializer(data=request.data, context={'request': request})
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'status': True, 'data': serializer.data, 'message': 'pdf Library created successfully'}, status=status.HTTP_201_CREATED)
+            return Response({'status': False, 'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
         except Exception as e:
             return Response({'status': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         

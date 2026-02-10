@@ -72,10 +72,13 @@ admin.site.register(UserModel, UserAdmin)
 
 @admin.register(StudentModel)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ("id","student_id", "student_name", "email", "student_class",)
-    search_fields = ("parent__email", "email", "student_id", "student_class",)
+    list_display = ("id","device_imei", "student_name", "email", "student_class",)
+    search_fields = ("parent__email", "email", "device_id__imei_number", "student_class",)
     filter_horizontal = ("parent",)
-    list_filter = ("email", "student_id",)
+    list_filter = ("email", "student_class",)
+
+    def device_imei(self, obj):
+        return obj.device_id.imei_number if obj.device_id else "-"
 
 @admin.register(EmployeeModel)
 class EmployeeAdmin(admin.ModelAdmin):

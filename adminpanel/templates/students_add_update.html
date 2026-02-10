@@ -13,6 +13,11 @@
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h5 id="pageTitle">Add Student</h5>
+
+     <button id="importBtn"
+            class="btn btn-outline-primary btn-sm d-none">
+      <i class="bx bx-upload"></i> Import Students
+    </button>
   </div>
 
   <div class="card-body">
@@ -20,8 +25,8 @@
 
       <div class="row g-3">
         <div class="col-md-6">
-          <label class="form-label">Student ID</label>
-          <input type="text" id="student_id" class="form-control" required>
+          <label class="form-label">Device IMEI</label>
+          <input type="text" id="imei_number" class="form-control" required>
         </div>
 
         <div class="col-md-6">
@@ -56,6 +61,49 @@
   </div>
 </div>
 
+<div class="modal fade" id="importModal" tabindex="-1">
+
+  <div class="modal-dialog modal-md">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Import Students</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="mb-3">
+          <label class="form-label">Upload CSV / Excel</label>
+          <input type="file"
+                 id="importFile"
+                 accept=".csv,.xlsx"
+                 class="form-control">
+        </div>
+
+        <div class="text-muted small">
+          Download sample format:
+          <a href="{% static 'samples/student_import_sample.xlsx' %}"
+            target="_blank"
+            class="fw-semibold text-primary">
+            Sample Excel File
+          </a>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="uploadImportBtn">
+          Upload
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+
 {% endblock %}
 
 {% block page_js %}
@@ -81,6 +129,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const pathParts = window.location.pathname.split("/").filter(Boolean);
   const editStudentId = pathParts.includes("edit") ? pathParts[pathParts.length - 1] : null;
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const preselectCustomer = urlParams.get("customer");
+
 
   const pageTitle = document.getElementById("pageTitle");
   const saveBtn = document.getElementById("saveBtn");
@@ -111,7 +163,78 @@ document.addEventListener("DOMContentLoaded", function () {
         create: false
       });
 
-      if (editStudentId) loadStudent(editStudentId);
+        parentSelect.on("change", toggleImportBtn);
+
+        toggleImportBtn();
+
+      if (editStudentId) {
+        loadStudent(editStudentId);
+      } else if (preselectCustomer) {
+        parentSelect.setValue(preselectCustomer);
+      }
+    });
+
+  const importBtn = document.getElementById("importBtn");
+
+  function toggleImportBtn() {
+    const parents = parentSelect.getValue();
+    importBtn.classList.toggle("d-none", !parents.length);
+  }
+
+
+
+  const importModal = new bootstrap.Modal(
+    document.getElementById("importModal")
+  );
+
+  importBtn.onclick = () => importModal.show();
+
+  document.getElementById("uploadImportBtn")
+      .addEventListener("click", () => {
+
+        const fileInput = document.getElementById("importFile");
+
+        if (!fileInput.files.length) {
+          showToast("Error","Select file","danger");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        parentSelect.getValue().forEach(id => {
+          formData.append("parent", id);
+        });
+
+        fetch("/administrator/students-import/", {
+          method: "POST",
+          body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+
+          if (data.status) {
+
+            showToast(
+              "Success",
+              `${data.created} students imported`,
+              "success"
+            );
+
+            importModal.hide();
+
+          } else {
+
+            showToast(
+              "Error",
+              data.error || "Import failed",
+              "danger"
+            );
+
+          }
+
+        });
+
     });
 
 
@@ -121,7 +244,7 @@ document.addEventListener("DOMContentLoaded", function () {
       .then(res => res.json())
       .then(s => {
         const user = s.results[0];
-        document.getElementById("student_id").value = user.student_id;
+        document.getElementById("imei_number").value =  user.device?.imei_number || "";
         document.getElementById("student_name").value = user.student_name;
         document.getElementById("email").value = user.email || "";
         document.getElementById("student_class").value = user.student_class || "";
@@ -138,7 +261,7 @@ document.addEventListener("DOMContentLoaded", function () {
     e.preventDefault();
 
     const payload = {
-      student_id: student_id.value.trim(),
+      imei_number: imei_number.value.trim(),
       student_name: student_name.value.trim(),
       email: email.value.trim(),
       student_class: student_class.value,
