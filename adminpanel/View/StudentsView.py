@@ -120,7 +120,7 @@ class StudentImportAPI(APIView):
         for index, row in df.iterrows():
 
             payload = {
-                "student_id": row.get("student_id"),
+                "imei_number": row.get("imei_number"),
                 "student_name": row.get("student_name"),
                 "email": row.get("email"),
                 "student_class": row.get("student_class"),
