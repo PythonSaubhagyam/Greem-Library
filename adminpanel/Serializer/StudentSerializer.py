@@ -60,7 +60,7 @@ class StudentsSerializer(serializers.ModelSerializer):
         return student
     
     def update(self, instance, validated_data):
-        parents = validated_data.get("parent", None)
+        parents = validated_data.pop("parent", None)
         imei_number = validated_data.pop("imei_number", None)
         if imei_number:
            
@@ -80,8 +80,17 @@ class StudentsSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError("Device with this IMEI does not exist.")
         print(parents,'parentsparentsparents')
         instance = super().update(instance, validated_data)
-        # if parents is not None:
-        #     instance.parent.set(parents)
+        if parents is not None:
+
+            existing = instance.parent.all()
+
+            # keep parents + teachers always
+            protected = existing.exclude(role__type="Customer")
+
+            # remove old customer(s), add new one(s)
+            final = list(protected) + list(parents)
+
+            instance.parent.set(final)
         return instance 
 
     class Meta:
