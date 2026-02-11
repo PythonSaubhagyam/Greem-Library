@@ -63,17 +63,21 @@ class StudentsSerializer(serializers.ModelSerializer):
         parents = validated_data.get("parent", None)
         imei_number = validated_data.pop("imei_number", None)
         if imei_number:
-            if StudentModel.objects.filter(device_id__imei_number=imei_number).exists():
-              raise serializers.ValidationError({"error": "This IMEI is already assigned to another student."})
-            try:
-                device = DeviceModel.objects.get(imei_number=imei_number) 
-                print(validated_data.get("parent", None)[0])
-                if device.user not in  validated_data.get("parent", None):
-                    name = f"{device.user.first_name} {device.user.last_name}"
-                    raise serializers.ValidationError({"error": f"This Device is already assigned to the {name}."})
-                instance.device_id = device
-            except DeviceModel.DoesNotExist:
-                raise serializers.ValidationError("Device with this IMEI does not exist.")
+           
+            if instance.device_id and instance.device_id.imei_number == imei_number:
+               pass
+            else:
+                if not StudentModel.objects.filter(device_id__imei_number=imei_number).exclude(id=instance.id).exists():
+                   raise serializers.ValidationError({"error": "This IMEI is already assigned to another student."})
+                try:
+                    device = DeviceModel.objects.get(imei_number=imei_number) 
+                    print(validated_data.get("parent", None)[0])
+                    if device.user not in  validated_data.get("parent", None):
+                        name = f"{device.user.first_name} {device.user.last_name}"
+                        raise serializers.ValidationError({"error": f"This Device is already assigned to the {name}."})
+                    instance.device_id = device
+                except DeviceModel.DoesNotExist:
+                    raise serializers.ValidationError("Device with this IMEI does not exist.")
         print(parents,'parentsparentsparents')
         instance = super().update(instance, validated_data)
         # if parents is not None:
