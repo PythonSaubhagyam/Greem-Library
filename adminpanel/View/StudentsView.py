@@ -39,7 +39,6 @@ class StudentsAPIView(APIView):
             students = students.filter(parent__id=teacher_id)
 
         if q:
-            print(q,'q')
             students = students.filter(
                 Q(student_name__icontains=q) |
                 Q(device_id__imei_number__icontains=q) |
