@@ -78,7 +78,6 @@ class StudentsSerializer(serializers.ModelSerializer):
                     instance.device_id = device
                 except DeviceModel.DoesNotExist:
                     raise serializers.ValidationError("Device with this IMEI does not exist.")
-        print(parents,'parentsparentsparents')
         instance = super().update(instance, validated_data)
         if parents is not None:
 
