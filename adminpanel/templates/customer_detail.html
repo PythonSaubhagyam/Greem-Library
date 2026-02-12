@@ -218,6 +218,7 @@ let devicesPage  = 1;
 
 let currentSearch = "";
 
+let selectedUserFilter = null;
 const customerId = window.location.pathname
   .split("/")
   .filter(Boolean)
@@ -269,7 +270,14 @@ function loadStudents(page = 1) {
 
   studentsPage = page;
 
-  fetch(`/administrator/students-api/?parent_id=${customerId}&page=${page}&q=${encodeURIComponent(currentSearch)}`)
+  let url = `/administrator/students-api/?parent_id=${customerId}&page=${page}&q=${encodeURIComponent(currentSearch)}`;
+
+  if (selectedUserFilter) {
+    url += `&linked_user=${selectedUserFilter}`;
+  }
+
+
+  fetch(url)
     .then(r => r.json())
     .then(res => {
 
@@ -352,7 +360,12 @@ function loadParents(page = 1) {
         tbody.insertAdjacentHTML("beforeend", `
           <tr>
             <td>${(page-1)*10 + i + 1}</td>
-            <td>${p.full_name}</td>
+            {% comment %} <td>${p.full_name}</td> {% endcomment %}
+            <td>
+              <a href="#" onclick="viewStudentsByUser(${p.id})">
+                ${p.full_name}
+              </a>
+            </td>
             <td>${p.email}</td>
             <td>${p.mobile_no || "-"}</td>
           </tr>
@@ -408,7 +421,12 @@ function loadTeachers(page = 1) {
         tbody.insertAdjacentHTML("beforeend", `
           <tr>
             <td>${(page-1)*10 + i + 1}</td>
-            <td>${t.full_name}</td>
+            {% comment %} <td>${t.full_name}</td> {% endcomment %}
+            <td>
+              <a href="#" onclick="viewStudentsByUser(${t.id})">
+                ${t.full_name}
+              </a>
+            </td>
             <td>${t.email}</td>
             <td>${t.mobile_no || "-"}</td>
           </tr>
@@ -478,6 +496,21 @@ function loadDevices(page = 1) {
       );
 
     });
+}
+
+function viewStudentsByUser(userId) {
+
+  selectedUserFilter = userId;
+
+  // switch to students tab
+  const tabTrigger = document.querySelector(
+    '[data-bs-target="#studentsTab"]'
+  );
+
+  const tab = new bootstrap.Tab(tabTrigger);
+  tab.show();
+
+  loadStudents(1);
 }
 
 const searchInput = document.getElementById("customerSearch");

@@ -23,6 +23,7 @@ class StudentsAPIView(APIView):
     def get(self, request):
         teacher_id = request.query_params.get('teacher_id')
         parent_id = request.query_params.get('parent_id')
+        linked_user = request.GET.get("linked_user")
    
         student_id = request.GET.get('id')
         q = request.GET.get('q')
@@ -31,6 +32,10 @@ class StudentsAPIView(APIView):
         if student_id:
             # print(student_id,'student_id')
             students = students.filter(id=student_id)
+
+        
+        if linked_user:
+            students = students.filter(parent__id=linked_user)
         
         if parent_id:
             students = students.filter(parent__id=parent_id)
