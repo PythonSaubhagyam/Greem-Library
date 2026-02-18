@@ -76,3 +76,9 @@ class pdfLibraryAPI(APIView):
         object.delete()
         return Response({'status': True, 'message': 'pdf Library deleted successfully'}, status=status.HTTP_200_OK)
         
+
+class StudentpdfListAPI(APIView):
+    def get(self, request, student_id):
+        pdf = pdfLibraryModel.objects.filter(student_id=student_id)
+        serializer = pdfLibrarySerializer(pdf,many=True)
+        return Response(serializer.data)

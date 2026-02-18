@@ -23,7 +23,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('user/',include('user_management.urls')),
     path("administrator/", include("adminpanel.urls")),
-    path("tablet/", include("tablet_app.urls")),
+    path('tablet/', include('tablet_app.urls')),
+
     path("", include("apps.dashboards.urls")),
     
     # layouts urls

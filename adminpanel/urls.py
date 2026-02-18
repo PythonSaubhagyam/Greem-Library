@@ -5,7 +5,12 @@ from adminpanel.View.CompanyDetailView import *
 from adminpanel.View.StudentsView import *
 from adminpanel.View.EmployeeView import *
 from adminpanel.View.CustomerView import *
+from adminpanel.View.ParentChildView import *
 from .views import DashboardsView
+from adminpanel.View.LeadView import LeadAPI
+from adminpanel.View.LeadFollowUpView import TabletLeadFollowUpAPI
+from adminpanel.views import LeadCreateUpdateView, LeadFollowUpView, LeadFollowupDetailView
+from adminpanel.MobileView.StudentView import MobileStudentsAPIView
 
 urlpatterns = [
     
@@ -62,4 +67,22 @@ urlpatterns = [
     path("students/pdfs-groups/<int:pk>/",pdfGroupAPI.as_view(),name="students-pdfs-groups"),
     path("students/tests/<int:pk>/",StudentsTestResultView.as_view(),name="students-tests"),
     path("students/summary/<int:student_id>/",StudentSummaryAPIView.as_view(),name="student-summary"),
-]     
+
+    path("parent-child/", ParentChildListAPI.as_view(), name="parent-child-list"),
+
+    path('lead/', LeadAPI.as_view(), name='lead-list-create'),
+    path('lead/<int:pk>/', LeadAPI.as_view(), name='lead-detail'),
+    path('lead-management/', DashboardsView.as_view(template_name="leads_details.html"), name='lead-management'),
+    path('leads/add/', LeadCreateUpdateView.as_view(template_name="lead_add.html"), name='lead-add'),
+    path('leads/edit/<int:pk>/', LeadCreateUpdateView.as_view(template_name="lead_add.html"), name='lead-edit'),
+
+    path("leadfollowup/", TabletLeadFollowUpAPI.as_view(), name="leadfollowup-list-create"),
+    path("leadfollowup/<int:pk>/", TabletLeadFollowUpAPI.as_view(), name="leadfollowup-detail"),
+    path("lead-followups/", LeadFollowUpView.as_view(template_name="lead_followup_details.html"), name="lead-followup-list"),
+    path("lead-followups/add/", LeadFollowUpView.as_view(template_name="lead_followup_add.html"), name="lead-followup-add"),
+    path("lead-followups/edit/<int:pk>/", LeadFollowUpView.as_view(template_name="lead_followup_add.html"),name="lead-followup-edit"),
+    path("lead-followups/lead/<int:lead_id>/", LeadFollowupDetailView.as_view(), name="lead-followup-by-lead"),
+
+
+    path('mobile-student/', MobileStudentsAPIView.as_view(), name='mobile-student-api'),
+]

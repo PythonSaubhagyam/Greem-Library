@@ -8,18 +8,6 @@ from django.db.models import Q
 
 class LeadAPI(APIView):
 
-    def post(self, request):
-        try:
-            serializer = TabletLeadSerializer(data=request.data, context={'request': request})
-            if serializer.is_valid():
-                serializer.save()
-                return Response({'status': True, 'data': serializer.data, 'message': 'Lead created successfully'}, status=status.HTTP_201_CREATED)
-            return Response({'status': False, 'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-        
-        except Exception as e:
-            return Response({'status': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
-
     def get(self, request, pk=None):
         try:
             if pk:
@@ -50,7 +38,7 @@ class LeadAPI(APIView):
 
                 
             serializer = TabletLeadSerializer(queryset, many=True)
-            return Response({'status': True, 'data': serializer.data, 'message': 'Lead listed successfully'}, status=status.HTTP_200_OK)
+            return Response({'status': True, 'data': serializer.data, "count": queryset.count(), 'message': 'Lead listed successfully'}, status=status.HTTP_200_OK)
 
         except TabletLeadModel.DoesNotExist:
             return Response({'status': False, 'message': 'Tablet lead not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -59,6 +47,18 @@ class LeadAPI(APIView):
             return Response({'status': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     
+    def post(self, request):
+        try:
+            serializer = TabletLeadSerializer(data=request.data, context={'request': request})
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'status': True, 'data': serializer.data, 'message': 'Lead created successfully'}, status=status.HTTP_201_CREATED)
+            return Response({'status': False, 'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            return Response({'status': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
     def patch(self, request, pk):
         try:
             queryset = TabletLeadModel.objects.get(id=pk)
@@ -79,6 +79,6 @@ class LeadAPI(APIView):
 
         except TabletLeadModel.DoesNotExist:
             return Response({'status': False, 'message': 'Tablet lead not fount'}, status=status.HTTP_404_NOT_FOUND)
-        
+    
         queryset.delete()
         return Response({'status': True, 'message': 'Tablet lead deleted successfully'}, status=status.HTTP_200_OK)

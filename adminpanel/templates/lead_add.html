@@ -22,6 +22,7 @@
 
 <div class="card">
 
+
   <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <h5 class="mb-0">
       {% if is_edit %}Edit Tablet Lead{% else %}Add Tablet Lead{% endif %}
@@ -43,10 +44,18 @@
 
         <div class="col-md-4">
           <label class="form-label">Mobile</label>
-          <input type="text" name="mobile" class="form-control"
-                 value="{{ lead.mobile|default:'' }}" required>
+          <div class="input-group">
+            <span class="input-group-text">+91</span>
+            <input type="text" name="mobile" class="form-control"
+                  value="{{ lead.mobile|default:''|slice:'3:' }}" 
+                  pattern="[6-9][0-9]{9}" 
+                  maxlength="10"
+                  title="Enter a valid 10-digit Indian mobile number starting with 6-9"
+                  required>
+          </div>
         </div>
 
+        
         <div class="col-md-4">
           <label class="form-label">Email</label>
           <input type="email" name="email" class="form-control"
@@ -159,12 +168,12 @@
         <!-- ASSIGNED TO -->
         <div class="col-md-4">
           <label class="form-label">Assigned To</label>
-          <select name="assigned_to" class="form-select">
+          <select name="assigned_to_id" class="form-select">
             <option value="">Select User</option>
-            {% for user in users %}
-              <option value="{{ user.id }}"
-                {% if lead and lead.assigned_to_id|stringformat:"s" == user.id|stringformat:"s" %}selected{% endif %}>
-                {{ user.first_name }} {{ user.last_name }}
+            {% for emp in employees %}
+              <option value="{{ emp.id }}"
+                {% if lead and lead.assigned_to_id|stringformat:"s" == emp.id|stringformat:"s" %}selected{% endif %}>
+                {{ emp.user.first_name }} {{ emp.user.last_name }}
               </option>
             {% endfor %}
           </select>

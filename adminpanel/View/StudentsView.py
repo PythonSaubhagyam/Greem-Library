@@ -16,7 +16,6 @@ from datetime import timedelta,datetime
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg
 
-
 class StudentsAPIView(APIView):
     # permission_classes = [IsAuthenticated]
  
@@ -25,6 +24,7 @@ class StudentsAPIView(APIView):
         parent_id = request.query_params.get('parent_id')
         linked_user = request.GET.get("linked_user")
    
+
         student_id = request.GET.get('id')
         q = request.GET.get('q')
         students = StudentModel.objects.all().order_by('-id')
@@ -37,11 +37,15 @@ class StudentsAPIView(APIView):
         if linked_user:
             students = students.filter(parent__id=linked_user)
         
+            print(student_id)
+
         if parent_id:
             students = students.filter(parent__id=parent_id)
-
+            print(parent_id)
+ 
         elif teacher_id:
             students = students.filter(parent__id=teacher_id)
+ 
 
         if q:
             students = students.filter(
