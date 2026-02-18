@@ -189,6 +189,10 @@ class EmployeeModel(models.Model):
     email = models.EmailField(null=True,blank=True)
     department = models.CharField(max_length=255,null=True,blank=True)
 
+    def __str__(self):
+        return f"{self.user.first_name} {self.user.last_name} ({self.employee_id})"
+
+
 
 class VendorModel(models.Model):
     user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
@@ -201,3 +205,167 @@ class InventoryModel(models.Model):
     quantity = models.IntegerField(validators=[MinValueValidator(0)])
     price = models.DecimalField(max_digits=10, decimal_places=2)
     
+    imei_number = models.CharField(max_length=255,null=True,blank=True)
+    is_active = models.BooleanField(default=True)
+    
+
+
+class TabletLeadModel(models.Model):
+
+    LEAD_STAGE = [
+        ('New', 'New'),
+        ('Contacted', 'Contacted'),
+        ('Demo Scheduled', 'Demo Scheduled'),
+        ('Demo Done', 'Demo Done'),
+        ('Negotiation', 'Negotiation'),
+        ('Order Confirmed', 'Order Confirmed'),
+        ('Delivered', 'Delivered'),
+        ('Lost', 'Lost'),
+    ]
+
+    CUSTOMER_TYPE = [
+        ('Student', 'Student'),
+        ('School', 'School'),
+        ('College', 'College'),
+        ('Institute', 'Institute'),
+        ('Individual', 'Individual'),
+    ]
+
+    PAYMENT_STATUS = [
+        ('Pending', 'Pending'),
+        ('Partial', 'Partial'),
+        ('Paid', 'Paid'),
+    ]
+
+    name = models.CharField(max_length=255)
+    mobile = PhoneNumberField(null=True, blank=True)
+    email = models.EmailField(blank=True, null=True)
+
+    customer_type = models.CharField(max_length=30, choices=CUSTOMER_TYPE)
+    school_name = models.CharField(max_length=255, blank=True, null=True)
+
+    tablet_model = models.CharField(max_length=100)
+    tablet_variant = models.CharField(max_length=100, blank=True, null=True)
+    quantity = models.PositiveIntegerField(default=1)
+
+    price_per_unit = models.FloatField(null=True, blank=True)
+    total_price = models.FloatField(null=True, blank=True)
+
+    demo_required = models.BooleanField(default=False)
+    demo_done = models.BooleanField(default=False)
+    demo_date = models.DateField(blank=True, null=True)
+
+    stage = models.CharField(max_length=50, choices=LEAD_STAGE, default='New')
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='Pending')
+
+    delivery_date = models.DateField(blank=True, null=True)
+
+    created_by = models.ForeignKey(
+        UserModel, on_delete=models.SET_NULL, null=True, related_name="tablet_leads_created"
+    )
+    assigned_to = models.ForeignKey(
+        EmployeeModel, on_delete=models.SET_NULL, null=True, blank=True, related_name="tablet_leads_assigned"
+    )
+    comment = models.TextField(blank=True, null=True)
+
+
+    is_deleted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.tablet_model}"
+
+
+
+class TabletLeadFollowUpModel(models.Model):
+
+    FOLLOWUP_TYPE = [
+        ('Call', 'Call'),
+        ('Whatsapp', 'WhatsApp'),
+        ('Demo', 'Demo'),
+        ('Meeting', 'Meeting'),
+        ('Payment', 'Payment Follow-Up'),
+        ('Delivery', 'Delivery Follow-Up'),
+        ('Support', 'Support'),
+    ]
+
+    LEAD_STAGE = [
+        ('Contacted', 'Contacted'),
+        ('Demo Scheduled', 'Demo Scheduled'),
+        ('Demo Done', 'Demo Done'),
+        ('Negotiation', 'Negotiation'),
+        ('Order Confirmed', 'Order Confirmed'),
+        ('Delivered', 'Delivered'),
+        ('Lost', 'Lost'),
+    ]
+
+    tablet_lead = models.ForeignKey(
+        TabletLeadModel,
+        on_delete=models.CASCADE,
+        related_name='followups'
+    )
+
+    followup_type = models.CharField(
+        max_length=30,
+        choices=FOLLOWUP_TYPE
+    )
+
+    followup_date = models.DateTimeField(
+        help_text="Next follow-up date & time"
+    )
+
+    comment = models.TextField()
+
+    followup_by = models.ForeignKey(
+        UserModel,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='tablet_followups'
+    )
+
+    stage_update = models.CharField(
+        max_length=50,
+        choices=LEAD_STAGE,
+        blank=True,
+        null=True,
+        help_text="Update lead stage after this follow-up"
+    )
+
+    next_followup_date = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="If another follow-up is required"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Tablet Lead Follow-Up"
+        verbose_name_plural = "Tablet Lead Follow-Ups"
+
+    def __str__(self):
+        return f"{self.tablet_lead.name} - {self.followup_type}"
+
+
+    # def save(self, *args, **kwargs):
+    #     super().save(*args, **kwargs)
+
+    #     if self.stage_update:
+    #         self.tablet_lead.stage = self.stage_update
+    #         self.tablet_lead.save(update_fields=['stage'])
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.stage_update:
+            self.tablet_lead.stage = self.stage_update
+
+        if self.comment:
+            self.tablet_lead.comment = self.comment
+
+        self.tablet_lead.save(update_fields=['stage', 'comment'])
+
+
+

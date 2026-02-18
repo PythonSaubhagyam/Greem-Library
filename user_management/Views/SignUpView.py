@@ -21,7 +21,16 @@ class SignUpView(APIView):
         first_name = request.data.get('first_name', '')
         last_name = request.data.get('last_name', '')
         password = request.data.get('password', '')
-        
+        role = request.data.get('role', '')
+
+        role_obj = None
+        if role:
+            role_obj = RoleModel.objects.filter(id=role).first()
+
+        data = request.data.copy()
+        data['role'] = role_obj.id if role_obj else None
+        serializer = SignUpSerializer(data=data)
+                
         if not email or not mobile_no or not first_name or not last_name and password:
             return Response({'status': False, 'message': 'Email, Mobile no, First name and Last name'}, status=status.HTTP_400_BAD_REQUEST)
         

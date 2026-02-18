@@ -91,3 +91,18 @@ class DeviceAdmin(admin.ModelAdmin):
     list_display = ("id","user", "imei_number",'is_active')
     search_fields = ("user__email", "imei_number",)
     list_filter = ("imei_number",)
+
+@admin.register(TabletLeadModel)
+class TabletLeadAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "mobile", "email", "customer_type", "school_name", "tablet_model", "tablet_variant", "quantity", 
+                    "price_per_unit", "total_price", "demo_required", "demo_done", "demo_date", "stage", "payment_status", "delivery_date",
+                    "created_by", "assigned_to", "comment", "is_deleted", "created_at", "updated_at")
+    search_fields = ("name", "email", "mobile", "customer_type", "tablet_model", "payment_status", )
+    list_filter = ("name", "email",)
+
+
+@admin.register(TabletLeadFollowUpModel)
+class TabletLeadFollowUpAdmin(admin.ModelAdmin):
+    list_display = ("tablet_lead", "followup_type", "followup_date", "comment", "followup_by", "stage_update", "next_followup_date", "created_at")
+    search_fields = ("tablet_lead", "followup_type", "comment", "stage_update", )
+    list_filter = ("followup_type", "stage_update",)

@@ -55,6 +55,18 @@
       </a>
     </li>
 
+
+    <li
+        class="menu-item {% if 'lead' in request.path %}active open{% endif %}"
+    >
+      <a href="{% url 'lead-management' %}" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-group"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Lead Management</div>
+      </a>
+    </li>
+
+
+
     {% comment %} <li
       class="menu-item {% if '/near-by-places/' in request.path %}active open{% endif %}"
     >

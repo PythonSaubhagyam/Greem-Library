@@ -398,7 +398,7 @@ function showToast(title, message, status = "primary") {
                 <td>
                   {% comment %} <img src="${getNextImage()}" alt="company" class="me-2 rounded" style="width: 35px; height: 35px;"> {% endcomment %}
                   {% comment %} <a href="/administrator/companies/detail/${company.id}/" class="fw-semibold text-decoration-none"> {% endcomment %}
-                   <a 
+                   <a
                       href="${
                         type === 'teacher'
                           ? `/administrator/students/?teacher_id=${company.id}`

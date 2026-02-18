@@ -15,6 +15,13 @@ from .models import *
 # from account.models import FacebookMetadata
 from django.conf import settings
 from user_management.models import *
+from django.views import View   
+from django.shortcuts import get_object_or_404, render
+from user_management.models import TabletLeadModel, UserModel, TabletLeadFollowUpModel
+from django.http import JsonResponse
+from django.utils.dateparse import parse_datetime
+from django.utils import timezone
+
 
 """
 This file is a view controller for multiple pages as a module.
@@ -87,6 +94,14 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
         company_label = LABEL_MAP.get(detail_name, "User Management")
 
         add_edit_label = ""
+
+        if "/leads/add/" in self.request.path.lower():
+            add_edit_label = "Add Lead"
+
+        elif "/leads/edit/" in self.request.path.lower():
+            add_edit_label = "Edit Lead"
+
+
         student_name = ''
         customer_name = ''
 
@@ -155,6 +170,17 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             "Devices_list.html": ("Devices Management", None),
             "customer_device_add_update.html": ("Devices Management", reverse('devices'), add_edit_label),
             "customer_detail.html": ("Customers Management", reverse('customers'), customer_name),
+
+            # "leads_details.html": ("Lead Management", None),
+            # "lead_add.html": ("Lead Management", reverse('lead-management'), "Add Tablet Lead"),
+            # "lead_detail.html": ("Lead Management", reverse('lead-management'), "Lead Detail"),
+            "leads_details.html": ("Lead Management", None),
+            "lead_add.html": ("Lead Management", reverse("lead-management"), add_edit_label),
+
+            "lead_followup_details.html": ("Lead Management", reverse("lead-management"), "Follow-Ups"),
+            "lead_followup_add.html": ("Lead Management", reverse("lead-management"), "Add Follow-Up" ),
+
+
             # "property_add.html": ("Properties", reverse("properties"), "Add Property"),
             # "property_edit.html": ("Properties", reverse("properties"), "Edit Property"),
 
@@ -298,6 +324,181 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
         context["breadcrumbs"] = breadcrumbs
         # context['ADMIN_IDS'] = settings.ADMIN_IDS
         return context
+
+
+
+class LeadCreateUpdateView(DashboardsView):
+    template_name = "lead_add.html"
+
+    def get(self, request, pk=None):
+        context = self.get_context_data()
+        context["customer_types"] = ["Student", "School", "College", "Institute", "Individual"]
+        context["payment_statuses"] = ["Pending", "Partial", "Paid"]
+        context["lead_stages"] = ["New", "Contacted", "Demo Scheduled", "Demo Done", "Negotiation",
+                                  "Order Confirmed", "Delivered", "Lost"]
+        context["employees"] = EmployeeModel.objects.all()
+        context["is_edit"] = False
+        context["lead"] = None
+
+        if pk:
+            lead = get_object_or_404(TabletLeadModel, pk=pk)
+            context["lead"] = lead
+            context["is_edit"] = True
+
+        return render(request, self.template_name, context)
+
+
+    def post(self, request, pk=None):
+        data = request.POST
+        lead = TabletLeadModel(created_by=request.user)
+        if pk and pk != "null":
+            lead = get_object_or_404(TabletLeadModel, pk=pk)
+
+
+        try:
+            lead.name = data.get("name")
+            lead.mobile = data.get("mobile")
+            lead.email = data.get("email") or None
+            lead.customer_type = data.get("customer_type")
+            lead.school_name = data.get("school_name") or None
+            lead.tablet_model = data.get("tablet_model")
+            lead.tablet_variant = data.get("tablet_variant")
+            lead.quantity = int(data.get("quantity") or 1)
+            lead.price_per_unit = float(data.get("price_per_unit") or 0)
+            lead.total_price = float(data.get("total_price") or 0)
+            lead.stage = data.get("stage")
+            lead.payment_status = data.get("payment_status")
+            lead.comment = data.get("comment")
+            lead.demo_required = data.get("demo_required") == "true"
+            lead.demo_done = data.get("demo_done") == "true"
+            lead.demo_date = data.get("demo_date") or None
+            lead.delivery_date = data.get("delivery_date") or None
+
+            assigned_to = data.get("assigned_to_id")
+            lead.assigned_to_id = assigned_to if assigned_to else None
+
+            lead.save()
+
+            return JsonResponse({
+                "success": True,
+                "message": "Lead updated successfully" if pk else "Lead created successfully"
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                "success": False,
+                "error": str(e)
+            }, status=400)
+    
+
+
+class LeadFollowUpView(DashboardsView):
+    template_name = "lead_followup_add.html"
+    list_template = "lead_followup_details.html"
+
+    def get(self, request, pk=None):
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+        followup = get_object_or_404(TabletLeadFollowUpModel, pk=pk) if pk else None
+
+        context = self.get_context_data()
+
+        context = TemplateLayout.init(self, {
+            "is_edit": bool(pk),
+            "followup": followup,
+            "leads": TabletLeadModel.objects.all(),
+            "followup_types": ["call", "visit", "whatsapp", "email"],
+
+        })
+
+        return render(request, self.template_name, context)
+
+
+
+    def post(self, request, pk=None):
+        followup = None
+        if pk:
+            followup = get_object_or_404(TabletLeadFollowUpModel, pk=pk)
+        else:
+            followup = TabletLeadFollowUpModel(followup_by=request.user)
+
+        try:
+            followup.tablet_lead_id = request.POST.get("tablet_lead_id")
+            followup.followup_type = request.POST.get("followup_type")
+            followup.followup_date = parse_datetime(request.POST.get("followup_date"))
+            followup.next_followup_date = parse_datetime(request.POST.get("next_followup_date"))
+            followup.comment = request.POST.get("comment", "")
+            followup.save()
+
+            return JsonResponse({
+                "success": True,
+                "message": "Follow-up updated successfully" if pk else "Follow-up added successfully",
+                "redirect_url": reverse("lead-management") 
+            })
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+
+class LeadFollowupDetailView(DashboardsView):
+    template_name = "lead_followup_details.html"
+
+    def get(self, request, lead_id):
+
+        if not lead_id:
+            return JsonResponse(
+                {"status": "error", "message": "Invalid lead id"},
+                status=400
+            )
+
+        try:
+            lead = TabletLeadModel.objects.get(id=lead_id)
+        except TabletLeadModel.DoesNotExist:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({
+                    "status": "not_found",
+                    "message": "Lead not found"
+                }, status=404)
+
+            return render(request, self.template_name, {
+                "lead": None,
+                "not_found": True
+            })
+
+        followups = TabletLeadFollowUpModel.objects.filter(
+            tablet_lead=lead
+        ).order_by("-followup_date")
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            data = [{
+                "id": f.id,
+                "tablet_lead": lead.name,
+                "followup_type": f.followup_type,
+                "followup_date": f.followup_date.strftime("%Y-%m-%d %H:%M") if f.followup_date else "",
+                "next_followup_date": f.next_followup_date.strftime("%Y-%m-%d %H:%M") if f.next_followup_date else "",
+                "stage_update": getattr(f, "stage_update", ""),
+                "comment": f.comment or "",
+                "followup_by": (
+                    f"{f.followup_by.first_name} {f.followup_by.last_name}".strip()
+                    if f.followup_by else ""
+                )
+
+            } for f in followups]
+
+            return JsonResponse({
+                "status": "ok",
+                "data": data
+            })
+
+        context = self.get_context_data()
+        context["lead"] = lead
+        context["lead_id"] = lead.id
+        context["has_followups"] = followups.exists()
+
+        return render(request, self.template_name, context)
+
+
 
 
 def cors_media_serve(request, path):

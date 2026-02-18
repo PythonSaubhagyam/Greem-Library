@@ -13,7 +13,7 @@
 
 /* Delete Modal - Compact */
 #deleteConfirmModal .modal-dialog {
-    max-width: 380px;
+    max-width: 530px;
 }
 
 #deleteConfirmModal .modal-header {
@@ -21,20 +21,20 @@
 }
 
 #deleteConfirmModal .modal-header h5 {
-    margin: 0;
-    font-size: 0.95rem;
+    margin: 0.5;
+    padding-top: 0.75rem;
+    font-size: 1rem;
 }
 
 #deleteConfirmModal .modal-body {
     padding: 0.5rem 0.75rem;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
 }
 
 #deleteConfirmModal .modal-footer {
-    padding: 0.4rem 0.75rem;
+    padding: 1.4rem 1.75rem;
     gap: 0.25rem;
 }
-
 
 
 </style>
@@ -46,7 +46,10 @@
   <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 
   <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <h5 class="mb-0">Tablet Leads</h5>
+    {% comment %} <h5 class="mb-0">Tablet Leads</h5> {% endcomment %}
+    <h5 class="mb-0">Tablet Leads
+      <span class="text-bold ms-1" id="datacount"></span>
+    </h5>
     <div class="d-flex gap-2 align-items-center">
       <div class="input-group input-group-sm" style="width: 220px;">
         <span class="input-group-text bg-white border-end-0">
@@ -110,7 +113,7 @@
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        {% comment %} <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> {% endcomment %}
       </div>
       <div class="modal-body" id="followupModalBody">
         <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
@@ -124,10 +127,10 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5>Confirm Delete</h5>
+        <h5>Confirm Deletion</h5>
         <button class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">Delete this lead?</div>
+      <div class="modal-body">Are you sure you want to delete this Lead?</div>
       <div class="modal-footer">
         <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
@@ -150,6 +153,17 @@
 {% block page_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+
+    function formatMobile(number){
+        if(!number) return '-';
+        if(number.startsWith('+91')) return number;
+        
+        let cleaned = number.replace(/\D/g,'');
+        if(cleaned.length === 10) return '+91' + cleaned;
+        
+        return '+' + cleaned;
+    }
+
 
     const container = document.getElementById("leads-container");
     const loader = document.getElementById("leads-loader");
@@ -190,6 +204,11 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(res => res.json())
             .then(res => {
                 loader.style.display="none";
+                const countEl = document.getElementById("datacount");
+                if (countEl) {
+                  countEl.innerText = `(${res.count})`;
+                  console.log(countEl)
+                }
                 const data = res.data || [];
                 if(!data.length){
                     container.innerHTML = `<tr><td colspan="15" class="text-center">No leads found</td></tr>`;
@@ -201,7 +220,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         <tr>
                           <td>${i+1}</td>
                           <td>${lead.name}</td>
-                          <td>${lead.mobile}</td>
+                          <td>${formatMobile(lead.mobile)}</td>
                           <td>${lead.email||'-'}</td>
                           <td>${lead.customer_type||'-'}</td>
                           <td>${lead.tablet_model||'-'}</td>
@@ -214,16 +233,39 @@ document.addEventListener("DOMContentLoaded", function() {
                           <td>${lead.demo_required?'Yes':'No'}</td>
                           <td>${lead.demo_done?'Yes':'No'}</td>
                           <td>
-                            <div class="dropdown">
-                              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Action</button>
-                              <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="/administrator/leads/edit/${lead.id}/"><i class="bx bx-edit"></i> Edit</a></li>
-                                <li><a class="dropdown-item text-primary" href="/administrator/lead-followups/lead/${lead.id}/"><i class="bx bx-show"></i> View Follow-Ups</a></li>
-                                <li><a class="dropdown-item text-danger" href="#" onclick="askDelete(${lead.id})"><i class="bx bx-trash"></i> Delete</a></li>
-                              </ul>
-                            </div>
-                          </td>
-                        </tr>
+                              <div class="d-flex gap-2 align-items-center">
+
+                                <!-- VIEW -->
+                                <a href="/administrator/lead-followups/lead/${lead.id}/"
+                                  class="text-info"
+                                  title="View">
+                                  <i class="bx bx-show fs-4"></i>
+                                </a>
+
+                                <!-- EDIT -->
+                                <a href="/administrator/leads/edit/${lead.id}/"
+                                  class="text-warning"
+                                  title="Edit">
+                                  <i class="bx bx-edit-alt fs-4"></i>
+                                </a>
+
+                                {% comment %}<!-- ADD STUDENT -->
+                                <a href="/administrator/students/add/?customer=${c.id}"
+                                  class="text-primary"
+                                  title="Add Student">
+                                  <i class="bx bx-user-plus fs-4"></i>
+                                </a>  {% endcomment %}
+
+                                <!-- DELETE -->
+                                <a href="#"
+                                  onclick="askDelete(${lead.id})"
+                                  class="text-danger"
+                                  title="Delete">
+                                  <i class="bx bx-trash-alt fs-4"></i>
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
                     `);
                 });
             })

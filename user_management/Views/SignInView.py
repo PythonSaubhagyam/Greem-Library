@@ -21,12 +21,19 @@ class SignInView(APIView):
         try:
             email = request.data.get('email','')
             password = request.data.get('password','')
+
+            user = UserModel.objects.filter(email=email).first()
+            if not user:
+                return Response(
+                    {'status': False, 'message': 'Invalid credentials!'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
-            if UserModel.objects.get(email=email).is_active == True:
-            
+            if user.is_active:
+                print("active")
                 auth_user = authenticate(username=email, password=password)
-                
-                if auth_user is not None and auth_user.role:
+                    
+                if auth_user is not None:
                     data = dict()
                     obj, _ = Token.objects.get_or_create(user=auth_user)
                     login(request, auth_user)
@@ -34,6 +41,7 @@ class SignInView(APIView):
                     data['first_name'] = auth_user.first_name
                     data['last_name'] = auth_user.last_name
                     data['email'] = auth_user.email
+                    data['role'] = auth_user.role.type if auth_user.role else ''
                     data['token'] = obj.key
                     
                     return Response({'status': True, 'data': data, 'message': 'User successfully logged In'}, status=status.HTTP_200_OK)

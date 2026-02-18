@@ -1,6 +1,6 @@
 from django.urls import path,include
 from tablet_app.Views.pdfGroupView import pdfGroupAPI
-from tablet_app.Views.pdfLibraryView import pdfLibraryAPI
+from tablet_app.Views.pdfLibraryView import pdfLibraryAPI, StudentpdfListAPI
 from tablet_app.Views.TestView import TestAPI
 from tablet_app.Views.QuestionsView import QuestionsAPI
 from tablet_app.Views.QuestionOptionsView import QuestionOptionsAPI
@@ -21,6 +21,12 @@ urlpatterns = [
 
     path('questions-api/', QuestionsAPI.as_view(), name='questions'),
     path('questions-api/<int:pk>/', QuestionsAPI.as_view(), name='questions'),
+    path('pdf-library/', pdfLibraryAPI.as_view(), name='list-pdf-library'),
+    path('pdf-library/<int:pk>/', pdfLibraryAPI.as_view(), name='list-pdf-library'),
+    path('pdf-library/create/', pdfLibraryAPI.as_view(), name='create-pdf-library'),
+    path('pdf-library/update/<int:pk>/', pdfLibraryAPI.as_view(), name='update-pdf-library'),
+    path('pdf-library/delete/<int:pk>/', pdfLibraryAPI.as_view(), name='delete-pdf-library'),
+    path('student-pdf/<int:student_id>/', StudentpdfListAPI.as_view(), name='student-pdf'),
 
     path('option/list/', QuestionOptionsAPI.as_view(), name='option'),
     path('option/list/<int:pk>/', QuestionOptionsAPI.as_view(), name='option'),
