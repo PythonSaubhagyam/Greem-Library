@@ -7,6 +7,7 @@ from tablet_app.Views.QuestionOptionsView import QuestionOptionsAPI
 from tablet_app.Views.StudentTestAttemptView import StudentTestAttemptAPI
 from tablet_app.Views.StudentAnswerView import StudentAnswerAPI
 from tablet_app.Views.StudentTestFinishView import StudentTestFinishAPI
+from tablet_app.Views.StudySessionView import StudySessionAPI
 
 urlpatterns = [
 
@@ -38,6 +39,9 @@ urlpatterns = [
     path('studentanswer/<int:pk>/', StudentAnswerAPI.as_view(), name='student-answer'),
 
     path('studenttestattempt/finish/', StudentTestFinishAPI.as_view(),name='finish-test-attempt'),
+
+    path('study-session/', StudySessionAPI.as_view(), name='study-session'),
+    path('study-session/<int:pk>/', StudySessionAPI.as_view(), name='study-session-detail'),
 
 
 ]

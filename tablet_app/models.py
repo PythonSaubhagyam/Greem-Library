@@ -4,7 +4,8 @@ from user_management.models import *
 
 class pdfGroupModel(models.Model):
     name = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -18,14 +19,23 @@ class pdfLibraryModel(models.Model):
     is_custom = models.BooleanField(default=False)
     is_favorite = models.BooleanField(default=False)
     student = models.ForeignKey(StudentModel, on_delete=models.CASCADE,blank=True,null=True, related_name='library')
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return self.title
-    
+
+
+
+class Subject(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
 
 class TestModel(models.Model):
     title = models.CharField(max_length=255, null=True, blank=True)
+    subject = models.ForeignKey(Subject, on_delete=models.DO_NOTHING, null=True, blank=True)
     pdf = models.ManyToManyField(pdfLibraryModel, related_name='test')
     number_of_questions = models.IntegerField()
     question_type = models.CharField(
@@ -42,8 +52,10 @@ class TestModel(models.Model):
     total_marks = models.IntegerField()
     shuffle_questions = models.BooleanField(default=False)
     enable_timer = models.BooleanField(default=False)
-    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE, related_name='students')
+    student = models.ManyToManyField(StudentModel, related_name='tests', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    scheduled_date = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(UserModel,on_delete=models.SET_NULL,null=True,blank=True)
 
     def __str__(self):
         return self.title
@@ -86,3 +98,61 @@ class StudentAnswerModel(models.Model):
 
     def __str__(self):
         return f"{self.attempt} - {self.question}"
+
+
+class StudySession(models.Model):
+    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE)
+
+    subject = models.ForeignKey(
+        Subject,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
+
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+
+    duration = models.IntegerField(null=True, blank=True)  # in minutes
+
+    interaction_count = models.IntegerField(default=0)
+    # clicks / scroll / activity signals
+
+    is_active = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        if self.end_time and self.start_time:
+            self.duration = int((self.end_time - self.start_time).total_seconds() / 60)
+        super().save(*args, **kwargs)
+
+
+class StudentGroupModel(models.Model):
+    name = models.CharField(max_length=255)
+    students = models.ManyToManyField(StudentModel, related_name='groups')
+    
+    created_by = models.ForeignKey(
+        UserModel, 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='created_student_groups',
+        limit_choices_to={'role__type': 'Teacher'}
+    )
+    subject = models.ForeignKey(
+        Subject, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        help_text="If subject-specific group like 'Weak in Algebra'"
+    )
+    class_ref = models.ForeignKey(
+        'user_management.ClassModel', 
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='student_groups'
+    )
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.students.count()} students)"

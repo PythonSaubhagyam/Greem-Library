@@ -12,6 +12,9 @@ from adminpanel.View.LeadFollowUpView import TabletLeadFollowUpAPI
 from adminpanel.views import LeadCreateUpdateView, LeadFollowUpView, LeadFollowupDetailView
 from adminpanel.MobileView.StudentView import MobileStudentsAPIView
 
+from adminpanel.MobileView.ParentsView import *
+from adminpanel.MobileView.TeachersView import *
+
 urlpatterns = [
     
     
@@ -64,7 +67,10 @@ urlpatterns = [
     path("students-import/", StudentImportAPI.as_view(),name='student-import'),
 
     path("students/pdfs/<int:pk>/",pdfLibraryAPI.as_view(),name="students-pdfs"),
+    path("students/pdfs-groups/",pdfGroupAPI.as_view(),name="students-pdfs-groups"),
     path("students/pdfs-groups/<int:pk>/",pdfGroupAPI.as_view(),name="students-pdfs-groups"),
+    path("students/student-groups/",StudentGroupAPI.as_view(),name="students-groups"),
+    path("students/student-groups/<int:pk>/",StudentGroupAPI.as_view(),name="students-groups-detail"),
     path("students/tests/<int:pk>/",StudentsTestResultView.as_view(),name="students-tests"),
     path("students/summary/<int:student_id>/",StudentSummaryAPIView.as_view(),name="student-summary"),
 
@@ -85,4 +91,53 @@ urlpatterns = [
 
 
     path('mobile-student/', MobileStudentsAPIView.as_view(), name='mobile-student-api'),
+
+    path("analytics/learning-behaviour/<int:pk>/",LearningBehaviourAPI.as_view(),name="learning-behaviour"),
+    path("analytics/risk/<int:pk>/", RiskDetectionAPI.as_view(),name='risk-behavioiur'),
+    path("analytics/growth-report/<int:pk>/", GrowthEffortAPI.as_view(),name='growth-effort'),
+    path("analytics/performance-trend/<int:pk>/", PerformanceTrendAPI.as_view(),name='performance-trend'),
+    path("analytics/study-calendar/<int:student_id>/", StudyCalendarAPI.as_view(), name='study-calendar'),
+    path("analytics/parent-insights/<int:pk>/", ParentAIInsightsAPI.as_view(), name='parent-insights'),
+
+    # Teachers APIs
+    path("teachers/dashboard/<int:teacher_id>/", TeacherDashboardAPI.as_view(), name='teacher-dashboard'),
+    path("teachers/class-selection/<int:teacher_id>/", ClassSelectionAPI.as_view(), name='teacher-class-selection'),
+    path("teachers/enhanced-overview/<int:teacher_id>/", EnhancedClassOverviewAPI.as_view(), name='teacher-enhanced-overview'),
+    path("teachers/student-detail/<int:student_id>/", SubjectFilteredStudentDetailAPI.as_view(), name='teacher-student-detail'),
+    path("teachers/groups/<int:teacher_id>/", StudentGroupAPI.as_view(), name='teacher-student-groups'),
+    path("teachers/group-analytics/<int:group_id>/", GroupAnalyticsAPI.as_view(), name='teacher-group-analytics'),
+    path("teachers/student-comparison/", StudentComparisonAPI.as_view(), name='teacher-student-comparison'),
+    path("teachers/advanced-filter/<int:teacher_id>/", AdvancedFilterAPI.as_view(), name='teacher-advanced-filter'),
+    path("teachers/cross-subject-overview/<int:teacher_id>/", CrossSubjectOverviewAPI.as_view(), name='teacher-cross-subject-overview'),
+    path("teachers/class-overview/<int:teacher_id>/", ClassOverviewAPI.as_view(),name='teacher-class-overview'),
+    path("teachers/create-test/", TestCreationAPI.as_view(),name='teacher-create-test'),
+    path("teachers/class-analytics/<int:teacher_id>/", ClassPerformanceAnalyticsAPI.as_view(),name='teacher-class-analytics'),
+
+    # ============================================================================
+    # NEW APIs - Phase 2 Parents & Teachers
+    # ============================================================================
+    
+    # Parent APIs - New
+    path("analytics/academic-health/<int:pk>/", AcademicHealthScoreAPI.as_view(), name='academic-health-score'),
+    path("analytics/family-dashboard/", FamilyDashboardAPI.as_view(), name='family-dashboard'),
+    path("analytics/goals/", GoalSettingAPI.as_view(), name='goal-setting'),
+    path("analytics/goals/<int:student_id>/", GoalSettingAPI.as_view(), name='goal-setting-student'),
+    path("analytics/concept-confidence/<int:pk>/", ConceptConfidenceAPI.as_view(), name='concept-confidence'),
+    path("analytics/exam-readiness/<int:pk>/", ExamReadinessAPI.as_view(), name='exam-readiness'),
+    path("analytics/parent-teacher-sync/<int:pk>/", ParentTeacherSyncAPI.as_view(), name='parent-teacher-sync'),
+
+    # Teacher APIs - New (Batch Management)
+    path("teachers/batches/", BatchManagementAPI.as_view(), name='teacher-batches'),
+    path("teachers/batches/<int:teacher_id>/", BatchManagementAPI.as_view(), name='teacher-batches-list'),
+    path("teachers/batch-analytics/<int:batch_id>/", BatchAnalyticsAPI.as_view(), name='teacher-batch-analytics'),
+    
+    # Teacher APIs - New (Homework)
+    path("teachers/homework/", HomeworkAPI.as_view(), name='teacher-homework'),
+    path("teachers/homework/<int:teacher_id>/", HomeworkAPI.as_view(), name='teacher-homework-list'),
+    path("teachers/homework-submissions/<int:homework_id>/", HomeworkSubmissionsAPI.as_view(), name='teacher-homework-submissions'),
+    
+    # Teacher APIs - New (Remarks)
+    path("teachers/student-remark/", TeacherRemarkAPI.as_view(), name='teacher-student-remark'),
+    path("teachers/student-remarks/<int:student_id>/", TeacherRemarkAPI.as_view(), name='teacher-student-remarks-list'),
+
 ]

@@ -63,6 +63,7 @@ class AccountManager(BaseUserManager):
             raise ValueError("Superuser must have is_superuser=True.")
 
         return self._create_user(email, password, **extra_fields)
+
 class CountryModel(models.Model):
     country_name = models.CharField(
         verbose_name='name', max_length=255, unique=True)
@@ -76,6 +77,7 @@ class CountryModel(models.Model):
 
     def __str__(self):
         return self.country_name
+
 
 class CountryGroupModel(models.Model):
     group_name = models.CharField(max_length=255, verbose_name="group name")
@@ -172,13 +174,70 @@ class DeviceModel(models.Model):
 
     def __str__(self):
         return self.imei_number
-        
+
+
+class ClassModel(models.Model):
+    """Represents a class/section like 8A, 9B, etc."""
+    standard = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(12)],
+        help_text="Class standard (1-12)"
+    )
+    section = models.CharField(
+        max_length=10, 
+        blank=True, 
+        null=True,
+        help_text="Section name like A, B, C (optional)"
+    )
+    academic_year = models.CharField(
+        max_length=20, 
+        default='2024-25',
+        help_text="Academic year like 2024-25"
+    )
+    
+    # NO ManyToManyField here!
+    # Students are linked via ForeignKey in StudentModel
+    
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Class"
+        verbose_name_plural = "Classes"
+        unique_together = ['standard', 'section', 'academic_year']
+    
+    def __str__(self):
+        section_str = f"{self.section}" if self.section else ""
+        return f"Class {self.standard}{section_str} ({self.academic_year})"
+
+    # Helper method to get student count
+    def student_count(self):
+        return self.students.count()
+
+    # Helper method for API display
+    def get_display_name(self):
+        """Returns simple class display without academic year (e.g., 'Class 8A')"""
+        section_str = f"{self.section}" if self.section else ""
+        return f"Class {self.standard}{section_str}"
+
+    # Helper method for API serialization
+    def to_dict(self):
+        """Returns dict representation for APIs"""
+        return {
+            'id': self.id,
+            'standard': self.standard,
+            'section': self.section or '',
+            'academic_year': self.academic_year,
+            'display_name': self.get_display_name(),
+            'student_count': self.student_count()
+        } 
+
+
 class StudentModel(models.Model):
     device_id = models.ForeignKey(DeviceModel,on_delete=models.DO_NOTHING,null=True,blank=True)
     parent = models.ManyToManyField(UserModel,blank=True) # stores all customers, parents and teachers
     student_name = models.CharField(max_length=255)
     email = models.EmailField(null=True,blank=True)
-    student_class = models.IntegerField(null=True,blank=True)
+    student_class = models.ForeignKey(ClassModel, on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
 
     def __str__(self):
         return self.student_name
@@ -368,4 +427,224 @@ class TabletLeadFollowUpModel(models.Model):
         self.tablet_lead.save(update_fields=['stage', 'comment'])
 
 
+# ============================================================================
+# NEW MODELS FOR PHASE 2 - Parents & Teachers Mobile Apps
+# ============================================================================
+
+
+class TeacherAssignmentModel(models.Model):
+    """
+    Assigns teachers to specific classes and subjects.
+    Solves: Math teacher → Class 8A, 8B → Math subject only
+    """
+    TEACHER_ROLE_CHOICES = [
+        ('subject_teacher', 'Subject Teacher'),  # Teaches only assigned subjects
+        ('class_teacher', 'Class Teacher'),      # Homeroom teacher, sees all subjects for their class
+        ('principal', 'Principal/Admin'),        # Full school access
+    ]
+    
+    teacher = models.ForeignKey(
+        UserModel, 
+        on_delete=models.CASCADE, 
+        related_name='teacher_assignments',
+        limit_choices_to={'role__type': 'Teacher'}
+    )
+    
+    assigned_classes = models.ManyToManyField(
+        ClassModel, 
+        related_name='assigned_teachers',
+        help_text="Classes this teacher teaches (e.g., 8A, 8B, 9A)"
+    )
+    
+    assigned_subjects = models.ManyToManyField(
+        'tablet_app.Subject', 
+        related_name='assigned_teachers',
+        help_text="Subjects this teacher can teach (e.g., Math, Science)"
+    )
+    
+    teacher_role = models.CharField(
+        max_length=20, 
+        choices=TEACHER_ROLE_CHOICES, 
+        default='subject_teacher'
+    )
+    
+    # For class teachers - which class are they the homeroom teacher for
+    homeroom_class = models.ForeignKey(
+        ClassModel, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='homeroom_teacher',
+        help_text="If class teacher, which class is their homeroom"
+    )
+    
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Teacher Assignment"
+        verbose_name_plural = "Teacher Assignments"
+        unique_together = ['teacher']  # One assignment record per teacher
+    
+    def __str__(self):
+        subjects = ", ".join([s.name for s in self.assigned_subjects.all()[:3]])
+        classes = ", ".join([str(c) for c in self.assigned_classes.all()[:3]])
+        return f"{self.teacher.first_name} - {subjects} → {classes}"
+
+
+class StudentGoalModel(models.Model):
+    """Goal setting system for parents/teachers to track student progress"""
+    GOAL_TYPES = [
+        ('score', 'Score Target'),
+        ('consistency', 'Consistency'),
+        ('study_time', 'Study Time'),
+        ('improvement', 'Improvement'),
+    ]
+    
+    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE, related_name='goals')
+    goal_type = models.CharField(choices=GOAL_TYPES, max_length=20)
+    target_value = models.FloatField()
+    current_value = models.FloatField(default=0)
+    subject = models.ForeignKey('tablet_app.Subject', on_delete=models.SET_NULL, null=True, blank=True)
+    deadline = models.DateField(null=True, blank=True)
+    created_by = models.ForeignKey(UserModel, on_delete=models.SET_NULL, null=True, related_name='created_goals')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_achieved = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.student.student_name} - {self.goal_type}: {self.target_value}"
+
+    class Meta:
+        verbose_name = "Student Goal"
+        verbose_name_plural = "Student Goals"
+
+
+class BatchModel(models.Model):
+    """Batch/Section management for tuitions (Morning/Evening batches)"""
+    name = models.CharField(max_length=100)  # "Morning", "Evening", "Weekend"
+    teacher = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name='batches')
+    students = models.ManyToManyField(StudentModel, blank=True, related_name='batches')
+    timing = models.CharField(max_length=50, null=True, blank=True)  # "6:00 AM - 8:00 AM"
+    days = models.JSONField(default=list)  # ["Mon", "Wed", "Fri"]
+    class_ref = models.ForeignKey(
+        'ClassModel',  
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='batches',
+        help_text="Which class this batch belongs to"
+    )
+    student_class = models.IntegerField(null=True, blank=True)
+    subject = models.ForeignKey('tablet_app.Subject', on_delete=models.SET_NULL, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.teacher.first_name} ({self.students.count()} students)"
+
+    class Meta:
+        verbose_name = "Batch"
+        verbose_name_plural = "Batches"
+
+
+class HomeworkModel(models.Model):
+    """Homework assignments (separate from tests)"""
+    title = models.CharField(max_length=255)
+    subject = models.ForeignKey('tablet_app.Subject', on_delete=models.SET_NULL, null=True)
+    description = models.TextField(null=True, blank=True)
+    due_date = models.DateTimeField()
+    assigned_to = models.ManyToManyField(StudentModel, blank=True, related_name='assigned_homework')
+    batch = models.ForeignKey(BatchModel, on_delete=models.SET_NULL, null=True, blank=True, related_name='homework')
+    total_marks = models.IntegerField(default=100)
+    created_by = models.ForeignKey(UserModel, on_delete=models.SET_NULL, null=True, related_name='created_homework')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.subject.name if self.subject else 'No Subject'}"
+
+    class Meta:
+        verbose_name = "Homework"
+        verbose_name_plural = "Homework Assignments"
+
+
+class HomeworkSubmissionModel(models.Model):
+    """Track homework submissions from students"""
+    homework = models.ForeignKey(HomeworkModel, on_delete=models.CASCADE, related_name='submissions')
+    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE, related_name='homework_submissions')
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    time_taken_minutes = models.IntegerField(null=True, blank=True)
+    score = models.IntegerField(null=True, blank=True)
+    feedback = models.TextField(null=True, blank=True)
+    is_late = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.student.student_name} - {self.homework.title}"
+
+    class Meta:
+        verbose_name = "Homework Submission"
+        verbose_name_plural = "Homework Submissions"
+        unique_together = ['homework', 'student']
+
+
+class TeacherRemarkModel(models.Model):
+    """Teacher remarks on students visible to parents"""
+    REMARK_TYPES = [
+        ('general', 'General'),
+        ('concern', 'Concern'),
+        ('appreciation', 'Appreciation'),
+    ]
+    
+    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE, related_name='teacher_remarks')
+    teacher = models.ForeignKey(UserModel, on_delete=models.SET_NULL, null=True, related_name='given_remarks')
+    remark = models.TextField()
+    remark_type = models.CharField(choices=REMARK_TYPES, max_length=20, default='general')
+    is_visible_to_parent = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.teacher.first_name if self.teacher else 'Unknown'} → {self.student.student_name}: {self.remark_type}"
+
+    class Meta:
+        verbose_name = "Teacher Remark"
+        verbose_name_plural = "Teacher Remarks"
+        ordering = ['-created_at']
+
+
+class AchievementModel(models.Model):
+    """Achievement/Badge definitions"""
+    CRITERIA_TYPES = [
+        ('consistency', 'Consistency Days'),
+        ('test_count', 'Tests Completed'),
+        ('improvement', 'Score Improvement'),
+        ('study_time', 'Study Hours'),
+    ]
+    
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    badge_icon = models.CharField(max_length=50)  # emoji or icon name like "🏆", "⭐", "🔥"
+    criteria_type = models.CharField(choices=CRITERIA_TYPES, max_length=50)
+    criteria_value = models.IntegerField()  # e.g., 5 days for consistency
+
+    def __str__(self):
+        return f"{self.badge_icon} {self.name}"
+
+    class Meta:
+        verbose_name = "Achievement"
+        verbose_name_plural = "Achievements"
+
+
+class StudentAchievementModel(models.Model):
+    """Track achievements earned by students"""
+    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE, related_name='achievements')
+    achievement = models.ForeignKey(AchievementModel, on_delete=models.CASCADE)
+    earned_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student.student_name} earned {self.achievement.name}"
+
+    class Meta:
+        verbose_name = "Student Achievement"
+        verbose_name_plural = "Student Achievements"
+        unique_together = ['student', 'achievement']
 
