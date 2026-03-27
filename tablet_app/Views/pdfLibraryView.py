@@ -7,7 +7,7 @@ from adminpanel.pagination import ListPagination
 
 
 class pdfLibraryAPI(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     pagination_classes = ListPagination
 
     def get(self, request, pk=None):

@@ -100,7 +100,6 @@ class CustomerDeviceAPI(APIView):
 
         if pk is not None and not customer_id:
             qs = DeviceModel.objects.filter(id=pk).first()
-            print(qs)
             serializer = DeviceMiniSerializer(qs)
             return Response({'status':True,"data": {"device": serializer.data,"user": qs.user.id,"customer_name": f'{qs.user.first_name} {qs.user.last_name}'},'message':'Devices retrieved successfully'})
         

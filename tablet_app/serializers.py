@@ -5,10 +5,59 @@ from tablet_app.models import *
 class pdfGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = pdfGroupModel
-        fields = ['name', 'created_at']
+        fields = ['id','name', 'created_at','updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class StudentGroupSerializer(serializers.ModelSerializer):
+    student_ids = serializers.PrimaryKeyRelatedField(
+        queryset=StudentModel.objects.all(),
+        many=True,
+        source='students',
+        write_only=True,
+        required=False
+    )
+
+    students = serializers.SerializerMethodField(read_only=True)
+    student_count = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = StudentGroupModel
+        fields = ['id', 'name', 'student_ids', 'students', 'student_count']
+
+    def get_students(self, obj):
+        return [
+            {
+                'id': student.id,
+                'name': student.student_name,
+                'email': student.email,
+                'class': student.student_class
+            }
+            for student in obj.students.all()
+        ]
+
+    def get_student_count(self, obj):
+        return obj.students.count()
+
+    def create(self, validated_data):
+        students = validated_data.pop('students', [])
+        group = StudentGroupModel.objects.create(**validated_data)
+        group.students.set(students)
+        return group
+
+    def update(self, instance, validated_data):
+        students = validated_data.pop('students', None)
+        instance.name = validated_data.get('name', instance.name)
+        instance.save()
+
+        if students is not None:
+            instance.students.set(students)
+
+        return instance
 
 
 class pdfLibrarySerializer(serializers.ModelSerializer):
+    student_id = serializers.CharField()
 
     group_ids = serializers.PrimaryKeyRelatedField(
         queryset=pdfGroupModel.objects.all(),
@@ -22,15 +71,27 @@ class pdfLibrarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = pdfLibraryModel
-        fields = ['title', 'pdf_file', 'total_pages', 'group_ids', 'group', 'is_custom', 'is_favorite', 'created_at']
+        fields = ['title', 'pdf_file', 'total_pages', 'group_ids', 'group', 'is_custom', 'is_favorite', 'created_at', 'updated_at', 'student','student_id']
+        # read_only_fields = ['created_at', 'updated_at']
 
 
     def create(self, validated_data):
-        user = self.context['request'].user
+        # user = self.context['request'].user
+        print(validated_data,'------------------')
         groups = validated_data.pop('group', [])
+        print(groups,'-------------')
+        device_id = validated_data.pop('student_id')
+        print(device_id,'------------------')
+        try :
+
+          student = StudentModel.objects.get(device_id__imei_number=device_id)
+
+        except StudentModel.DoesNotExist:
+          raise serializers.ValidationError({'student_id': 'Invalid student_id'})
+
+        validated_data['student'] = student
 
         pdf = pdfLibraryModel.objects.create(
-            student=user,
             **validated_data
         )
         pdf.group.set(groups)
@@ -132,3 +193,36 @@ class StudentAnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentAnswerModel
         fields = ['attempt_id', 'attempt', 'question_id', 'question', 'selected_option_id', 'selected_option']
+
+
+class StudySessionSerializer(serializers.ModelSerializer):
+    student_id = serializers.PrimaryKeyRelatedField(
+        queryset=StudentModel.objects.all(),
+        source='student',
+        write_only=True
+    )
+    subject_id = serializers.PrimaryKeyRelatedField(
+        queryset=Subject.objects.all(),
+        source='subject',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+
+    student = serializers.SerializerMethodField(read_only=True)
+    subject = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = StudySession
+        fields = [
+            'id', 'student_id', 'student', 'subject_id', 'subject',
+            'start_time', 'end_time', 'duration', 'interaction_count', 'is_active'
+        ]
+        read_only_fields = ['id', 'duration']
+
+    def get_student(self, obj):
+        return {
+            'id': obj.student.id,
+            'name': obj.student.student_name,
+            'email': obj.student.email
+        }
