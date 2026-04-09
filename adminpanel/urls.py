@@ -112,6 +112,7 @@ urlpatterns = [
     path("teachers/class-overview/<int:teacher_id>/", ClassOverviewAPI.as_view(),name='teacher-class-overview'),
     path("teachers/create-test/", TestCreationAPI.as_view(),name='teacher-create-test'),
     path("teachers/class-analytics/<int:teacher_id>/", ClassPerformanceAnalyticsAPI.as_view(),name='teacher-class-analytics'),
+    path('teachers/<int:teacher_id>/alerts/', HomeAlertsAPI.as_view(), name='home-alerts'),
 
     # ============================================================================
     # NEW APIs - Phase 2 Parents & Teachers
