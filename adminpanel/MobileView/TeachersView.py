@@ -9,6 +9,55 @@ from tablet_app.models import *
 from tablet_app.serializers import StudentGroupSerializer
 from user_management.models import *
 
+
+# ✅ HELPER FUNCTIONS FOR STATUS & LAST ACTIVITY
+def get_student_status(student):
+    """
+    Calculate student status: Active or Inactive
+    Active = Has activity in last 7 days
+    """
+    seven_days_ago = timezone.now() - timedelta(days=7)
+    
+    # Check recent study sessions
+    recent_study = StudySession.objects.filter(
+        student=student,
+        start_time__gte=seven_days_ago
+    ).exists()
+    
+    # Check recent test attempts
+    recent_tests = StudentTestAttemptModel.objects.filter(
+        student=student,
+        started_at__gte=seven_days_ago
+    ).exists()
+    
+    return 'Active' if (recent_study or recent_tests) else 'Inactive'
+
+
+def get_last_activity(student):
+    """
+    Get student's last activity date and time
+    Checks both study sessions and test attempts
+    """
+    last_study = StudySession.objects.filter(student=student).order_by('-end_time').first()
+    last_test = StudentTestAttemptModel.objects.filter(student=student).order_by('-completed_at').first()
+    
+    # Determine which is more recent
+    last_activity_time = None
+    
+    if last_study and last_test:
+        study_time = last_study.end_time
+        test_time = last_test.completed_at
+        last_activity_time = max(study_time, test_time) if test_time else study_time
+    elif last_study:
+        last_activity_time = last_study.end_time
+    elif last_test:
+        last_activity_time = last_test.completed_at
+    
+    if last_activity_time:
+        return timezone.localtime(last_activity_time).strftime('%Y-%m-%d')
+    
+    return 'Never'
+
 class TeacherDashboardAPI(APIView):
     """
     Teacher Dashboard - First step when teacher logs in
@@ -410,6 +459,11 @@ class EnhancedClassOverviewAPI(APIView):
         # Get students in this class
         students = class_obj.students.all()
 
+        #Using Lector / Not Using
+        using_lector = students.filter(device_id__isnull=False).count()
+        not_using_lector = students.filter(device_id__isnull=True).count()
+
+
         if not students.exists():
             return Response({'error': 'No students found for this class'}, status=404)
 
@@ -461,10 +515,47 @@ class EnhancedClassOverviewAPI(APIView):
 
         class_average = round(sum(percentages) / len(percentages), 2) if percentages else 0
 
+        # Engagement Score
+        seven_days_ago = timezone.now() - timedelta(days=7)
+
+        total_sessions = StudySession.objects.filter(
+            student__in=students,
+            start_time__gte=seven_days_ago
+        ).count()
+
+        expected_sessions = students.count() * 7
+        session_score = (total_sessions / expected_sessions * 100) if expected_sessions > 0 else 0
+
+        students_gave_test = test_attempts.filter(
+            started_at__gte=seven_days_ago
+        ).values('student').distinct().count()
+        test_score = (students_gave_test / students.count() * 100) if students.count() > 0 else 0
+
+        active_students = StudySession.objects.filter(
+            student__in=students,
+            start_time__gte=seven_days_ago
+        ).values('student').distinct().count()
+        active_score = (active_students / students.count() * 100) if students.count() > 0 else 0
+
+        engagement_score = round(
+            (session_score * 0.4) + (test_score * 0.4) + (active_score * 0.2), 1
+        )
+
+        # Engagement Label
+        if engagement_score >= 75:
+            engagement_label = 'High'
+        elif engagement_score >= 50:
+            engagement_label = 'Medium'
+        else:
+            engagement_label = 'Low'
+
         # Student ranking (subject only - as per doc)
+        # 🔥 SHOW ALL STUDENTS - even those with no test data
         student_rankings = []
         for student in students:
             student_attempts = test_attempts.filter(student=student)
+            
+            # Calculate score only if student has test attempts
             if student_attempts.exists():
                 student_percentages = []
                 for attempt in student_attempts:
@@ -479,50 +570,63 @@ class EnhancedClassOverviewAPI(APIView):
                         'student_name': student.student_name,
                         'average_score': round(avg_percentage, 2),
                         'average_score_display': f'{round(avg_percentage, 2)} %',
-                        'test_count': len(student_percentages)
+                        'test_count': len(student_percentages),
+                        'status': get_student_status(student),  # ✅ Active/Inactive
+                        'last_activity': get_last_activity(student),  # ✅ Last activity date
                     })
+            else:
+                # ✅ SHOW STUDENTS WITH NO TEST DATA - Still show status and activity
+                student_rankings.append({
+                    'student_id': student.id,
+                    'student_name': student.student_name,
+                    'average_score': 0,
+                    'average_score_display': 'N/A',
+                    'test_count': 0,
+                    'status': get_student_status(student),  # ✅ Active/Inactive
+                    'last_activity': get_last_activity(student),  # ✅ Last activity date
+                })
 
-        # Sort by average score (descending)
-        student_rankings.sort(key=lambda x: x['average_score'], reverse=True)
+        # Sort: First by status (Active first), then by average score (descending)
+        student_rankings.sort(key=lambda x: (x['status'] == 'Inactive', -x['average_score']))
 
         # Add ranks
         for i, student in enumerate(student_rankings):
             student['rank'] = i + 1
 
         # Weak topics analysis (as per doc - "Weak math topics")
-        weak_topics = []
-        if subject_id:
-            questions = QuestionsModel.objects.filter(
-                test__subject_id=subject_id, 
-                test__student__in=students
-            ).distinct()
+        # weak_topics = []
+        # if subject_id:
+        #     questions = QuestionsModel.objects.filter(
+        #         test__subject_id=subject_id, 
+        #         test__student__in=students
+        #     ).distinct()
             
-            for question in questions:
-                answers = StudentAnswerModel.objects.filter(
-                    attempt__test__subject_id=subject_id,
-                    attempt__student__in=students,
-                    question=question
-                )
+        #     for question in questions:
+        #         answers = StudentAnswerModel.objects.filter(
+        #             attempt__test__subject_id=subject_id,
+        #             attempt__student__in=students,
+        #             question=question
+        #         )
 
-                if answers.exists():
-                    correct_answers = answers.filter(selected_option__is_correct=True).count()
-                    total_answers = answers.count()
-                    accuracy = (correct_answers / total_answers) * 100 if total_answers > 0 else 0
+        #         if answers.exists():
+        #             correct_answers = answers.filter(selected_option__is_correct=True).count()
+        #             total_answers = answers.count()
+        #             accuracy = (correct_answers / total_answers) * 100 if total_answers > 0 else 0
 
-                    if accuracy < 70:  # Consider topic weak if accuracy < 70%
-                        weak_topics.append({
-                            'question_text': question.question_text[:100] + "..." if len(question.question_text) > 100 else question.question_text,
-                            'accuracy': round(accuracy, 2),
-                            'total_attempts': total_answers,
-                            'difficulty_level': 'Hard' if accuracy < 50 else 'Medium'
-                        })
+        #             if accuracy < 70:  # Consider topic weak if accuracy < 70%
+        #                 weak_topics.append({
+        #                     'question_text': question.question_text[:100] + "..." if len(question.question_text) > 100 else question.question_text,
+        #                     'accuracy': round(accuracy, 2),
+        #                     'total_attempts': total_answers,
+        #                     'difficulty_level': 'Hard' if accuracy < 50 else 'Medium'
+        #                 })
 
-        # Difficulty analysis (as per doc - "Difficulty analysis (Math only)")
-        difficulty_analysis = {
-            'hard_questions': len([t for t in weak_topics if t['difficulty_level'] == 'Hard']),
-            'medium_questions': len([t for t in weak_topics if t['difficulty_level'] == 'Medium']),
-            'total_weak_areas': len(weak_topics)
-        }
+        # # Difficulty analysis (as per doc - "Difficulty analysis (Math only)")
+        # difficulty_analysis = {
+        #     'hard_questions': len([t for t in weak_topics if t['difficulty_level'] == 'Hard']),
+        #     'medium_questions': len([t for t in weak_topics if t['difficulty_level'] == 'Medium']),
+        #     'total_weak_areas': len(weak_topics)
+        # }
 
         # Determine subject name for response
         subject_name = 'All Assigned Subjects'
@@ -544,15 +648,30 @@ class EnhancedClassOverviewAPI(APIView):
             # Student ranking (subject only) - as per doc
             'student_rankings': student_rankings[:10],  # Top 10 students
             # Weak topics - as per doc
-            'weak_topics': sorted(weak_topics, key=lambda x: x['accuracy'])[:10],
+            # 'weak_topics': sorted(weak_topics, key=lambda x: x['accuracy'])[:10],
+            'weak_topics': [],
             # Difficulty analysis (subject only) - as per doc
-            'difficulty_analysis': difficulty_analysis,
+            # 'difficulty_analysis': difficulty_analysis,
+            'difficulty_analysis': {
+                'hard_questions': 0,
+                'medium_questions': 0,
+                'total_weak_areas': 0
+            },
             'total_tests': tests.count(),
             'date_range': f"Last {date_range} days",
             # Access info
             'access_note': f'Showing {subject_name} analytics only' if subject_id else 'Showing analytics for all your assigned subjects',
             'flow_complete': True,
-            'flow_hint': 'Step 3 of 3: Analytics View - Click on student to see detailed profile'
+            'flow_hint': 'Step 3 of 3: Analytics View - Click on student to see detailed profile',
+            'lector_usage': {
+                'using_lector': using_lector,
+                'not_using_lector': not_using_lector,
+            },
+            'engagement': {
+                'score': engagement_score,
+                'label': engagement_label,
+                'active_students': active_students,
+            },
         })
 
 
@@ -866,6 +985,13 @@ class SubjectFilteredStudentDetailAPI(APIView):
         total_tests = test_attempts.count()
         avg_test_score = round(sum(t['percentage'] for t in test_data) / total_tests, 2) if total_tests > 0 else 0
 
+        if avg_test_score >= 75:
+            performance_tag = {'label': 'Strong', 'emoji': '🟢', 'color': 'green'}
+        elif avg_test_score >= 50:
+            performance_tag = {'label': 'Average', 'emoji': '🟡', 'color': 'yellow'}
+        else:
+            performance_tag = {'label': 'Weak', 'emoji': '🔴', 'color': 'red'}
+
         # Check if there's any "Unknown" subject data
         has_unknown_subjects = "Unknown" in subject_sessions or any(t['subject'] == "Unknown" for t in test_data)
         subject_tracking_note = "Note: Some study sessions or tests don't have subject information. These are marked as 'Unknown'." if has_unknown_subjects else None
@@ -900,6 +1026,8 @@ class SubjectFilteredStudentDetailAPI(APIView):
                 'access_restricted': allowed_subjects is not None,
                 'teacher_name': teacher_name
             },
+
+            'performance_tag': performance_tag,
             
             # Study statistics (subject filtered)
             'study_statistics': {
@@ -2293,3 +2421,228 @@ class TeacherRemarkAPI(APIView):
             return Response({"message": "Remark deleted successfully"})
         except TeacherRemarkModel.DoesNotExist:
             return Response({"error": "Remark not found"}, status=404)
+
+
+
+class HomeAlertsAPI(APIView):
+    """
+    Home Alerts API - API for home screen alerts
+    
+    Shows alerts for:
+    1. Weak Students     → average score < 60%
+    2. Low Engagement    → no study session in last 5 days
+    3. Test Not Attempted → no test attempted in last 10 days
+    
+    """
+
+    def get(self, request, teacher_id):
+        try:
+            teacher = UserModel.objects.get(id=teacher_id, role__type='Teacher')
+        except UserModel.DoesNotExist:
+            return Response({'error': 'Teacher not found'}, status=404)
+
+        # --- Get teacher's assigned students ---
+        try:
+            teacher_assignment = TeacherAssignmentModel.objects.get(
+                teacher=teacher, 
+                is_active=True
+            )
+            assigned_classes = teacher_assignment.assigned_classes.all()
+            assigned_subjects = teacher_assignment.assigned_subjects.all()
+            teacher_role = teacher_assignment.teacher_role or 'subject_teacher'
+        except TeacherAssignmentModel.DoesNotExist:
+            # Fallback
+            students_fallback = StudentModel.objects.filter(
+                parent__id=teacher_id
+            ).distinct()
+            assigned_classes = ClassModel.objects.filter(
+                students__in=students_fallback
+            ).distinct()
+            assigned_subjects = Subject.objects.filter(
+                testmodel__created_by=teacher
+            ).distinct()
+            teacher_role = 'subject_teacher'
+
+        # Get all students from assigned classes
+        students = StudentModel.objects.filter(
+            student_class__in=assigned_classes
+        ).distinct()
+
+        if not students.exists():
+            return Response({
+                'alerts': [],
+                'total_alerts': 0,
+                'high_priority': 0,
+                'medium_priority': 0,
+                'low_priority': 0,
+                'message': 'No students found'
+            })
+
+        # --- Time references ---
+        now = timezone.now()
+        five_days_ago = now - timedelta(days=5)
+        ten_days_ago = now - timedelta(days=10)
+
+        alerts = []
+
+        for student in students:
+
+            # ============================================
+            # CHECK 1 — Weak Student (score < 60%)
+            # ============================================
+            if teacher_role == 'subject_teacher':
+                attempts = StudentTestAttemptModel.objects.filter(
+                    student=student,
+                    test__subject__in=assigned_subjects
+                )
+            else:
+                attempts = StudentTestAttemptModel.objects.filter(
+                    student=student
+                )
+
+            if attempts.exists():
+                percentages = []
+                for attempt in attempts:
+                    if attempt.test.total_marks > 0:
+                        pct = (attempt.score / attempt.test.total_marks) * 100
+                        percentages.append(pct)
+
+                if percentages:
+                    avg_score = round(
+                        sum(percentages) / len(percentages), 1
+                    )
+
+                    if avg_score < 60:
+                        # Check if score is dropping (last 3 tests)
+                        recent_attempts = attempts.order_by('-started_at')[:3]
+                        recent_pcts = []
+                        for a in recent_attempts:
+                            if a.test.total_marks > 0:
+                                recent_pcts.append(
+                                    (a.score / a.test.total_marks) * 100
+                                )
+
+                        recent_avg = round(
+                            sum(recent_pcts) / len(recent_pcts), 1
+                        ) if recent_pcts else avg_score
+
+                        # High priority if very low, medium if below 60
+                        priority = 'high' if avg_score < 40 else 'medium'
+
+                        alerts.append({
+                            'type': 'weak_student',
+                            'student_id': student.id,
+                            'student_name': student.student_name,
+                            'class': student.student_class.get_display_name() if student.student_class else None,
+                            'message': f'Average score is {avg_score}%',
+                            'detail': f'Recent average: {recent_avg}%',
+                            'avg_score': avg_score,
+                            'priority': priority,
+                            'action': 'View student profile'
+                        })
+
+            # ============================================
+            # CHECK 2 — Low Engagement (no study in 5 days)
+            # ============================================
+            last_session = StudySession.objects.filter(
+                student=student
+            ).order_by('-start_time').first()
+
+            if last_session is None:
+                # Never studied at all
+                alerts.append({
+                    'type': 'low_engagement',
+                    'student_id': student.id,
+                    'student_name': student.student_name,
+                    'class': student.student_class.get_display_name() if student.student_class else None,
+                    'message': 'Never opened the app',
+                    'detail': 'No study session recorded',
+                    'last_active': None,
+                    'days_inactive': None,
+                    'priority': 'high',
+                    'action': 'Contact student'
+                })
+            elif last_session.start_time < five_days_ago:
+                # Calculate how many days inactive
+                days_inactive = (now - last_session.start_time).days
+
+                priority = 'high' if days_inactive >= 10 else 'medium'
+
+                alerts.append({
+                    'type': 'low_engagement',
+                    'student_id': student.id,
+                    'student_name': student.student_name,
+                    'class': student.student_class.get_display_name() if student.student_class else None,
+                    'message': f'Not studied in {days_inactive} days',
+                    'detail': f'Last active: {last_session.start_time.strftime("%d %b %Y")}',
+                    'last_active': last_session.start_time.date(),
+                    'days_inactive': days_inactive,
+                    'priority': priority,
+                    'action': 'Send reminder'
+                })
+
+            # ============================================
+            # CHECK 3 — Test Not Attempted (10 days)
+            # ============================================
+            if teacher_role == 'subject_teacher':
+                last_attempt = StudentTestAttemptModel.objects.filter(
+                    student=student,
+                    test__subject__in=assigned_subjects
+                ).order_by('-started_at').first()
+            else:
+                last_attempt = StudentTestAttemptModel.objects.filter(
+                    student=student
+                ).order_by('-started_at').first()
+
+            if last_attempt is None:
+                # Never attempted any test
+                alerts.append({
+                    'type': 'test_not_attempted',
+                    'student_id': student.id,
+                    'student_name': student.student_name,
+                    'class': student.student_class.get_display_name() if student.student_class else None,
+                    'message': 'Never attempted any test',
+                    'detail': 'No test attempt recorded',
+                    'last_attempt': None,
+                    'days_since_test': None,
+                    'priority': 'medium',
+                    'action': 'Assign test'
+                })
+            elif last_attempt.started_at < ten_days_ago:
+                days_since_test = (now - last_attempt.started_at).days
+
+                alerts.append({
+                    'type': 'test_not_attempted',
+                    'student_id': student.id,
+                    'student_name': student.student_name,
+                    'class': student.student_class.get_display_name() if student.student_class else None,
+                    'message': f'No test attempted in {days_since_test} days',
+                    'detail': f'Last test: {last_attempt.started_at.strftime("%d %b %Y")}',
+                    'last_attempt': last_attempt.started_at.date(),
+                    'days_since_test': days_since_test,
+                    'priority': 'low',
+                    'action': 'Assign test'
+                })
+
+        # --- Sort alerts: high first, then medium, then low ---
+        priority_order = {'high': 0, 'medium': 1, 'low': 2}
+        alerts.sort(key=lambda x: priority_order.get(x['priority'], 3))
+
+        # --- Count by priority ---
+        high_count = len([a for a in alerts if a['priority'] == 'high'])
+        medium_count = len([a for a in alerts if a['priority'] == 'medium'])
+        low_count = len([a for a in alerts if a['priority'] == 'low'])
+
+        return Response({
+            'alerts': alerts,
+            'total_alerts': len(alerts),
+            'high_priority': high_count,
+            'medium_priority': medium_count,
+            'low_priority': low_count,
+            'checked_students': students.count(),
+            'alert_summary': {
+                'weak_students': len([a for a in alerts if a['type'] == 'weak_student']),
+                'low_engagement': len([a for a in alerts if a['type'] == 'low_engagement']),
+                'test_not_attempted': len([a for a in alerts if a['type'] == 'test_not_attempted']),
+            }
+        })

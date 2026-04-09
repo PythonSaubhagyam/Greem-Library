@@ -75,7 +75,8 @@ class StudentAdmin(ImportExportModelAdmin):
     list_display = ("id", "device_imei", "student_name", "email", "class_display")
     search_fields = ("student_name", "email", "parent__email", "device_id__imei_number")
     filter_horizontal = ("parent",)
-    list_filter = ("student_class__standard", "student_class__section", "student_class__academic_year")
+    # list_filter = ("student_class__standard", "student_class__section", "student_class__academic_year")
+    list_filter = ("student_class",)
     # raw_id_fields = ("device_id", "student_class")
 
     def device_imei(self, obj):
