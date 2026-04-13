@@ -226,3 +226,10 @@ class StudySessionSerializer(serializers.ModelSerializer):
             'name': obj.student.student_name,
             'email': obj.student.email
         }
+
+
+class ReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReportModel
+        fields = '__all__'
+        read_only_fields = ['created_at']
