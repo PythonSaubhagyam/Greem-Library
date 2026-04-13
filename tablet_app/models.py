@@ -156,3 +156,12 @@ class StudentGroupModel(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.students.count()} students)"
+    
+class ReportModel(models.Model):
+   
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title}"

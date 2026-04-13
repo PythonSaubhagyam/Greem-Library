@@ -15,4 +15,5 @@ urlpatterns = [
     path('profile/<int:id>/',ProfileView.as_view(),name='profile'),
     path('student/',StudentView.as_view(),name='student'),
     path('student/<int:id>/',StudentView.as_view(),name='student'),
+    path('qr-login/', QRLoginAPIView.as_view(), name='parent-qr-login'),
 ]
