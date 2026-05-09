@@ -8,6 +8,10 @@ from collections import defaultdict
 from tablet_app.models import *
 from tablet_app.serializers import StudentGroupSerializer
 from user_management.models import *
+from datetime import timedelta
+from django.utils import timezone
+from django.db.models import Avg, F, FloatField, Count
+from django.utils.timezone import localtime
 
 
 # ✅ HELPER FUNCTIONS FOR STATUS & LAST ACTIVITY
@@ -2646,3 +2650,539 @@ class HomeAlertsAPI(APIView):
                 'test_not_attempted': len([a for a in alerts if a['type'] == 'test_not_attempted']),
             }
         })
+
+
+class ClassComparisonAPI(APIView):
+    """
+    Class Comparison API
+
+    Principal:
+        - Can see ALL classes
+
+    Teacher:
+        - Only assigned classes
+        - Only assigned subjects (if subject teacher)
+    """
+
+    def get(self, request, user_id):
+        try:
+            user = UserModel.objects.get(id=user_id)
+        except UserModel.DoesNotExist:
+            return Response({'error': 'User not found'}, status=404)
+
+        # ---------------------------------------------------
+        # 1. ROLE CHECK
+        # ---------------------------------------------------
+        is_principal = user.role.type in ['Admin', 'Principal']
+
+        # ---------------------------------------------------
+        # 2. GET CLASSES & SUBJECTS
+        # ---------------------------------------------------
+        if is_principal:
+            assigned_classes = ClassModel.objects.all()
+            teacher_role = 'principal'
+
+        else:
+            try:
+                teacher_assignment = TeacherAssignmentModel.objects.get(
+                    teacher=user,
+                    is_active=True
+                )
+                assigned_classes = teacher_assignment.assigned_classes.all()
+                teacher_role = teacher_assignment.teacher_role or 'subject_teacher'
+
+            except TeacherAssignmentModel.DoesNotExist:
+                assigned_classes = ClassModel.objects.none()
+                teacher_role = 'teacher'
+
+        #  ALWAYS TAKE ALL SUBJECTS
+        assigned_subjects = Subject.objects.all()
+
+        # Optional subject filter
+        subject_id = request.GET.get('subject')
+
+        if subject_id:
+            assigned_subjects = assigned_subjects.filter(id=subject_id)
+
+        all_subjects = assigned_subjects
+
+        # ---------------------------------------------------
+        # 3. MAIN LOOP (PER CLASS)
+        # ---------------------------------------------------
+        comparison_data = []
+
+        for class_obj in assigned_classes:
+
+            students = class_obj.students.all()
+
+            if not students.exists():
+                continue
+
+            # ---------------------------------------------------
+            # 4. ATTEMPTS QUERY (OPTIMIZED)
+            # ---------------------------------------------------
+            attempts = StudentTestAttemptModel.objects.filter(
+                student__in=students,
+                test__total_marks__gt=0
+            )
+
+            if subject_id:
+                attempts = attempts.filter(test__subject_id=subject_id)
+                
+            attempts = attempts.filter(test__subject__in=assigned_subjects)
+            # Add percentage calculation at DB level
+            attempts = attempts.annotate(
+                percent=F('score') * 100.0 / F('test__total_marks')
+            )
+
+            # ---------------------------------------------------
+            # 5. SUBJECT-WISE AVERAGE (FIXED COLUMNS)
+            # ---------------------------------------------------
+            subject_avg_query = attempts.values(
+                'test__subject__id',
+                'test__subject__name'
+            ).annotate(avg=Avg('percent'))
+
+            subject_map = {
+                s.id: 0 for s in all_subjects
+            }
+
+            for row in subject_avg_query:
+                subject_map[row['test__subject__id']] = round(row['avg'], 2)
+
+            subject_avgs = {
+                s.name: subject_map.get(s.id, 0)
+                for s in all_subjects
+            }
+
+            # ---------------------------------------------------
+            # 6. CLASS AVERAGE
+            # ---------------------------------------------------
+            class_avg = attempts.aggregate(avg=Avg('percent'))['avg'] or 0
+            class_avg = round(class_avg, 2)
+
+            # ---------------------------------------------------
+            # 7. ENGAGEMENT SCORE (LAST 7 DAYS)
+            # ---------------------------------------------------
+            seven_days_ago = timezone.now() - timedelta(days=7)
+
+            active_students = StudySession.objects.filter(
+                student__in=students,
+                start_time__gte=seven_days_ago
+            ).values('student').distinct().count()
+
+            total_students = students.count()
+
+            engagement = (
+                round((active_students / total_students) * 100, 1)
+                if total_students > 0 else 0
+            )
+
+            # ---------------------------------------------------
+            # 8. FINAL OBJECT
+            # ---------------------------------------------------
+            comparison_data.append({
+                'class_id': class_obj.id,
+                'class_name': class_obj.get_display_name(),
+                'standard': class_obj.standard,
+                'section': class_obj.section or '',
+                'total_students': total_students,
+
+                # 👇 IMPORTANT FOR TABLE UI
+                'subjects': subject_avgs,
+
+                'class_average': class_avg,
+                'engagement_score': engagement,
+                'active_students': active_students,
+                'total_tests': attempts.values('test').distinct().count(),
+            })
+
+        # ---------------------------------------------------
+        # 9. SORT + RANK
+        # ---------------------------------------------------
+        comparison_data.sort(
+            key=lambda x: x['class_average'],
+            reverse=True
+        )
+
+        for i, c in enumerate(comparison_data):
+            c['rank'] = i + 1
+
+        # ---------------------------------------------------
+        # 10. RESPONSE
+        # ---------------------------------------------------
+        return Response({
+            'role': teacher_role,
+            'total_classes': len(comparison_data),
+            'subjects': [s.name for s in all_subjects],  # 👈 for frontend columns
+            'comparison': comparison_data,
+            'filter_subject': subject_id or 'All Subjects'
+        }, status=status.HTTP_200_OK)
+        
+
+
+class LiveMonitoringAPI(APIView):
+
+    def get(self, request, teacher_id):
+
+        try:
+            teacher = UserModel.objects.get(id=teacher_id, role__type='Teacher')
+        except UserModel.DoesNotExist:
+            return Response({'error': 'Teacher not found'}, status=404)
+
+        # ---------------------------------------------------
+        # 1. GET CLASSES + SUBJECTS
+        # ---------------------------------------------------
+        try:
+            ta = TeacherAssignmentModel.objects.get(teacher=teacher, is_active=True)
+            assigned_classes = ta.assigned_classes.all()
+            assigned_subjects = ta.assigned_subjects.all()
+            teacher_role = ta.teacher_role or 'subject_teacher'
+        except TeacherAssignmentModel.DoesNotExist:
+            assigned_classes = ClassModel.objects.none()
+            assigned_subjects = Subject.objects.none()
+            teacher_role = 'subject_teacher'
+
+        students = StudentModel.objects.filter(
+            student_class__in=assigned_classes
+        ).select_related('student_class').distinct()
+
+        now = timezone.now()
+        thirty_min_ago = now - timedelta(minutes=30)
+
+        local_now = localtime(now)
+        today_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+       
+        
+        local_now = localtime(now)
+
+        today_start = local_now.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        # ---------------------------------------------------
+        # 2. BULK FETCH SESSIONS (OPTIMIZED)
+        # ---------------------------------------------------
+        sessions = StudySession.objects.filter(
+            student__in=students
+        ).select_related('subject', 'student')
+
+        live_sessions = sessions.filter(
+            start_time__gte=thirty_min_ago,
+            end_time__isnull=True
+        )
+
+        today_sessions = sessions.filter(
+            start_time__gte=today_start
+        )
+
+        # Group sessions by student
+        from collections import defaultdict
+
+        live_map = {}
+        today_map = defaultdict(list)
+        last_session_map = {}
+
+        for s in sessions.order_by('-start_time'):
+            sid = s.student_id
+
+            if sid not in last_session_map:
+                last_session_map[sid] = s
+
+            today_date = timezone.localdate()
+
+            if timezone.localtime(s.start_time).date() == today_date:
+                today_map[sid].append(s)
+                
+            if s.end_time is None:
+                if sid not in live_map:
+                    live_map[sid] = s
+
+        # ---------------------------------------------------
+        # 3. BUILD RESPONSE
+        # ---------------------------------------------------
+        active_now = []
+        studying_today = []
+        inactive = []
+
+        assigned_subject_ids = set(assigned_subjects.values_list('id', flat=True))
+
+        for student in students:
+
+            sid = student.id
+
+            live_session = live_map.get(sid)
+            today_student_sessions = today_map.get(sid, [])
+            last_session = last_session_map.get(sid)
+
+            # ✅ REPLACE HERE
+            total_seconds = 0
+
+            for s in today_student_sessions:
+                if s.end_time:
+                    total_seconds += (s.end_time - s.start_time).total_seconds()
+                else:
+                    total_seconds += (now - s.start_time).total_seconds()
+
+            today_minutes = round(total_seconds / 60, 1)
+
+            student_info = {
+                'student_id': sid,
+                'student_name': student.student_name,
+                'class': student.student_class.get_display_name() if student.student_class else None,
+                'today_study_minutes': today_minutes,
+                'last_seen': timezone.localtime(last_session.start_time).strftime('%H:%M') if last_session else None,
+            }
+
+            # ---------------------------------------------------
+            # LIVE
+            # ---------------------------------------------------
+            if live_session:
+                if teacher_role == 'subject_teacher' and live_session.subject_id not in assigned_subject_ids:
+                    continue
+
+                duration_so_far = round(
+                    (now - live_session.start_time).total_seconds() / 60,
+                    1
+                )
+
+                active_now.append({
+                    **student_info,
+                    'current_subject': live_session.subject.name if live_session.subject else 'Unknown',
+                    'session_started': timezone.localtime(live_session.start_time).strftime('%H:%M'),
+                    'duration_minutes': duration_so_far,
+                    'status': 'live'
+                })
+
+            # ---------------------------------------------------
+            # STUDIED TODAY
+            # ---------------------------------------------------
+            elif today_student_sessions:
+                studying_today.append({
+                    **student_info,
+                    'status': 'studied_today'
+                })
+
+            # ---------------------------------------------------
+            # INACTIVE
+            # ---------------------------------------------------
+            else:
+                inactive.append({
+                    **student_info,
+                    'status': 'not_active'
+                })
+
+        # ---------------------------------------------------
+        # FINAL RESPONSE
+        # ---------------------------------------------------
+        return Response({
+            'live_count': len(active_now),
+            'studied_today_count': len(studying_today),
+            'inactive_count': len(inactive),
+            'total_students': students.count(),
+            'last_updated': timezone.localtime(now).strftime('%H:%M:%S'),
+            'active_now': active_now,
+            'studied_today': studying_today,
+            'inactive': inactive,
+        })
+        
+class ReportsAPI(APIView):
+    """
+    Generate class or student summary reports
+    """
+    def get(self, request, teacher_id):
+        report_type = request.GET.get('report_type', 'class')  # 'class' or 'student'
+        class_id = request.GET.get('class_id')
+        student_id = request.GET.get('student_id')
+        subject_id = request.GET.get('subject')
+        date_range = int(request.GET.get('date_range', 30))
+
+        try:
+            teacher = UserModel.objects.get(id=teacher_id, role__type='Teacher')
+        except UserModel.DoesNotExist:
+            return Response({'error': 'Teacher not found'}, status=404)
+
+        try:
+            teacher_assignment = TeacherAssignmentModel.objects.get(teacher=teacher, is_active=True)
+            assigned_classes = teacher_assignment.assigned_classes.all()
+            assigned_subjects = teacher_assignment.assigned_subjects.all()
+            teacher_role = teacher_assignment.teacher_role or 'subject_teacher'
+        except TeacherAssignmentModel.DoesNotExist:
+            students_fb = StudentModel.objects.filter(parent__id=teacher_id).distinct()
+            assigned_classes = ClassModel.objects.filter(students__in=students_fb).distinct()
+            assigned_subjects = Subject.objects.filter(testmodel__created_by=teacher).distinct()
+            teacher_role = 'subject_teacher'
+
+        start = timezone.now() - timedelta(days=date_range)
+
+        if report_type == 'student' and student_id:
+            try:
+                student = StudentModel.objects.get(id=student_id)
+            except StudentModel.DoesNotExist:
+                return Response({'error': 'Student not found'}, status=404)
+
+            attempts = StudentTestAttemptModel.objects.filter(
+                student=student, started_at__gte=start
+            )
+            if subject_id:
+                attempts = attempts.filter(test__subject_id=subject_id)
+            elif teacher_role == 'subject_teacher':
+                attempts = attempts.filter(test__subject__in=assigned_subjects)
+
+            sessions = StudySession.objects.filter(student=student, start_time__gte=start)
+            total_study = sum(s.duration or 0 for s in sessions)
+
+            percentages = []
+            test_report = []
+            for attempt in attempts.order_by('started_at'):
+                if attempt.test.total_marks > 0:
+                    pct = round((attempt.score / attempt.test.total_marks) * 100, 2)
+                    percentages.append(pct)
+                    test_report.append({
+                        'test_title': attempt.test.title,
+                        'subject': attempt.test.subject.name if attempt.test.subject else 'Unknown',
+                        'score': attempt.score,
+                        'total_marks': attempt.test.total_marks,
+                        'percentage': pct,
+                        'date': attempt.started_at.date(),
+                    })
+
+            avg = round(sum(percentages) / len(percentages), 2) if percentages else 0
+
+            return Response({
+                'report_type': 'student',
+                'student_name': student.student_name,
+                'class': student.student_class.get_display_name() if student.student_class else None,
+                'date_range': f'Last {date_range} days',
+                'summary': {
+                    'total_tests': len(test_report),
+                    'average_score': avg,
+                    'total_study_minutes': round(total_study / 60, 1),
+                    'total_sessions': sessions.count(),
+                    'performance_tag': 'Strong' if avg >= 75 else 'Average' if avg >= 50 else 'Weak',
+                },
+                'test_history': test_report,
+            })
+
+        # Default: class report
+        if class_id:
+            try:
+                class_obj = ClassModel.objects.get(id=class_id)
+            except ClassModel.DoesNotExist:
+                return Response({'error': 'Class not found'}, status=404)
+            classes = [class_obj]
+        else:
+            classes = assigned_classes
+
+        class_reports = []
+        for class_obj in classes:
+            students = class_obj.students.all()
+            attempts = StudentTestAttemptModel.objects.filter(
+                student__in=students, started_at__gte=start
+            )
+            if subject_id:
+                attempts = attempts.filter(test__subject_id=subject_id)
+            elif teacher_role == 'subject_teacher':
+                attempts = attempts.filter(test__subject__in=assigned_subjects)
+
+            percentages = []
+            for a in attempts:
+                if a.test.total_marks > 0:
+                    percentages.append((a.score / a.test.total_marks) * 100)
+            class_avg = round(sum(percentages) / len(percentages), 2) if percentages else 0
+
+            # Per-student summary
+            student_summaries = []
+            for student in students:
+                s_attempts = attempts.filter(student=student)
+                s_pcts = []
+                for a in s_attempts:
+                    if a.test.total_marks > 0:
+                        s_pcts.append((a.score / a.test.total_marks) * 100)
+                s_avg = round(sum(s_pcts) / len(s_pcts), 2) if s_pcts else 0
+                student_summaries.append({
+                    'student_id': student.id,
+                    'student_name': student.student_name,
+                    'average_score': s_avg,
+                    'tests_taken': len(s_pcts),
+                    'status': get_student_status(student),
+                    'last_activity': get_last_activity(student),
+                })
+
+            student_summaries.sort(key=lambda x: -x['average_score'])
+
+            class_reports.append({
+                'class_id': class_obj.id,
+                'class_name': class_obj.get_display_name(),
+                'total_students': students.count(),
+                'class_average': class_avg,
+                'total_tests': attempts.values('test').distinct().count(),
+                'student_summaries': student_summaries,
+            })
+
+        return Response({
+            'report_type': 'class',
+            'date_range': f'Last {date_range} days',
+            'generated_at': timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M:%S'),
+            'class_reports': class_reports,
+        })
+
+class TeacherSettingsAPI(APIView):
+    """
+    View and update teacher profile & notification preferences
+    """
+    def get(self, request, teacher_id):
+        try:
+            teacher = UserModel.objects.get(id=teacher_id, role__type='Teacher')
+        except UserModel.DoesNotExist:
+            return Response({'error': 'Teacher not found'}, status=404)
+
+        try:
+            assignment = TeacherAssignmentModel.objects.get(teacher=teacher, is_active=True)
+            assigned_classes = [{'id': c.id, 'name': c.get_display_name()} for c in assignment.assigned_classes.all()]
+            assigned_subjects = [{'id': s.id, 'name': s.name} for s in assignment.assigned_subjects.all()]
+            teacher_role = assignment.teacher_role or 'subject_teacher'
+            homeroom = {'id': assignment.homeroom_class.id, 'name': assignment.homeroom_class.get_display_name()} if assignment.homeroom_class else None
+        except TeacherAssignmentModel.DoesNotExist:
+            assigned_classes = []
+            assigned_subjects = []
+            teacher_role = 'subject_teacher'
+            homeroom = None
+
+        return Response({
+            'profile': {
+                'id': teacher.id,
+                'first_name': teacher.first_name,
+                'last_name': teacher.last_name,
+                'email': teacher.email,
+                'role': teacher_role,
+            },
+            'assignment': {
+                'assigned_classes': assigned_classes,
+                'assigned_subjects': assigned_subjects,
+                'homeroom_class': homeroom,
+            },
+            'notifications': {
+                'weak_student_alerts': True,
+                'low_engagement_alerts': True,
+                'test_submission_alerts': True,
+            }
+        })
+
+    def patch(self, request, teacher_id):
+        try:
+            teacher = UserModel.objects.get(id=teacher_id, role__type='Teacher')
+        except UserModel.DoesNotExist:
+            return Response({'error': 'Teacher not found'}, status=404)
+
+        data = request.data
+
+        if 'first_name' in data:
+            teacher.first_name = data['first_name']
+        if 'last_name' in data:
+            teacher.last_name = data['last_name']
+        if 'email' in data:
+            teacher.email = data['email']
+
+        teacher.save()
+
+        return Response({'message': 'Settings updated successfully'})

@@ -141,4 +141,19 @@ urlpatterns = [
     path("teachers/student-remark/", TeacherRemarkAPI.as_view(), name='teacher-student-remark'),
     path("teachers/student-remarks/<int:student_id>/", TeacherRemarkAPI.as_view(), name='teacher-student-remarks-list'),
 
+    path('teachers/test-submissions/<int:teacher_id>/', TestSubmissionsAPI.as_view(),name="teacher-test-submissions"),
+    path("teachers/class-comparison/<int:user_id>/", ClassComparisonAPI.as_view(), name='teacher-class-comparison'),
+    path("teachers/live-monitoring/<int:teacher_id>/",LiveMonitoringAPI.as_view(),name="tearcher-live-monitoring"),
+    path("teachers/reports/<int:teacher_id>/",ReportsAPI.as_view(),name="teachers-reports"),
+    path("teachers/settings/<int:teacher_id>/",TeacherSettingsAPI.as_view(),name='teacher-settings'),
+
+    # Parent APIs - New 
+    path("analytics/learning-habit-score/<int:pk>/",LearningHabitScoreAPI.as_view(),name="learning-habit-score"),
+    path("analytics/revision-tracker/<int:pk>/",RevisionFrequencyTrackerAPI.as_view(),name="revision-tracker"),
+    path("analytics/homework-quality/<int:pk>/",HomeworkQualityAPI.as_view(),name="homework-quality"),
+    path("analytics/drop-alert/<int:pk>/",SuddenDropAlertAPI.as_view(),name="drop-alert"),
+    path("analytics/forgetting-curve/<int:pk>/",ForgettingCurveAlertAPI.as_view(),name="forgetting-curve"),
+    path("analytics/mistake-patterns/<int:pk>/",MistakePatternAnalysisAPI.as_view(),name="mistake-patterns"),
+    path("analytics/micro-progress/<int:pk>/",MicroProgressAlertsAPI.as_view(),name="Micro-progress"),
+    
 ]
