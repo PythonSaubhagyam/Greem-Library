@@ -32,7 +32,6 @@ ALLOWED_HOSTS = ['*']
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -53,10 +52,14 @@ INSTALLED_APPS = [
     "apps.extended_ui",
     "apps.icons",
     "apps.forms",
+   
     "apps.form_layouts",
     "apps.tables",
     "adminpanel",
+    'import_export',
+    'tablet_app',
 ]
+ 
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -185,3 +188,5 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+GOOGLE_GEN_API_KEY = 'AIzaSyBsHWPjC2q8SdSFKFN0YUAY1LQ0vmkJxaY'
