@@ -1,6 +1,16 @@
 from rest_framework import serializers
-from tablet_app.models import *
-
+from tablet_app.models import (
+    pdfGroupModel, pdfLibraryModel, Subject,
+    TestModel, QuestionsModel, QuestionOptionsModel,
+    StudentTestAttemptModel, StudentAnswerModel,
+    StudySession, StudentGroupModel, ReportModel)
+from user_management.models import StudentModel, UserModel
+from rest_framework import serializers
+from tablet_app.models import (StudentGroupModel, Subject, TestModel)
+from user_management.models import (StudentModel, UserModel,HomeworkModel, NotificationPreferenceModel)
+from django.db.models import Avg, Count, Q
+from django.utils import timezone
+ 
 
 class pdfGroupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -233,3 +243,213 @@ class ReportSerializer(serializers.ModelSerializer):
         model = ReportModel
         fields = '__all__'
         read_only_fields = ['created_at']
+
+
+
+
+class HomeworkCreateSerializer(serializers.ModelSerializer):
+    """Create homework — optionally assign to a group at creation time."""
+ 
+    subject_id = serializers.PrimaryKeyRelatedField(
+        queryset=Subject.objects.all(),
+        source='subject',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    group_id = serializers.PrimaryKeyRelatedField(
+        queryset=StudentGroupModel.objects.all(),
+        source='group',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    due_date = serializers.DateField(
+        input_formats=['%d-%m-%Y', '%Y-%m-%d'],
+        required=False
+    )
+
+ 
+    class Meta:
+        model = HomeworkModel
+        fields = [
+            'id', 'title', 'subject_id', 'description',
+            'due_date', 'total_marks', 'group_id'
+        ]
+        read_only_fields = ['id']
+ 
+    def create(self, validated_data):
+        group = validated_data.pop('group', None)
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['created_by'] = request.user
+ 
+        homework = HomeworkModel.objects.create(**validated_data)
+ 
+        # If a group was provided, assign all students in that group
+        if group:
+            homework.group = group
+            student_ids = group.students.values_list('id', flat=True)
+            homework.assigned_to.set(student_ids)
+            homework.save()
+ 
+        return homework
+ 
+ 
+class HomeworkAssignToGroupSerializer(serializers.Serializer):
+    """
+    Assign an EXISTING homework to a group.
+    POST /api/homework/<homework_id>/assign-group/
+    Body: { "group_id": 3 }
+    """
+    group_id = serializers.PrimaryKeyRelatedField(
+        queryset=StudentGroupModel.objects.all()
+    )
+ 
+    def save(self, homework):
+        group = self.validated_data['group_id']
+        student_ids = group.students.values_list('id', flat=True)
+        # Add group students (don't replace existing individual assignments)
+        homework.assigned_to.add(*student_ids)
+        homework.group = group
+        homework.save()
+        return homework
+ 
+ 
+class HomeworkDetailSerializer(serializers.ModelSerializer):
+    subject     = serializers.StringRelatedField(read_only=True)
+    group_name  = serializers.SerializerMethodField()
+    assigned_count = serializers.SerializerMethodField()
+ 
+    class Meta:
+        model = HomeworkModel
+        fields = [
+            'id', 'title', 'subject', 'description',
+            'due_date', 'total_marks', 'group_name',
+            'assigned_count', 'created_at'
+        ]
+ 
+    def get_group_name(self, obj):
+        return obj.group.name if obj.group else None
+ 
+    def get_assigned_count(self, obj):
+        return obj.assigned_to.count()
+ 
+ 
+# ------------------------------------------------------------
+# SUGGESTED TEST SERIALIZER  (with real recommendation logic)
+# ------------------------------------------------------------
+ 
+class SuggestedTestSerializer(serializers.Serializer):
+    """
+    GET /api/groups/<group_id>/suggested-tests/
+    Returns tests recommended for the group based on:
+    - Subjects the group is weak in (avg score < 60%)
+    - Tests not yet attempted by most group members
+    """
+    group_id = serializers.IntegerField(read_only=True)
+    group_name = serializers.CharField(read_only=True)
+    suggestions = serializers.ListField(read_only=True)
+ 
+    @staticmethod
+    def get_suggestions(group_id):
+        try:
+            group = StudentGroupModel.objects.prefetch_related('students').get(id=group_id)
+        except StudentGroupModel.DoesNotExist:
+            return None
+ 
+        student_ids = list(group.students.values_list('id', flat=True))
+        if not student_ids:
+            return {
+                'group_id': group_id,
+                'group_name': group.name,
+                'suggestions': [],
+                'reason': 'No students in group'
+            }
+ 
+        # ── 1. Find weak subjects (avg score < 60%) ──────────────────
+        from tablet_app.models import StudentTestAttemptModel
+        attempts = StudentTestAttemptModel.objects.filter(
+            student_id__in=student_ids
+        ).values('test__subject__id', 'test__subject__name').annotate(
+            avg_score=Avg('score'),
+            attempt_count=Count('id')
+        )
+ 
+        weak_subject_ids = [
+            a['test__subject__id']
+            for a in attempts
+            if a['avg_score'] is not None and a['avg_score'] < 60
+        ]
+ 
+        # ── 2. Find tests already attempted by >50% of group ─────────
+        already_attempted = StudentTestAttemptModel.objects.filter(
+            student_id__in=student_ids
+        ).values('test_id').annotate(
+            attempt_count=Count('student_id', distinct=True)
+        ).filter(
+            attempt_count__gte=len(student_ids) * 0.5
+        ).values_list('test_id', flat=True)
+ 
+        # ── 3. Build recommended tests ────────────────────────────────
+        recommended_tests = TestModel.objects.filter(
+            Q(subject_id__in=weak_subject_ids) | Q(subject__isnull=False)
+        ).exclude(
+            id__in=already_attempted
+        ).select_related('subject')[:10]
+ 
+        suggestions = []
+        for test in recommended_tests:
+            # Determine reason for suggestion
+            if test.subject_id in weak_subject_ids:
+                reason = f"Group is weak in {test.subject.name} (avg < 60%)"
+                priority = "high"
+            else:
+                reason = "Not yet attempted by most group members"
+                priority = "medium"
+ 
+            suggestions.append({
+                'test_id':    test.id,
+                'title':      test.title,
+                'subject':    test.subject.name if test.subject else None,
+                'total_marks': test.total_marks,
+                'questions':  test.number_of_questions,
+                'reason':     reason,
+                'priority':   priority,
+            })
+ 
+        # Sort: high priority first
+        suggestions.sort(key=lambda x: 0 if x['priority'] == 'high' else 1)
+ 
+        return {
+            'group_id':   group.id,
+            'group_name': group.name,
+            'student_count': len(student_ids),
+            'suggestions': suggestions,
+        }
+ 
+ 
+# ------------------------------------------------------------
+# NOTIFICATION PREFERENCE SERIALIZER
+# ------------------------------------------------------------
+ 
+class NotificationPreferenceSerializer(serializers.ModelSerializer):
+ 
+    class Meta:
+        model = NotificationPreferenceModel
+        fields = [
+            'id',
+            # Homework
+            'homework_assigned', 'homework_due', 'homework_graded',
+            # Test
+            'test_scheduled', 'test_result',
+            # Progress
+            'goal_achieved', 'badge_earned', 'weekly_report',
+            # Remarks
+            'teacher_remark',
+            # Channels
+            'push_enabled', 'email_enabled', 'sms_enabled',
+            'updated_at'
+        ]
+        read_only_fields = ['id', 'updated_at']
+ 

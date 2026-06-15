@@ -69,8 +69,11 @@ urlpatterns = [
     path("students/pdfs/<int:pk>/",pdfLibraryAPI.as_view(),name="students-pdfs"),
     path("students/pdfs-groups/",pdfGroupAPI.as_view(),name="students-pdfs-groups"),
     path("students/pdfs-groups/<int:pk>/",pdfGroupAPI.as_view(),name="students-pdfs-groups"),
+    
     path("students/student-groups/",StudentGroupAPI.as_view(),name="students-groups"),
     path("students/student-groups/<int:pk>/",StudentGroupAPI.as_view(),name="students-groups-detail"),
+    path("teachers/<int:teacher_id>/groups/",StudentGroupAPI.as_view(),name="teacher-groups"),
+
     path("students/tests/<int:pk>/",StudentsTestResultView.as_view(),name="students-tests"),
     path("students/summary/<int:student_id>/",StudentSummaryAPIView.as_view(),name="student-summary"),
 
@@ -105,7 +108,8 @@ urlpatterns = [
     path("teachers/enhanced-overview/<int:teacher_id>/", EnhancedClassOverviewAPI.as_view(), name='teacher-enhanced-overview'),
     path("teachers/student-detail/<int:student_id>/", SubjectFilteredStudentDetailAPI.as_view(), name='teacher-student-detail'),
     path("teachers/groups/<int:teacher_id>/", StudentGroupAPI.as_view(), name='teacher-student-groups'),
-    path("teachers/group-analytics/<int:group_id>/", GroupAnalyticsAPI.as_view(), name='teacher-group-analytics'),
+    # path("teachers/group-analytics/<int:group_id>/", GroupAnalyticsAPI.as_view(), name='teacher-group-analytics'),
+    path("teachers/groups/<int:group_id>/analytics/", GroupAnalyticsAPI.as_view(), name='teacher-group-analytics'),
     path("teachers/student-comparison/", StudentComparisonAPI.as_view(), name='teacher-student-comparison'),
     path("teachers/advanced-filter/<int:teacher_id>/", AdvancedFilterAPI.as_view(), name='teacher-advanced-filter'),
     path("teachers/cross-subject-overview/<int:teacher_id>/", CrossSubjectOverviewAPI.as_view(), name='teacher-cross-subject-overview'),
@@ -130,22 +134,31 @@ urlpatterns = [
     # Teacher APIs - New (Batch Management)
     path("teachers/batches/", BatchManagementAPI.as_view(), name='teacher-batches'),
     path("teachers/batches/<int:teacher_id>/", BatchManagementAPI.as_view(), name='teacher-batches-list'),
+    path("teachers/batch/<int:batch_id>/",BatchDetailAPI.as_view(),name="teacher-batch-detail"),
     path("teachers/batch-analytics/<int:batch_id>/", BatchAnalyticsAPI.as_view(), name='teacher-batch-analytics'),
     
     # Teacher APIs - New (Homework)
     path("teachers/homework/", HomeworkAPI.as_view(), name='teacher-homework'),
     path("teachers/homework/<int:teacher_id>/", HomeworkAPI.as_view(), name='teacher-homework-list'),
     path("teachers/homework-submissions/<int:homework_id>/", HomeworkSubmissionsAPI.as_view(), name='teacher-homework-submissions'),
+    path("teachers/homework-submissions/grade/<int:submission_id>/",HomeworkSubmissionsAPI.as_view(),name="teacher-homework-submission-grade"),
     
     # Teacher APIs - New (Remarks)
     path("teachers/student-remark/", TeacherRemarkAPI.as_view(), name='teacher-student-remark'),
     path("teachers/student-remarks/<int:student_id>/", TeacherRemarkAPI.as_view(), name='teacher-student-remarks-list'),
+    path("teachers/student-remarks/delete/<int:remark_id>/",TeacherRemarkAPI.as_view(),name="teacher-student-remark-delete"),
 
     path('teachers/test-submissions/<int:teacher_id>/', TestSubmissionsAPI.as_view(),name="teacher-test-submissions"),
     path("teachers/class-comparison/<int:user_id>/", ClassComparisonAPI.as_view(), name='teacher-class-comparison'),
     path("teachers/live-monitoring/<int:teacher_id>/",LiveMonitoringAPI.as_view(),name="tearcher-live-monitoring"),
     path("teachers/reports/<int:teacher_id>/",ReportsAPI.as_view(),name="teachers-reports"),
     path("teachers/settings/<int:teacher_id>/",TeacherSettingsAPI.as_view(),name='teacher-settings'),
+  
+    path('teachers/homework/create/',CreateHomeworkView.as_view(),name='homework-create'),
+    path('teachers/homework/<int:homework_id>/assign-group/',AssignHomeworkToGroupView.as_view(),name='homework-assign-group'),
+    path('teachers/groups/<int:group_id>/suggested-tests/',GroupSuggestedTestsView.as_view(),name='group-suggested-tests'),
+    path('teachers/notifications/preferences/',NotificationPreferenceView.as_view(),name='notification-preferences'),
+    path("teachers/groups/<int:group_id>/homework/",HomeworkAPI.as_view(),name="group-homework-list"),
 
     # Parent APIs - New 
     path("analytics/learning-habit-score/<int:pk>/",LearningHabitScoreAPI.as_view(),name="learning-habit-score"),
@@ -155,5 +168,35 @@ urlpatterns = [
     path("analytics/forgetting-curve/<int:pk>/",ForgettingCurveAlertAPI.as_view(),name="forgetting-curve"),
     path("analytics/mistake-patterns/<int:pk>/",MistakePatternAnalysisAPI.as_view(),name="mistake-patterns"),
     path("analytics/micro-progress/<int:pk>/",MicroProgressAlertsAPI.as_view(),name="Micro-progress"),
-    
+    #  budget list and force re-evaluate
+    path("analytics/badges/<int:pk>/",AchievementBadgesAPI.as_view(),name="achievement-badges",),
+    #    GET → detected style + tailored study tips
+    path("analytics/learning-style/<int:pk>/",LearningStyleDetectionAPI.as_view(),name="learning-style",),
+    # 3. Reward Suggestion System
+    #    GET  → suggested rewards based on current avg score
+    path("analytics/rewards/<int:pk>/",RewardSuggestionAPI.as_view(),name="reward-suggestion"),
+    #    POST → assign a reward to a student
+    path("analytics/rewards/<int:pk>/assign/",RewardAssignAPI.as_view(),name="reward-assign"),
+    #    GET  → full reward history for a student
+    path("analytics/rewards/<int:pk>/history/",RewardHistoryAPI.as_view(),name="reward-history"),
+    # 4. Parent Coaching Tips (Gemini live)
+    #    GET → AI-generated 3–4 sentence coaching guidance for parents
+    path("analytics/parent-coaching-tips/<int:pk>/",ParentCoachingTipsAPI.as_view(),name="parent-coaching-tips"),
+    # 5. Child Potential Indicator
+    #    GET → trend direction + AI score projection + potential level label
+    path("analytics/child-potential/<int:pk>/",ChildPotentialIndicatorAPI.as_view(),name="child-potential"),
+    # 6. Goal Setting System — full CRUD
+    #    GET  (with student_id) → all goals for one student
+    path("analytics/goals/<int:student_id>/",GoalSettingAPI.as_view(),name="goals-list"),
+    #    GET  (no id) → all goals for all children of the logged-in parent
+    path("analytics/goals/",GoalSettingAPI.as_view(),name="goals-parent"),
+    #    Body: { student_id, goal_type, target_value, subject_id?, deadline? }
+    path("analytics/goals/create/",GoalSettingAPI.as_view(),name="goals-create"),
+    #    PUT → update an existing goal
+    #    Body: { goal_id, target_value?, deadline?, is_achieved? }
+    path("analytics/goals/<int:goal_id>/update/",GoalSettingAPI.as_view(),name="goals-update"),
+    #    DELETE → delete a goal
+    path("analytics/goals/<int:goal_id>/delete/",GoalSettingAPI.as_view(),name="goals-delete"),
+    #    GET → single goal detail by goal_id
+    path("analytics/goals/detail/<int:goal_id>/",GoalDetailAPI.as_view(),name="goal-detail"),
 ]

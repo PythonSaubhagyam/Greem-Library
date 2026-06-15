@@ -1,5 +1,4 @@
 from django.db import models
-from user_management.models import *
 
 
 class pdfGroupModel(models.Model):
@@ -18,7 +17,7 @@ class pdfLibraryModel(models.Model):
     group = models.ManyToManyField(pdfGroupModel,blank=True)
     is_custom = models.BooleanField(default=False)
     is_favorite = models.BooleanField(default=False)
-    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE,blank=True,null=True, related_name='library')
+    student = models.ForeignKey('user_management.StudentModel', on_delete=models.CASCADE,blank=True,null=True, related_name='library')
     created_at = models.DateTimeField(blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)
 
@@ -52,10 +51,10 @@ class TestModel(models.Model):
     total_marks = models.IntegerField()
     shuffle_questions = models.BooleanField(default=False)
     enable_timer = models.BooleanField(default=False)
-    student = models.ManyToManyField(StudentModel, related_name='tests', blank=True)
+    student = models.ManyToManyField('user_management.StudentModel', related_name='tests', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     scheduled_date = models.DateTimeField(null=True, blank=True)
-    created_by = models.ForeignKey(UserModel,on_delete=models.SET_NULL,null=True,blank=True)
+    created_by = models.ForeignKey('user_management.UserModel', on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return self.title
@@ -80,7 +79,7 @@ class QuestionOptionsModel(models.Model):
     
 
 class StudentTestAttemptModel(models.Model):
-    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE, related_name='student')
+    student = models.ForeignKey('user_management.StudentModel', on_delete=models.CASCADE, related_name='student')
     test = models.ForeignKey(TestModel, on_delete=models.CASCADE, related_name='testattempt')
     score = models.IntegerField()
     started_at = models.DateTimeField(auto_now_add=True)
@@ -101,7 +100,7 @@ class StudentAnswerModel(models.Model):
 
 
 class StudySession(models.Model):
-    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE)
+    student = models.ForeignKey('user_management.StudentModel', on_delete=models.CASCADE)
 
     subject = models.ForeignKey(
         Subject,
@@ -128,17 +127,17 @@ class StudySession(models.Model):
 
 class StudentGroupModel(models.Model):
     name = models.CharField(max_length=255)
-    students = models.ManyToManyField(StudentModel, related_name='groups')
+    students = models.ManyToManyField('user_management.StudentModel', related_name='groups')
     
     created_by = models.ForeignKey(
-        UserModel, 
+        'user_management.UserModel', 
         on_delete=models.SET_NULL, 
         null=True,
         related_name='created_student_groups',
         limit_choices_to={'role__type': 'Teacher'}
     )
     subject = models.ForeignKey(
-        Subject, 
+        'tablet_app.Subject', 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True,

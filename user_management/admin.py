@@ -236,3 +236,11 @@ class StudentAchievementAdmin(admin.ModelAdmin):
     search_fields = ("student__student_name", "achievement__name")
     list_filter = ("achievement", "earned_at")
     raw_id_fields = ("student", "achievement")
+
+
+@admin.register(StudentBadgeModel)
+class StudentBadgeAdmin(admin.ModelAdmin):
+    list_display = ("id", "student", "badge", "earned_at")
+    search_fields = ("student__student_name", "badge__name")
+    list_filter = ("badge", "earned_at")
+    raw_id_fields = ("student", "badge")
