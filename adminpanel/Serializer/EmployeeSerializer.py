@@ -10,7 +10,7 @@ class EmployeeCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(write_only=True)
     first_name = serializers.CharField(write_only=True)
     last_name = serializers.CharField(write_only=True)
-    mobile_no = PhoneNumberField(required=False, allow_null=True)
+    mobile_no = serializers.CharField(max_length=15, required=False, allow_null=True)
     password = serializers.CharField(write_only=True)
 
     class Meta:
@@ -142,5 +142,5 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
             "email": obj.user.email,
             "first_name": obj.user.first_name,
             "last_name": obj.user.last_name,
-            "mobile_no": obj.user.mobile_no.national_number if obj.user.mobile_no else None,
+            "mobile_no": str(obj.user.mobile_no) if obj.user.mobile_no else None,
         }

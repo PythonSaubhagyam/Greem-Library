@@ -66,13 +66,11 @@ class UsersListSerializer(serializers.ModelSerializer):
 
     def get_phone_no(self, obj):
         if obj.mobile_no:
-            return obj.mobile_no.national_number
+            return str(obj.mobile_no)   #  it's now a plain string, just return it
         return None
-    
+
     def get_country_code(self, obj):
-        if obj.mobile_no:
-            return obj.mobile_no.country_code
-        return None
+        return None   #  no longer a PhoneNumber object, no country_code available
 
     def get_default_address(self, obj):
         return obj.address.filter(is_default=True).first()
@@ -245,7 +243,7 @@ class EmployeeCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(write_only=True)
     first_name = serializers.CharField(write_only=True)
     last_name = serializers.CharField(write_only=True)
-    mobile_no = PhoneNumberField(required=False, allow_null=True)
+    mobile_no = serializers.CharField(max_length=15, required=False, allow_null=True)
     password = serializers.CharField(write_only=True)
 
     class Meta:

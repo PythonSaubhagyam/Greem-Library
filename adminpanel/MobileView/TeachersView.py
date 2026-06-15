@@ -12,9 +12,9 @@ from datetime import timedelta
 from django.utils import timezone
 from django.db.models import Avg, F, FloatField, Count
 from django.utils.timezone import localtime
+from tablet_app.serializers import *
 
-
-# ✅ HELPER FUNCTIONS FOR STATUS & LAST ACTIVITY
+#  HELPER FUNCTIONS FOR STATUS & LAST ACTIVITY
 def get_student_status(student):
     """
     Calculate student status: Active or Inactive
@@ -403,281 +403,517 @@ class ClassSelectionAPI(APIView):
 
 
 class EnhancedClassOverviewAPI(APIView):
-    """
-    Enhanced Class Overview Page - Step 3 in teacher flow (FINAL STEP)
+    # """
+    # Enhanced Class Overview Page - Step 3 in teacher flow (FINAL STEP)
     
-    📊 TEACHER DASHBOARD FLOW (as per teacher.docx):
-    Step 1 → Select Class ✓
-    Step 2 → Select Subject ✓
-    Step 3 → View Analytics (THIS API)
+    # 📊 TEACHER DASHBOARD FLOW (as per teacher.docx):
+    # Step 1 → Select Class ✓
+    # Step 2 → Select Subject ✓
+    # Step 3 → View Analytics (THIS API)
     
-    👨‍🏫 HOW TEACHER SEES CLASS PERFORMANCE (from teacher.docx):
-    When Math teacher opens Class 8A, he sees:
-    - Class average (Math only) ✓
-    - Weak math topics ✓
-    - Difficulty analysis (Math only) ✓
-    - Student ranking (Math only) ✓
-    - NOT full academic data
+    # 👨‍🏫 HOW TEACHER SEES CLASS PERFORMANCE (from teacher.docx):
+    # When Math teacher opens Class 8A, he sees:
+    # - Class average (Math only) ✓
+    # - Weak math topics ✓
+    # - Difficulty analysis (Math only) ✓
+    # - Student ranking (Math only) ✓
+    # - NOT full academic data
     
-    🔐 Subject-Based Access Control:
-    - Math teacher sees: ✔ Math tests, ✔ Math homework, ✔ Math analytics, ❌ Cannot see Science
-    - Science teacher sees only science
-    - Class teacher sees all subjects for their homeroom class
-    """
+    # 🔐 Subject-Based Access Control:
+    # - Math teacher sees: ✔ Math tests, ✔ Math homework, ✔ Math analytics, ❌ Cannot see Science
+    # - Science teacher sees only science
+    # - Class teacher sees all subjects for their homeroom class
+    # """
 
+    # def get(self, request, teacher_id):
+    #     class_id = request.GET.get('class_id')
+    #     subject_id = request.GET.get('subject')
+    #     date_range = request.GET.get('date_range', '30')  # days
+
+    #     if not class_id:
+    #         return Response({'error': 'class_id parameter is required'}, status=400)
+
+    #     try:
+    #         teacher = UserModel.objects.get(id=teacher_id, role__type='Teacher')
+    #     except UserModel.DoesNotExist:
+    #         return Response({'error': 'Teacher not found'}, status=404)
+
+    #     # Get the class object
+    #     try:
+    #         class_obj = ClassModel.objects.get(id=class_id)
+    #     except ClassModel.DoesNotExist:
+    #         return Response({'error': 'Class not found'}, status=404)
+
+    #     # Get teacher assignment and role
+    #     teacher_role = 'subject_teacher'
+    #     assigned_subjects = Subject.objects.none()
+    #     homeroom_class = None
+        
+    #     try:
+    #         teacher_assignment = TeacherAssignmentModel.objects.get(teacher=teacher, is_active=True)
+    #         if class_obj not in teacher_assignment.assigned_classes.all():
+    #             return Response({'error': 'You are not assigned to this class'}, status=403)
+    #         assigned_subjects = teacher_assignment.assigned_subjects.all()
+    #         teacher_role = teacher_assignment.teacher_role or 'subject_teacher'
+    #         homeroom_class = teacher_assignment.homeroom_class
+    #     except TeacherAssignmentModel.DoesNotExist:
+    #         # Fallback: Get subjects from tests created by teacher
+    #         assigned_subjects = Subject.objects.filter(testmodel__created_by=teacher).distinct()
+
+    #     # Get students in this class
+    #     students = class_obj.students.all()
+
+    #     #Using Lector / Not Using
+    #     using_lector = students.filter(device_id__isnull=False).count()
+    #     not_using_lector = students.filter(device_id__isnull=True).count()
+
+
+    #     if not students.exists():
+    #         return Response({'error': 'No students found for this class'}, status=404)
+
+    #     # 🔐 SUBJECT-BASED ACCESS CONTROL
+    #     # Validate that teacher can access requested subject
+    #     if subject_id:
+    #         try:
+    #             requested_subject = Subject.objects.get(id=subject_id)
+    #             # Class teacher can access all subjects for homeroom, subject teacher only assigned subjects
+    #             is_class_teacher_for_this_class = (
+    #                 teacher_role == 'class_teacher' and 
+    #                 homeroom_class and 
+    #                 homeroom_class.id == class_obj.id
+    #             )
+    #             if not is_class_teacher_for_this_class and requested_subject not in assigned_subjects:
+    #                 return Response({
+    #                     'error': f'You do not have access to {requested_subject.name} analytics. '
+    #                              f'You can only view: {", ".join([s.name for s in assigned_subjects])}'
+    #                 }, status=403)
+    #         except Subject.DoesNotExist:
+    #             return Response({'error': 'Subject not found'}, status=404)
+
+    #     # Filter test attempts by subject (Subject-Based Access Control)
+    #     test_attempts = StudentTestAttemptModel.objects.filter(student__in=students)
+    #     tests = TestModel.objects.filter(student__in=students)
+
+    #     if subject_id:
+    #         # Filter by specific subject
+    #         test_attempts = test_attempts.filter(test__subject_id=subject_id)
+    #         tests = tests.filter(subject_id=subject_id)
+    #     else:
+    #         # No subject specified - for subject teachers, show only their subjects
+    #         # For class teachers, show all subjects
+    #         is_class_teacher_for_this_class = (
+    #             teacher_role == 'class_teacher' and 
+    #             homeroom_class and 
+    #             homeroom_class.id == class_obj.id
+    #         )
+    #         if not is_class_teacher_for_this_class:
+    #             test_attempts = test_attempts.filter(test__subject__in=assigned_subjects)
+    #             tests = tests.filter(subject__in=assigned_subjects)
+
+    #     # Calculate subject-specific class average
+    #     percentages = []
+    #     for attempt in test_attempts:
+    #         if attempt.test.total_marks > 0:
+    #             percentage = (attempt.score / attempt.test.total_marks) * 100
+    #             percentages.append(percentage)
+
+    #     class_average = round(sum(percentages) / len(percentages), 2) if percentages else 0
+
+    #     # Engagement Score
+    #     seven_days_ago = timezone.now() - timedelta(days=7)
+
+    #     total_sessions = StudySession.objects.filter(
+    #         student__in=students,
+    #         start_time__gte=seven_days_ago
+    #     ).count()
+
+    #     expected_sessions = students.count() * 7
+    #     session_score = (total_sessions / expected_sessions * 100) if expected_sessions > 0 else 0
+
+    #     students_gave_test = test_attempts.filter(
+    #         started_at__gte=seven_days_ago
+    #     ).values('student').distinct().count()
+    #     test_score = (students_gave_test / students.count() * 100) if students.count() > 0 else 0
+
+    #     active_students = StudySession.objects.filter(
+    #         student__in=students,
+    #         start_time__gte=seven_days_ago
+    #     ).values('student').distinct().count()
+    #     active_score = (active_students / students.count() * 100) if students.count() > 0 else 0
+
+    #     engagement_score = round(
+    #         (session_score * 0.4) + (test_score * 0.4) + (active_score * 0.2), 1
+    #     )
+
+    #     # Engagement Label
+    #     if engagement_score >= 75:
+    #         engagement_label = 'High'
+    #     elif engagement_score >= 50:
+    #         engagement_label = 'Medium'
+    #     else:
+    #         engagement_label = 'Low'
+
+    #     # Student ranking (subject only - as per doc)
+    #     # 🔥 SHOW ALL STUDENTS - even those with no test data
+    #     student_rankings = []
+    #     for student in students:
+    #         student_attempts = test_attempts.filter(student=student)
+            
+    #         # Calculate score only if student has test attempts
+    #         if student_attempts.exists():
+    #             student_percentages = []
+    #             for attempt in student_attempts:
+    #                 if attempt.test.total_marks > 0:
+    #                     percentage = (attempt.score / attempt.test.total_marks) * 100
+    #                     student_percentages.append(percentage)
+
+    #             if student_percentages:
+    #                 avg_percentage = sum(student_percentages) / len(student_percentages)
+    #                 student_rankings.append({
+    #                     'student_id': student.id,
+    #                     'student_name': student.student_name,
+    #                     'average_score': round(avg_percentage, 2),
+    #                     'average_score_display': f'{round(avg_percentage, 2)} %',
+    #                     'test_count': len(student_percentages),
+    #                     'status': get_student_status(student),  # ✅ Active/Inactive
+    #                     'last_activity': get_last_activity(student),  # ✅ Last activity date
+    #                 })
+    #         else:
+    #             # ✅ SHOW STUDENTS WITH NO TEST DATA - Still show status and activity
+    #             student_rankings.append({
+    #                 'student_id': student.id,
+    #                 'student_name': student.student_name,
+    #                 'average_score': 0,
+    #                 'average_score_display': 'N/A',
+    #                 'test_count': 0,
+    #                 'status': get_student_status(student),  # ✅ Active/Inactive
+    #                 'last_activity': get_last_activity(student),  # ✅ Last activity date
+    #             })
+
+    #     # Sort: First by status (Active first), then by average score (descending)
+    #     student_rankings.sort(key=lambda x: (x['status'] == 'Inactive', -x['average_score']))
+
+    #     # Add ranks
+    #     for i, student in enumerate(student_rankings):
+    #         student['rank'] = i + 1
+
+    #     # Weak topics analysis (as per doc - "Weak math topics")
+    #     # weak_topics = []
+    #     # if subject_id:
+    #     #     questions = QuestionsModel.objects.filter(
+    #     #         test__subject_id=subject_id, 
+    #     #         test__student__in=students
+    #     #     ).distinct()
+            
+    #     #     for question in questions:
+    #     #         answers = StudentAnswerModel.objects.filter(
+    #     #             attempt__test__subject_id=subject_id,
+    #     #             attempt__student__in=students,
+    #     #             question=question
+    #     #         )
+
+    #     #         if answers.exists():
+    #     #             correct_answers = answers.filter(selected_option__is_correct=True).count()
+    #     #             total_answers = answers.count()
+    #     #             accuracy = (correct_answers / total_answers) * 100 if total_answers > 0 else 0
+
+    #     #             if accuracy < 70:  # Consider topic weak if accuracy < 70%
+    #     #                 weak_topics.append({
+    #     #                     'question_text': question.question_text[:100] + "..." if len(question.question_text) > 100 else question.question_text,
+    #     #                     'accuracy': round(accuracy, 2),
+    #     #                     'total_attempts': total_answers,
+    #     #                     'difficulty_level': 'Hard' if accuracy < 50 else 'Medium'
+    #     #                 })
+
+    #     # # Difficulty analysis (as per doc - "Difficulty analysis (Math only)")
+    #     # difficulty_analysis = {
+    #     #     'hard_questions': len([t for t in weak_topics if t['difficulty_level'] == 'Hard']),
+    #     #     'medium_questions': len([t for t in weak_topics if t['difficulty_level'] == 'Medium']),
+    #     #     'total_weak_areas': len(weak_topics)
+    #     # }
+
+    #     # Determine subject name for response
+    #     subject_name = 'All Assigned Subjects'
+    #     if subject_id:
+    #         try:
+    #             subject_name = Subject.objects.get(id=subject_id).name
+    #         except Subject.DoesNotExist:
+    #             subject_name = 'Unknown'
+
+    #     return Response({
+    #         'class_id': class_obj.id,
+    #         'class_name': class_obj.get_display_name(),
+    #         'subject': subject_name,
+    #         'teacher_role': teacher_role,
+    #         # Class average (subject only) - as per doc
+    #         'class_average': class_average,
+    #         'total_students': students.count(),
+    #         'students_with_data': len(student_rankings),
+    #         # Student ranking (subject only) - as per doc
+    #         'student_rankings': student_rankings[:10],  # Top 10 students
+    #         # Weak topics - as per doc
+    #         # 'weak_topics': sorted(weak_topics, key=lambda x: x['accuracy'])[:10],
+    #         'weak_topics': [],
+    #         # Difficulty analysis (subject only) - as per doc
+    #         # 'difficulty_analysis': difficulty_analysis,
+    #         'difficulty_analysis': {
+    #             'hard_questions': 0,
+    #             'medium_questions': 0,
+    #             'total_weak_areas': 0
+    #         },
+    #         'total_tests': tests.count(),
+    #         'date_range': f"Last {date_range} days",
+    #         # Access info
+    #         'access_note': f'Showing {subject_name} analytics only' if subject_id else 'Showing analytics for all your assigned subjects',
+    #         'flow_complete': True,
+    #         'flow_hint': 'Step 3 of 3: Analytics View - Click on student to see detailed profile',
+    #         'lector_usage': {
+    #             'using_lector': using_lector,
+    #             'not_using_lector': not_using_lector,
+    #         },
+    #         'engagement': {
+    #             'score': engagement_score,
+    #             'label': engagement_label,
+    #             'active_students': active_students,
+    #         },
+    #     })
+    """
+    Enhanced Class Overview — Step 3 in teacher flow.
+    FIXED: weak_topics and difficulty_analysis are now computed (not []/0).
+    """
+ 
     def get(self, request, teacher_id):
-        class_id = request.GET.get('class_id')
+        class_id   = request.GET.get('class_id')
         subject_id = request.GET.get('subject')
-        date_range = request.GET.get('date_range', '30')  # days
-
+        date_range = request.GET.get('date_range', '30')
+ 
         if not class_id:
             return Response({'error': 'class_id parameter is required'}, status=400)
-
+ 
         try:
             teacher = UserModel.objects.get(id=teacher_id, role__type='Teacher')
         except UserModel.DoesNotExist:
             return Response({'error': 'Teacher not found'}, status=404)
-
-        # Get the class object
+ 
         try:
             class_obj = ClassModel.objects.get(id=class_id)
         except ClassModel.DoesNotExist:
             return Response({'error': 'Class not found'}, status=404)
-
-        # Get teacher assignment and role
-        teacher_role = 'subject_teacher'
+ 
+        teacher_role      = 'subject_teacher'
         assigned_subjects = Subject.objects.none()
-        homeroom_class = None
-        
+        homeroom_class    = None
+ 
         try:
-            teacher_assignment = TeacherAssignmentModel.objects.get(teacher=teacher, is_active=True)
+            teacher_assignment = TeacherAssignmentModel.objects.get(
+                teacher=teacher, is_active=True
+            )
             if class_obj not in teacher_assignment.assigned_classes.all():
-                return Response({'error': 'You are not assigned to this class'}, status=403)
+                return Response(
+                    {'error': 'You are not assigned to this class'}, status=403
+                )
             assigned_subjects = teacher_assignment.assigned_subjects.all()
-            teacher_role = teacher_assignment.teacher_role or 'subject_teacher'
-            homeroom_class = teacher_assignment.homeroom_class
+            teacher_role      = teacher_assignment.teacher_role or 'subject_teacher'
+            homeroom_class    = teacher_assignment.homeroom_class
         except TeacherAssignmentModel.DoesNotExist:
-            # Fallback: Get subjects from tests created by teacher
-            assigned_subjects = Subject.objects.filter(testmodel__created_by=teacher).distinct()
-
-        # Get students in this class
+            assigned_subjects = Subject.objects.filter(
+                testmodel__created_by=teacher
+            ).distinct()
+ 
         students = class_obj.students.all()
-
-        #Using Lector / Not Using
-        using_lector = students.filter(device_id__isnull=False).count()
-        not_using_lector = students.filter(device_id__isnull=True).count()
-
-
         if not students.exists():
             return Response({'error': 'No students found for this class'}, status=404)
-
-        # 🔐 SUBJECT-BASED ACCESS CONTROL
-        # Validate that teacher can access requested subject
+ 
+        using_lector     = students.filter(device_id__isnull=False).count()
+        not_using_lector = students.filter(device_id__isnull=True).count()
+ 
+        # Subject access control
         if subject_id:
             try:
                 requested_subject = Subject.objects.get(id=subject_id)
-                # Class teacher can access all subjects for homeroom, subject teacher only assigned subjects
-                is_class_teacher_for_this_class = (
-                    teacher_role == 'class_teacher' and 
-                    homeroom_class and 
+                is_class_teacher  = (
+                    teacher_role == 'class_teacher' and
+                    homeroom_class and
                     homeroom_class.id == class_obj.id
                 )
-                if not is_class_teacher_for_this_class and requested_subject not in assigned_subjects:
+                if not is_class_teacher and requested_subject not in assigned_subjects:
                     return Response({
-                        'error': f'You do not have access to {requested_subject.name} analytics. '
-                                 f'You can only view: {", ".join([s.name for s in assigned_subjects])}'
+                        'error': (
+                            f'You do not have access to {requested_subject.name} analytics. '
+                            f'You can only view: '
+                            f'{", ".join(s.name for s in assigned_subjects)}'
+                        )
                     }, status=403)
             except Subject.DoesNotExist:
                 return Response({'error': 'Subject not found'}, status=404)
-
-        # Filter test attempts by subject (Subject-Based Access Control)
+ 
         test_attempts = StudentTestAttemptModel.objects.filter(student__in=students)
-        tests = TestModel.objects.filter(student__in=students)
-
+        tests         = TestModel.objects.filter(student__in=students)
+ 
+        is_class_teacher_for_this_class = (
+            teacher_role == 'class_teacher' and
+            homeroom_class and
+            homeroom_class.id == class_obj.id
+        )
+ 
         if subject_id:
-            # Filter by specific subject
             test_attempts = test_attempts.filter(test__subject_id=subject_id)
-            tests = tests.filter(subject_id=subject_id)
-        else:
-            # No subject specified - for subject teachers, show only their subjects
-            # For class teachers, show all subjects
-            is_class_teacher_for_this_class = (
-                teacher_role == 'class_teacher' and 
-                homeroom_class and 
-                homeroom_class.id == class_obj.id
-            )
-            if not is_class_teacher_for_this_class:
-                test_attempts = test_attempts.filter(test__subject__in=assigned_subjects)
-                tests = tests.filter(subject__in=assigned_subjects)
-
-        # Calculate subject-specific class average
-        percentages = []
-        for attempt in test_attempts:
-            if attempt.test.total_marks > 0:
-                percentage = (attempt.score / attempt.test.total_marks) * 100
-                percentages.append(percentage)
-
+            tests         = tests.filter(subject_id=subject_id)
+        elif not is_class_teacher_for_this_class:
+            test_attempts = test_attempts.filter(test__subject__in=assigned_subjects)
+            tests         = tests.filter(subject__in=assigned_subjects)
+ 
+        # Class average
+        percentages = [
+            (a.score / a.test.total_marks) * 100
+            for a in test_attempts
+            if a.test.total_marks > 0
+        ]
         class_average = round(sum(percentages) / len(percentages), 2) if percentages else 0
-
-        # Engagement Score
-        seven_days_ago = timezone.now() - timedelta(days=7)
-
-        total_sessions = StudySession.objects.filter(
-            student__in=students,
-            start_time__gte=seven_days_ago
+ 
+        # Engagement score
+        seven_days_ago    = timezone.now() - timedelta(days=7)
+        total_sessions    = StudySession.objects.filter(
+            student__in=students, start_time__gte=seven_days_ago
         ).count()
-
         expected_sessions = students.count() * 7
-        session_score = (total_sessions / expected_sessions * 100) if expected_sessions > 0 else 0
-
+        session_score     = (
+            total_sessions / expected_sessions * 100
+            if expected_sessions > 0 else 0
+        )
         students_gave_test = test_attempts.filter(
             started_at__gte=seven_days_ago
         ).values('student').distinct().count()
-        test_score = (students_gave_test / students.count() * 100) if students.count() > 0 else 0
-
-        active_students = StudySession.objects.filter(
-            student__in=students,
-            start_time__gte=seven_days_ago
+        test_score   = (students_gave_test / students.count() * 100) if students.count() > 0 else 0
+        active_count = StudySession.objects.filter(
+            student__in=students, start_time__gte=seven_days_ago
         ).values('student').distinct().count()
-        active_score = (active_students / students.count() * 100) if students.count() > 0 else 0
-
+        active_score = (active_count / students.count() * 100) if students.count() > 0 else 0
         engagement_score = round(
-            (session_score * 0.4) + (test_score * 0.4) + (active_score * 0.2), 1
+            session_score * 0.4 + test_score * 0.4 + active_score * 0.2, 1
         )
-
-        # Engagement Label
-        if engagement_score >= 75:
-            engagement_label = 'High'
-        elif engagement_score >= 50:
-            engagement_label = 'Medium'
-        else:
-            engagement_label = 'Low'
-
-        # Student ranking (subject only - as per doc)
-        # 🔥 SHOW ALL STUDENTS - even those with no test data
+        engagement_label = (
+            'High' if engagement_score >= 75 else
+            'Medium' if engagement_score >= 50 else
+            'Low'
+        )
+ 
+        # Student rankings
+        from tablet_app.views import get_student_status, get_last_activity  # reuse helpers
         student_rankings = []
         for student in students:
-            student_attempts = test_attempts.filter(student=student)
-            
-            # Calculate score only if student has test attempts
-            if student_attempts.exists():
-                student_percentages = []
-                for attempt in student_attempts:
-                    if attempt.test.total_marks > 0:
-                        percentage = (attempt.score / attempt.test.total_marks) * 100
-                        student_percentages.append(percentage)
-
-                if student_percentages:
-                    avg_percentage = sum(student_percentages) / len(student_percentages)
-                    student_rankings.append({
-                        'student_id': student.id,
-                        'student_name': student.student_name,
-                        'average_score': round(avg_percentage, 2),
-                        'average_score_display': f'{round(avg_percentage, 2)} %',
-                        'test_count': len(student_percentages),
-                        'status': get_student_status(student),  # ✅ Active/Inactive
-                        'last_activity': get_last_activity(student),  # ✅ Last activity date
-                    })
-            else:
-                # ✅ SHOW STUDENTS WITH NO TEST DATA - Still show status and activity
-                student_rankings.append({
-                    'student_id': student.id,
-                    'student_name': student.student_name,
-                    'average_score': 0,
-                    'average_score_display': 'N/A',
-                    'test_count': 0,
-                    'status': get_student_status(student),  # ✅ Active/Inactive
-                    'last_activity': get_last_activity(student),  # ✅ Last activity date
-                })
-
-        # Sort: First by status (Active first), then by average score (descending)
-        student_rankings.sort(key=lambda x: (x['status'] == 'Inactive', -x['average_score']))
-
-        # Add ranks
-        for i, student in enumerate(student_rankings):
-            student['rank'] = i + 1
-
-        # Weak topics analysis (as per doc - "Weak math topics")
-        # weak_topics = []
-        # if subject_id:
-        #     questions = QuestionsModel.objects.filter(
-        #         test__subject_id=subject_id, 
-        #         test__student__in=students
-        #     ).distinct()
-            
-        #     for question in questions:
-        #         answers = StudentAnswerModel.objects.filter(
-        #             attempt__test__subject_id=subject_id,
-        #             attempt__student__in=students,
-        #             question=question
-        #         )
-
-        #         if answers.exists():
-        #             correct_answers = answers.filter(selected_option__is_correct=True).count()
-        #             total_answers = answers.count()
-        #             accuracy = (correct_answers / total_answers) * 100 if total_answers > 0 else 0
-
-        #             if accuracy < 70:  # Consider topic weak if accuracy < 70%
-        #                 weak_topics.append({
-        #                     'question_text': question.question_text[:100] + "..." if len(question.question_text) > 100 else question.question_text,
-        #                     'accuracy': round(accuracy, 2),
-        #                     'total_attempts': total_answers,
-        #                     'difficulty_level': 'Hard' if accuracy < 50 else 'Medium'
-        #                 })
-
-        # # Difficulty analysis (as per doc - "Difficulty analysis (Math only)")
-        # difficulty_analysis = {
-        #     'hard_questions': len([t for t in weak_topics if t['difficulty_level'] == 'Hard']),
-        #     'medium_questions': len([t for t in weak_topics if t['difficulty_level'] == 'Medium']),
-        #     'total_weak_areas': len(weak_topics)
-        # }
-
-        # Determine subject name for response
+            s_attempts  = test_attempts.filter(student=student)
+            s_pcts      = [
+                (a.score / a.test.total_marks) * 100
+                for a in s_attempts if a.test.total_marks > 0
+            ]
+            avg = round(sum(s_pcts) / len(s_pcts), 2) if s_pcts else 0
+            student_rankings.append({
+                'student_id':            student.id,
+                'student_name':          student.student_name,
+                'average_score':         avg,
+                'average_score_display': f'{avg} %' if s_pcts else 'N/A',
+                'test_count':            len(s_pcts),
+                'status':                get_student_status(student),
+                'last_activity':         get_last_activity(student),
+            })
+        student_rankings.sort(
+            key=lambda x: (x['status'] == 'Inactive', -x['average_score'])
+        )
+        for i, s in enumerate(student_rankings):
+            s['rank'] = i + 1
+ 
+        # ── WEAK TOPICS (previously commented out) ────────────────────────────
+        weak_topics = []
+        if subject_id:
+            questions = QuestionsModel.objects.filter(
+                test__subject_id=subject_id,
+                test__student__in=students,
+            ).distinct()
+ 
+            for question in questions:
+                answers = StudentAnswerModel.objects.filter(
+                    attempt__test__subject_id=subject_id,
+                    attempt__student__in=students,
+                    question=question,
+                )
+                if answers.exists():
+                    correct    = answers.filter(selected_option__is_correct=True).count()
+                    total      = answers.count()
+                    accuracy   = (correct / total) * 100 if total > 0 else 0
+                    if accuracy < 70:
+                        q_text = question.question_text or ''
+                        weak_topics.append({
+                            'question_id':     question.id,
+                            'question_text': (
+                                q_text[:120] + '...' if len(q_text) > 120 else q_text
+                            ),
+                            'accuracy':        round(accuracy, 2),
+                            'correct_answers': correct,
+                            'total_attempts':  total,
+                            'difficulty_level': (
+                                'Hard'   if accuracy < 40 else
+                                'Medium' if accuracy < 70 else
+                                'Easy'
+                            ),
+                        })
+            # Sort weakest first
+            weak_topics.sort(key=lambda x: x['accuracy'])
+            weak_topics = weak_topics[:10]
+ 
+        # ── DIFFICULTY ANALYSIS (previously commented out) ────────────────────
+        hard_count   = len([t for t in weak_topics if t['difficulty_level'] == 'Hard'])
+        medium_count = len([t for t in weak_topics if t['difficulty_level'] == 'Medium'])
+        difficulty_analysis = {
+            'hard_questions':   hard_count,
+            'medium_questions': medium_count,
+            'easy_questions':   len([t for t in weak_topics if t['difficulty_level'] == 'Easy']),
+            'total_weak_areas': len(weak_topics),
+            'note': (
+                'Difficulty based on student accuracy: Hard < 40%, Medium 40–70%, Easy > 70%'
+            ),
+        }
+ 
         subject_name = 'All Assigned Subjects'
         if subject_id:
             try:
                 subject_name = Subject.objects.get(id=subject_id).name
             except Subject.DoesNotExist:
                 subject_name = 'Unknown'
-
+ 
         return Response({
-            'class_id': class_obj.id,
-            'class_name': class_obj.get_display_name(),
-            'subject': subject_name,
-            'teacher_role': teacher_role,
-            # Class average (subject only) - as per doc
-            'class_average': class_average,
+            'class_id':       class_obj.id,
+            'class_name':     class_obj.get_display_name(),
+            'subject':        subject_name,
+            'teacher_role':   teacher_role,
+            'class_average':  class_average,
             'total_students': students.count(),
             'students_with_data': len(student_rankings),
-            # Student ranking (subject only) - as per doc
-            'student_rankings': student_rankings[:10],  # Top 10 students
-            # Weak topics - as per doc
-            # 'weak_topics': sorted(weak_topics, key=lambda x: x['accuracy'])[:10],
-            'weak_topics': [],
-            # Difficulty analysis (subject only) - as per doc
-            # 'difficulty_analysis': difficulty_analysis,
-            'difficulty_analysis': {
-                'hard_questions': 0,
-                'medium_questions': 0,
-                'total_weak_areas': 0
-            },
-            'total_tests': tests.count(),
-            'date_range': f"Last {date_range} days",
-            # Access info
-            'access_note': f'Showing {subject_name} analytics only' if subject_id else 'Showing analytics for all your assigned subjects',
+            'student_rankings':   student_rankings[:10],
+            'weak_topics':        weak_topics,          # ← NOW POPULATED
+            'difficulty_analysis': difficulty_analysis, # ← NOW POPULATED
+            'total_tests':    tests.count(),
+            'date_range':     f'Last {date_range} days',
+            'access_note': (
+                f'Showing {subject_name} analytics only'
+                if subject_id else
+                'Showing analytics for all your assigned subjects'
+            ),
             'flow_complete': True,
-            'flow_hint': 'Step 3 of 3: Analytics View - Click on student to see detailed profile',
+            'flow_hint': (
+                'Step 3 of 3: Analytics View — Click on student to see detailed profile'
+            ),
             'lector_usage': {
-                'using_lector': using_lector,
+                'using_lector':     using_lector,
                 'not_using_lector': not_using_lector,
             },
             'engagement': {
-                'score': engagement_score,
-                'label': engagement_label,
-                'active_students': active_students,
+                'score':           engagement_score,
+                'label':           engagement_label,
+                'active_students': active_count,
             },
         })
-
+ 
 
 class ClassOverviewAPI(APIView):
     """
@@ -729,37 +965,83 @@ class ClassOverviewAPI(APIView):
         })
 
 
-class TestCreationAPI(APIView):
-    """
-    Allows teachers to create tests for their students
-    """
+# class TestCreationAPI(APIView):
+#     """
+#     Allows teachers to create tests for their students
+#     """
 
+#     def post(self, request):
+#         # Extract test data from request
+#         title = request.data.get('title')
+#         subject_name = request.data.get('subject')
+#         duration = request.data.get('duration')
+#         total_marks = request.data.get('total_marks')
+#         assigned_students = request.data.get('assigned_students', [])
+
+#         # Get or create subject
+#         subject, created = Subject.objects.get_or_create(name__iexact=subject_name)
+
+#         # Create the test
+#         test = TestModel.objects.create(
+#             title=title,
+#             subject=subject,
+#             duration_minutes=duration,
+#             total_marks=total_marks,
+#             created_by=request.user  
+#         )
+
+#         # Assign to students
+#         students = StudentModel.objects.filter(id__in=assigned_students)
+#         test.student.set(students)
+
+#         return Response({
+#             'status': 'success',
+#             'test_id': test.id,
+#             'message': 'Test created successfully'
+#         })
+class TestCreationAPI(APIView):
     def post(self, request):
-        # Extract test data from request
         title = request.data.get('title')
         subject_name = request.data.get('subject')
         duration = request.data.get('duration')
         total_marks = request.data.get('total_marks')
+        number_of_questions = request.data.get('number_of_questions')  #  Add this
+        question_type = request.data.get('question_type', 'MCQ')        #  Add this
+        shuffle_questions = request.data.get('shuffle_questions', False) # Add this
+        enable_timer = request.data.get('enable_timer', False)           #  Add this
+        scheduled_date = request.data.get('scheduled_date', None)        # Add this
         assigned_students = request.data.get('assigned_students', [])
 
-        # Get or create subject
-        subject, created = Subject.objects.get_or_create(name__iexact=subject_name)
+        # Validate required fields
+        if not number_of_questions or not total_marks or not title:
+            return Response(
+                {'status': False, 'message': 'title, total_marks and number_of_questions are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # Create the test
+        subject, created = Subject.objects.get_or_create(
+            name__iexact=subject_name,
+            defaults={'name': subject_name}
+        )
+
         test = TestModel.objects.create(
             title=title,
             subject=subject,
             duration_minutes=duration,
             total_marks=total_marks,
-            created_by=request.user  
+            number_of_questions=number_of_questions,  #  Add this
+            question_type=question_type,               # Add this
+            shuffle_questions=shuffle_questions,        # Add this
+            enable_timer=enable_timer,                  # Add this
+            scheduled_date=scheduled_date,              # Add this
+            created_by=request.user
         )
 
-        # Assign to students
         students = StudentModel.objects.filter(id__in=assigned_students)
         test.student.set(students)
 
         return Response({
-            'status': 'success',
+            'status': True,
             'test_id': test.id,
             'message': 'Test created successfully'
         })
@@ -1404,232 +1686,622 @@ class TestSubmissionsAPI(APIView):
 
 
 class GroupAnalyticsAPI(APIView):
+    # """
+    # Group Analytics Page
+    # For group: Weak in Algebra (12 students)
+    # System shows: Group average, Improvement trend, Suggested test, Assign custom homework
+    # """
+
+    # def get(self, request, group_id):
+    #     """Get analytics for a specific group"""
+    #     try:
+    #         group = StudentGroupModel.objects.get(id=group_id)
+    #     except StudentGroupModel.DoesNotExist:
+    #         return Response({
+    #             'status': False,
+    #             'message': 'Group not found'
+    #         }, status=status.HTTP_404_NOT_FOUND)
+
+    #     students = group.students.all()
+
+    #     if not students.exists():
+    #         return Response({
+    #             'status': False,
+    #             'message': 'No students in this group'
+    #         }, status=status.HTTP_400_BAD_REQUEST)
+
+    #     # Group performance metrics
+    #     group_percentages = []
+    #     subject_performance = {}
+    #     improvement_data = []
+
+    #     for student in students:
+    #         attempts = StudentTestAttemptModel.objects.filter(student=student).order_by('started_at')
+    #         if attempts.exists():
+    #             # Current performance
+    #             recent_attempts = attempts.order_by('-started_at')[:5]  # Last 5 tests
+    #             recent_percentages = []
+    #             for attempt in recent_attempts:
+    #                 if attempt.test.total_marks > 0:
+    #                     percentage = (attempt.score / attempt.test.total_marks) * 100
+    #                     recent_percentages.append(percentage)
+
+    #                     # Track by subject
+    #                     subject_name = attempt.test.subject.name if attempt.test.subject else "Unknown"
+    #                     if subject_name not in subject_performance:
+    #                         subject_performance[subject_name] = []
+    #                     subject_performance[subject_name].append(percentage)
+
+    #             if recent_percentages:
+    #                 student_avg = sum(recent_percentages) / len(recent_percentages)
+    #                 group_percentages.append(student_avg)
+
+    #             # Improvement trend (compare first half vs second half of attempts)
+    #             if attempts.count() >= 4:
+    #                 all_percentages = []
+    #                 for attempt in attempts:
+    #                     if attempt.test.total_marks > 0:
+    #                         percentage = (attempt.score / attempt.test.total_marks) * 100
+    #                         all_percentages.append(percentage)
+
+    #                 if len(all_percentages) >= 4:
+    #                     mid_point = len(all_percentages) // 2
+    #                     first_half_avg = sum(all_percentages[:mid_point]) / mid_point
+    #                     second_half_avg = sum(all_percentages[mid_point:]) / (len(all_percentages) - mid_point)
+    #                     improvement = second_half_avg - first_half_avg
+
+    #                     improvement_data.append({
+    #                         'student_id': student.id,
+    #                         'student_name': student.student_name,
+    #                         'improvement': round(improvement, 2),
+    #                         'trend': 'Improving' if improvement > 5 else 'Declining' if improvement < -5 else 'Stable'
+    #                     })
+
+    #     group_average = round(sum(group_percentages) / len(group_percentages), 2) if group_percentages else 0
+
+    #     # Subject averages
+    #     subject_averages = {}
+    #     for subject, percentages in subject_performance.items():
+    #         subject_averages[subject] = round(sum(percentages) / len(percentages), 2)
+
+    #     # Overall improvement trend
+    #     total_improvement = sum(item['improvement'] for item in improvement_data)
+    #     avg_improvement = round(total_improvement / len(improvement_data), 2) if improvement_data else 0
+
+    #     return Response({
+    #         'status': True,
+    #         'group_info': {
+    #             'group_id': group.id,
+    #             'group_name': group.name,
+    #             'student_count': students.count(),
+    #             'student_names': [s.student_name for s in students]
+    #         },
+    #         'performance_metrics': {
+    #             'group_average': group_average,
+    #             'subject_averages': subject_averages,
+    #             'overall_improvement': avg_improvement,
+    #             'improvement_trend': 'Positive' if avg_improvement > 2 else 'Negative' if avg_improvement < -2 else 'Stable'
+    #         },
+    #         'improvement_data': improvement_data,
+    #         'suggestions': self._generate_suggestions(group_average, subject_averages, avg_improvement),
+    #         'student_breakdown': [
+    #             {
+    #                 'student_id': student.id,
+    #                 'student_name': student.student_name,
+    #                 'class': student.student_class.get_display_name() if student.student_class else None
+    #             } for student in students
+    #         ]
+    #     }, status=status.HTTP_200_OK)
+
+    # def _generate_suggestions(self, group_average, subject_averages, improvement_trend):
+    #     """Generate suggestions based on group performance"""
+    #     suggestions = []
+        
+    #     if group_average < 60:
+    #         suggestions.append("Consider assigning remedial materials and additional practice tests")
+        
+    #     if group_average > 85:
+    #         suggestions.append("Group ready for advanced/challenging content")
+        
+    #     if improvement_trend < -2:
+    #         suggestions.append("Review teaching methodology and provide additional support")
+    #     elif improvement_trend > 5:
+    #         suggestions.append("Current teaching approach is effective, continue with similar strategies")
+        
+    #     # Subject-specific suggestions
+    #     for subject, avg in subject_averages.items():
+    #         if avg < 50:
+    #             suggestions.append(f"Focus intensive practice on {subject} - students struggling significantly")
+    #         elif avg > 90:
+    #             suggestions.append(f"{subject} performance excellent - consider advanced topics")
+
+    #     if not suggestions:
+    #         suggestions.append("Maintain current pace and monitor progress regularly")
+
+    #     return suggestions
     """
     Group Analytics Page
-    For group: Weak in Algebra (12 students)
-    System shows: Group average, Improvement trend, Suggested test, Assign custom homework
+    GET  /api/groups/<group_id>/analytics/
+    POST /api/groups/<group_id>/analytics/?action=assign_homework   — assign homework
+    POST /api/groups/<group_id>/analytics/?action=suggested_tests   — get suggestions
     """
-
+ 
     def get(self, request, group_id):
-        """Get analytics for a specific group"""
         try:
             group = StudentGroupModel.objects.get(id=group_id)
         except StudentGroupModel.DoesNotExist:
-            return Response({
-                'status': False,
-                'message': 'Group not found'
-            }, status=status.HTTP_404_NOT_FOUND)
-
+            return Response({'status': False, 'message': 'Group not found'},
+                            status=status.HTTP_404_NOT_FOUND)
+ 
         students = group.students.all()
-
         if not students.exists():
-            return Response({
-                'status': False,
-                'message': 'No students in this group'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Group performance metrics
+            return Response({'status': False, 'message': 'No students in this group'},
+                            status=status.HTTP_400_BAD_REQUEST)
+ 
         group_percentages = []
         subject_performance = {}
         improvement_data = []
-
+ 
         for student in students:
-            attempts = StudentTestAttemptModel.objects.filter(student=student).order_by('started_at')
+            attempts = StudentTestAttemptModel.objects.filter(
+                student=student
+            ).order_by('started_at')
+ 
             if attempts.exists():
-                # Current performance
-                recent_attempts = attempts.order_by('-started_at')[:5]  # Last 5 tests
+                recent_attempts = attempts.order_by('-started_at')[:5]
                 recent_percentages = []
                 for attempt in recent_attempts:
                     if attempt.test.total_marks > 0:
-                        percentage = (attempt.score / attempt.test.total_marks) * 100
-                        recent_percentages.append(percentage)
-
-                        # Track by subject
-                        subject_name = attempt.test.subject.name if attempt.test.subject else "Unknown"
-                        if subject_name not in subject_performance:
-                            subject_performance[subject_name] = []
-                        subject_performance[subject_name].append(percentage)
-
+                        pct = (attempt.score / attempt.test.total_marks) * 100
+                        recent_percentages.append(pct)
+                        subject_name = attempt.test.subject.name if attempt.test.subject else 'Unknown'
+                        subject_performance.setdefault(subject_name, []).append(pct)
+ 
                 if recent_percentages:
-                    student_avg = sum(recent_percentages) / len(recent_percentages)
-                    group_percentages.append(student_avg)
-
-                # Improvement trend (compare first half vs second half of attempts)
+                    group_percentages.append(
+                        sum(recent_percentages) / len(recent_percentages)
+                    )
+ 
                 if attempts.count() >= 4:
-                    all_percentages = []
-                    for attempt in attempts:
-                        if attempt.test.total_marks > 0:
-                            percentage = (attempt.score / attempt.test.total_marks) * 100
-                            all_percentages.append(percentage)
-
-                    if len(all_percentages) >= 4:
-                        mid_point = len(all_percentages) // 2
-                        first_half_avg = sum(all_percentages[:mid_point]) / mid_point
-                        second_half_avg = sum(all_percentages[mid_point:]) / (len(all_percentages) - mid_point)
-                        improvement = second_half_avg - first_half_avg
-
+                    all_pcts = [
+                        (a.score / a.test.total_marks) * 100
+                        for a in attempts if a.test.total_marks > 0
+                    ]
+                    if len(all_pcts) >= 4:
+                        mid = len(all_pcts) // 2
+                        first_avg  = sum(all_pcts[:mid]) / mid
+                        second_avg = sum(all_pcts[mid:]) / (len(all_pcts) - mid)
+                        improvement = second_avg - first_avg
                         improvement_data.append({
-                            'student_id': student.id,
+                            'student_id':   student.id,
                             'student_name': student.student_name,
-                            'improvement': round(improvement, 2),
-                            'trend': 'Improving' if improvement > 5 else 'Declining' if improvement < -5 else 'Stable'
+                            'improvement':  round(improvement, 2),
+                            'trend': (
+                                'Improving'  if improvement > 5 else
+                                'Declining'  if improvement < -5 else
+                                'Stable'
+                            ),
                         })
-
-        group_average = round(sum(group_percentages) / len(group_percentages), 2) if group_percentages else 0
-
-        # Subject averages
-        subject_averages = {}
-        for subject, percentages in subject_performance.items():
-            subject_averages[subject] = round(sum(percentages) / len(percentages), 2)
-
-        # Overall improvement trend
-        total_improvement = sum(item['improvement'] for item in improvement_data)
-        avg_improvement = round(total_improvement / len(improvement_data), 2) if improvement_data else 0
-
+ 
+        group_average = (
+            round(sum(group_percentages) / len(group_percentages), 2)
+            if group_percentages else 0
+        )
+        subject_averages = {
+            s: round(sum(v) / len(v), 2) for s, v in subject_performance.items()
+        }
+        avg_improvement = (
+            round(sum(i['improvement'] for i in improvement_data) / len(improvement_data), 2)
+            if improvement_data else 0
+        )
+ 
+        # ── Pending homework assigned to this group ──────────────────────────
+        pending_homework = HomeworkModel.objects.filter(
+            group=group
+        ).order_by('-created_at')[:5]
+ 
+        homework_summary = [{
+            'id':        hw.id,
+            'title':     hw.title,
+            'subject':   hw.subject.name if hw.subject else None,
+            'due_date':  hw.due_date,
+            'total_assigned': hw.assigned_to.count(),
+            'submissions':    hw.submissions.filter(
+                submitted_at__isnull=False
+            ).count(),
+        } for hw in pending_homework]
+ 
+        # ── Suggested tests (quick preview — full list via separate endpoint) ─
+        suggestions_result = SuggestedTestSerializer.get_suggestions(group_id)
+        top_suggestions = (
+            suggestions_result.get('suggestions', [])[:3]
+            if suggestions_result else []
+        )
+ 
         return Response({
             'status': True,
             'group_info': {
-                'group_id': group.id,
-                'group_name': group.name,
+                'group_id':     group.id,
+                'group_name':   group.name,
                 'student_count': students.count(),
-                'student_names': [s.student_name for s in students]
+                'student_names': [s.student_name for s in students],
             },
             'performance_metrics': {
-                'group_average': group_average,
-                'subject_averages': subject_averages,
+                'group_average':      group_average,
+                'subject_averages':   subject_averages,
                 'overall_improvement': avg_improvement,
-                'improvement_trend': 'Positive' if avg_improvement > 2 else 'Negative' if avg_improvement < -2 else 'Stable'
+                'improvement_trend': (
+                    'Positive' if avg_improvement > 2 else
+                    'Negative' if avg_improvement < -2 else
+                    'Stable'
+                ),
             },
             'improvement_data': improvement_data,
-            'suggestions': self._generate_suggestions(group_average, subject_averages, avg_improvement),
-            'student_breakdown': [
-                {
-                    'student_id': student.id,
-                    'student_name': student.student_name,
-                    'class': student.student_class.get_display_name() if student.student_class else None
-                } for student in students
-            ]
+            'suggestions':  self._generate_suggestions(
+                group_average, subject_averages, avg_improvement
+            ),
+            # ── NEW: homework & suggested-test previews ──────────────────────
+            'assigned_homework': homework_summary,
+            'suggested_tests':   top_suggestions,
+            'actions': {
+                'assign_homework_url':  f'/api/homework/create/',
+                'suggested_tests_url':  f'/api/groups/{group_id}/suggested-tests/',
+                'assign_hw_to_group_url': f'/api/homework/<homework_id>/assign-group/',
+            },
+            'student_breakdown': [{
+                'student_id':   s.id,
+                'student_name': s.student_name,
+                'class': s.student_class.get_display_name() if s.student_class else None,
+            } for s in students],
         }, status=status.HTTP_200_OK)
-
+ 
+    # POST: assign existing homework OR get suggested tests
+    def post(self, request, group_id):
+        action = request.query_params.get('action', '')
+ 
+        try:
+            group = StudentGroupModel.objects.get(id=group_id)
+        except StudentGroupModel.DoesNotExist:
+            return Response({'status': False, 'message': 'Group not found'},
+                            status=status.HTTP_404_NOT_FOUND)
+ 
+        # ── Action 1: assign homework to this group ──────────────────────────
+        if action == 'assign_homework':
+            homework_id = request.data.get('homework_id')
+            if not homework_id:
+                return Response(
+                    {'status': False, 'message': 'homework_id is required'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                homework = HomeworkModel.objects.get(id=homework_id)
+            except HomeworkModel.DoesNotExist:
+                return Response({'status': False, 'message': 'Homework not found'},
+                                status=status.HTTP_404_NOT_FOUND)
+ 
+            student_ids = group.students.values_list('id', flat=True)
+            homework.assigned_to.add(*student_ids)
+            homework.group = group
+            homework.save()
+ 
+            return Response({
+                'status': True,
+                'message': f'Homework "{homework.title}" assigned to group "{group.name}"',
+                'homework_id':    homework.id,
+                'group_id':       group.id,
+                'total_assigned': homework.assigned_to.count(),
+            }, status=status.HTTP_200_OK)
+ 
+        # ── Action 2: create NEW homework for this group ─────────────────────
+        if action == 'create_homework':
+            serializer = HomeworkCreateSerializer(
+                data=request.data, context={'request': request}
+            )
+            if serializer.is_valid():
+                homework = serializer.save()
+                # Also wire up the group
+                student_ids = group.students.values_list('id', flat=True)
+                homework.assigned_to.add(*student_ids)
+                homework.group = group
+                homework.save()
+                return Response({
+                    'status': True,
+                    'message': 'Homework created and assigned to group',
+                    'homework_id':    homework.id,
+                    'total_assigned': homework.assigned_to.count(),
+                }, status=status.HTTP_201_CREATED)
+            return Response({'status': False, 'errors': serializer.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+ 
+        # ── Action 3: get full suggested tests ───────────────────────────────
+        if action == 'suggested_tests':
+            result = SuggestedTestSerializer.get_suggestions(group_id)
+            if result is None:
+                return Response({'status': False, 'message': 'Group not found'},
+                                status=status.HTTP_404_NOT_FOUND)
+            return Response({'status': True, **result}, status=status.HTTP_200_OK)
+ 
+        return Response(
+            {'status': False, 'message': 'Unknown action. Use assign_homework, create_homework, or suggested_tests.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+ 
     def _generate_suggestions(self, group_average, subject_averages, improvement_trend):
-        """Generate suggestions based on group performance"""
         suggestions = []
-        
         if group_average < 60:
-            suggestions.append("Consider assigning remedial materials and additional practice tests")
-        
+            suggestions.append(
+                'Consider assigning remedial materials and additional practice tests'
+            )
         if group_average > 85:
-            suggestions.append("Group ready for advanced/challenging content")
-        
+            suggestions.append('Group ready for advanced/challenging content')
         if improvement_trend < -2:
-            suggestions.append("Review teaching methodology and provide additional support")
+            suggestions.append(
+                'Review teaching methodology and provide additional support'
+            )
         elif improvement_trend > 5:
-            suggestions.append("Current teaching approach is effective, continue with similar strategies")
-        
-        # Subject-specific suggestions
+            suggestions.append(
+                'Current teaching approach is effective, continue with similar strategies'
+            )
         for subject, avg in subject_averages.items():
             if avg < 50:
-                suggestions.append(f"Focus intensive practice on {subject} - students struggling significantly")
+                suggestions.append(
+                    f'Focus intensive practice on {subject} — students struggling significantly'
+                )
             elif avg > 90:
-                suggestions.append(f"{subject} performance excellent - consider advanced topics")
-
+                suggestions.append(
+                    f'{subject} performance excellent — consider advanced topics'
+                )
         if not suggestions:
-            suggestions.append("Maintain current pace and monitor progress regularly")
-
+            suggestions.append('Maintain current pace and monitor progress regularly')
         return suggestions
 
-
 class StudentComparisonAPI(APIView):
-    """
-    Student Comparison System
-    Inside Class Analytics: Comparison Mode
-    Select students: ☑ Aarav ☑ Rohan ☑ Myra
-    Click Compare → System shows: Score comparison, Growth comparison, Accuracy comparison, Topic mastery comparison
-    """
+    # """
+    # Student Comparison System
+    # Inside Class Analytics: Comparison Mode
+    # Select students: ☑ Aarav ☑ Rohan ☑ Myra
+    # Click Compare → System shows: Score comparison, Growth comparison, Accuracy comparison, Topic mastery comparison
+    # """
 
+    # def get(self, request):
+    #     student_ids = request.GET.get('student_ids', '').split(',')
+    #     subject_id = request.GET.get('subject')
+    #     date_range = request.GET.get('date_range', '30')
+        
+    #     student_ids = [int(sid) for sid in student_ids if sid.isdigit()]
+        
+    #     if len(student_ids) < 2:
+    #         return Response({'error': 'At least 2 students required for comparison'}, status=400)
+
+    #     students = StudentModel.objects.filter(id__in=student_ids)
+    #     if students.count() != len(student_ids):
+    #         return Response({'error': 'Some students not found'}, status=404)
+
+    #     comparison_data = []
+        
+    #     for student in students:
+    #         # Get test attempts
+    #         attempts = StudentTestAttemptModel.objects.filter(student=student)
+    #         if subject_id:
+    #             attempts = attempts.filter(test__subject_id=subject_id)
+            
+    #         if attempts.exists():
+    #             # Score comparison
+    #             percentages = []
+    #             for attempt in attempts:
+    #                 if attempt.test.total_marks > 0:
+    #                     percentage = (attempt.score / attempt.test.total_marks) * 100
+    #                     percentages.append(percentage)
+                
+    #             avg_score = round(sum(percentages) / len(percentages), 2) if percentages else 0
+                
+    #             # Growth comparison (first half vs second half)
+    #             sorted_attempts = attempts.order_by('started_at')
+    #             all_percentages = []
+    #             for attempt in sorted_attempts:
+    #                 if attempt.test.total_marks > 0:
+    #                     percentage = (attempt.score / attempt.test.total_marks) * 100
+    #                     all_percentages.append(percentage)
+                
+    #             growth = 0
+    #             if len(all_percentages) >= 4:
+    #                 mid_point = len(all_percentages) // 2
+    #                 first_avg = sum(all_percentages[:mid_point]) / mid_point
+    #                 second_avg = sum(all_percentages[mid_point:]) / (len(all_percentages) - mid_point)
+    #                 growth = round(second_avg - first_avg, 2)
+                
+    #             # Accuracy comparison (correct answers)
+    #             total_questions = 0
+    #             correct_answers = 0
+    #             for attempt in attempts:
+    #                 answers = StudentAnswerModel.objects.filter(attempt=attempt)
+    #                 total_questions += answers.count()
+    #                 correct_answers += answers.filter(selected_option__is_correct=True).count()
+                
+    #             accuracy = round((correct_answers / total_questions) * 100, 2) if total_questions > 0 else 0
+                
+    #             comparison_data.append({
+    #                 'student_id': student.id,
+    #                 'student_name': student.student_name,
+    #                 'class': student.student_class.get_display_name() if student.student_class else None,
+    #                 'average_score': avg_score,
+    #                 'growth': growth,
+    #                 'accuracy': accuracy,
+    #                 'test_count': attempts.count(),
+    #                 'total_questions': total_questions,
+    #                 'correct_answers': correct_answers
+    #             })
+
+    #     # Sort by average score for ranking
+    #     comparison_data.sort(key=lambda x: x['average_score'], reverse=True)
+        
+    #     # Add rankings
+    #     for i, student_data in enumerate(comparison_data):
+    #         student_data['rank'] = i + 1
+
+    #     return Response({
+    #         'comparison_data': comparison_data,
+    #         'subject': Subject.objects.get(id=subject_id).name if subject_id else 'All Subjects',
+    #         'date_range': f"Last {date_range} days",
+    #         'total_students_compared': len(comparison_data)
+    #     })
+    """
+    Student Comparison
+    GET /api/students/compare/?student_ids=1,2,3&subject=<id>
+ 
+    FIXED: topic_mastery breakdown is now populated (was missing).
+    """
+ 
     def get(self, request):
-        student_ids = request.GET.get('student_ids', '').split(',')
-        subject_id = request.GET.get('subject')
-        date_range = request.GET.get('date_range', '30')
-        
-        student_ids = [int(sid) for sid in student_ids if sid.isdigit()]
-        
+        student_ids_raw = request.GET.get('student_ids', '').split(',')
+        subject_id  = request.GET.get('subject')
+        date_range  = request.GET.get('date_range', '30')
+ 
+        student_ids = [int(s) for s in student_ids_raw if s.strip().isdigit()]
         if len(student_ids) < 2:
-            return Response({'error': 'At least 2 students required for comparison'}, status=400)
-
+            return Response(
+                {'error': 'At least 2 students required for comparison'}, status=400
+            )
+ 
         students = StudentModel.objects.filter(id__in=student_ids)
         if students.count() != len(student_ids):
             return Response({'error': 'Some students not found'}, status=404)
-
+ 
         comparison_data = []
-        
+ 
         for student in students:
-            # Get test attempts
             attempts = StudentTestAttemptModel.objects.filter(student=student)
             if subject_id:
                 attempts = attempts.filter(test__subject_id=subject_id)
-            
-            if attempts.exists():
-                # Score comparison
-                percentages = []
-                for attempt in attempts:
-                    if attempt.test.total_marks > 0:
-                        percentage = (attempt.score / attempt.test.total_marks) * 100
-                        percentages.append(percentage)
-                
-                avg_score = round(sum(percentages) / len(percentages), 2) if percentages else 0
-                
-                # Growth comparison (first half vs second half)
-                sorted_attempts = attempts.order_by('started_at')
-                all_percentages = []
-                for attempt in sorted_attempts:
-                    if attempt.test.total_marks > 0:
-                        percentage = (attempt.score / attempt.test.total_marks) * 100
-                        all_percentages.append(percentage)
-                
-                growth = 0
-                if len(all_percentages) >= 4:
-                    mid_point = len(all_percentages) // 2
-                    first_avg = sum(all_percentages[:mid_point]) / mid_point
-                    second_avg = sum(all_percentages[mid_point:]) / (len(all_percentages) - mid_point)
-                    growth = round(second_avg - first_avg, 2)
-                
-                # Accuracy comparison (correct answers)
-                total_questions = 0
-                correct_answers = 0
-                for attempt in attempts:
-                    answers = StudentAnswerModel.objects.filter(attempt=attempt)
-                    total_questions += answers.count()
-                    correct_answers += answers.filter(selected_option__is_correct=True).count()
-                
-                accuracy = round((correct_answers / total_questions) * 100, 2) if total_questions > 0 else 0
-                
+ 
+            if not attempts.exists():
                 comparison_data.append({
-                    'student_id': student.id,
-                    'student_name': student.student_name,
-                    'class': student.student_class.get_display_name() if student.student_class else None,
-                    'average_score': avg_score,
-                    'growth': growth,
-                    'accuracy': accuracy,
-                    'test_count': attempts.count(),
-                    'total_questions': total_questions,
-                    'correct_answers': correct_answers
+                    'student_id':    student.id,
+                    'student_name':  student.student_name,
+                    'class':         student.student_class.get_display_name() if student.student_class else None,
+                    'average_score': 0,
+                    'growth':        0,
+                    'accuracy':      0,
+                    'test_count':    0,
+                    'total_questions':  0,
+                    'correct_answers':  0,
+                    'topic_mastery':    [],
                 })
-
+                continue
+ 
+            # Score
+            pcts = [
+                (a.score / a.test.total_marks) * 100
+                for a in attempts if a.test.total_marks > 0
+            ]
+            avg_score = round(sum(pcts) / len(pcts), 2) if pcts else 0
+ 
+            # Growth (first half vs second half)
+            sorted_attempts = attempts.order_by('started_at')
+            all_pcts = [
+                (a.score / a.test.total_marks) * 100
+                for a in sorted_attempts if a.test.total_marks > 0
+            ]
+            growth = 0
+            if len(all_pcts) >= 4:
+                mid        = len(all_pcts) // 2
+                first_avg  = sum(all_pcts[:mid]) / mid
+                second_avg = sum(all_pcts[mid:]) / (len(all_pcts) - mid)
+                growth     = round(second_avg - first_avg, 2)
+ 
+            # Accuracy
+            total_q = correct_q = 0
+            for attempt in attempts:
+                answers  = StudentAnswerModel.objects.filter(attempt=attempt)
+                total_q += answers.count()
+                correct_q += answers.filter(selected_option__is_correct=True).count()
+            accuracy = round((correct_q / total_q) * 100, 2) if total_q > 0 else 0
+ 
+            # ── TOPIC MASTERY (new) ───────────────────────────────────────────
+            # Groups questions by test, computes per-topic (per-question) accuracy.
+            # "Topic" here = individual question. For richer grouping you would add
+            # a topic/chapter FK to QuestionsModel; this is the correct fallback.
+            topic_mastery = []
+            questions_seen = QuestionsModel.objects.filter(
+                test__in=attempts.values('test')
+            ).distinct()
+ 
+            for question in questions_seen[:20]:  # cap at 20 to keep response lean
+                q_answers = StudentAnswerModel.objects.filter(
+                    attempt__in=attempts,
+                    question=question,
+                )
+                q_total   = q_answers.count()
+                q_correct = q_answers.filter(
+                    selected_option__is_correct=True
+                ).count()
+                if q_total == 0:
+                    continue
+                q_accuracy = round((q_correct / q_total) * 100, 2)
+                q_text     = question.question_text or ''
+                topic_mastery.append({
+                    'question_id':   question.id,
+                    'question_text': (
+                        q_text[:80] + '...' if len(q_text) > 80 else q_text
+                    ),
+                    'subject': (
+                        question.test.subject.name
+                        if question.test.subject else 'Unknown'
+                    ),
+                    'accuracy':         q_accuracy,
+                    'attempts':         q_total,
+                    'correct':          q_correct,
+                    'mastery_level': (
+                        'Mastered'    if q_accuracy >= 80 else
+                        'Developing'  if q_accuracy >= 50 else
+                        'Struggling'
+                    ),
+                })
+ 
+            # Sort: struggling first so comparison is most informative
+            topic_mastery.sort(key=lambda x: x['accuracy'])
+ 
+            comparison_data.append({
+                'student_id':    student.id,
+                'student_name':  student.student_name,
+                'class':         student.student_class.get_display_name() if student.student_class else None,
+                'average_score': avg_score,
+                'growth':        growth,
+                'accuracy':      accuracy,
+                'test_count':    attempts.count(),
+                'total_questions':  total_q,
+                'correct_answers':  correct_q,
+                'topic_mastery':    topic_mastery,   # ← NOW POPULATED
+            })
+ 
         # Sort by average score for ranking
         comparison_data.sort(key=lambda x: x['average_score'], reverse=True)
-        
-        # Add rankings
-        for i, student_data in enumerate(comparison_data):
-            student_data['rank'] = i + 1
-
+        for i, d in enumerate(comparison_data):
+            d['rank'] = i + 1
+ 
+        # Shared weak topics (appear in multiple students' struggling list)
+        all_struggling_ids = defaultdict(int)
+        for d in comparison_data:
+            for t in d['topic_mastery']:
+                if t['mastery_level'] == 'Struggling':
+                    all_struggling_ids[t['question_id']] += 1
+ 
+        shared_weak_topics = [
+            qid for qid, count in all_struggling_ids.items()
+            if count >= 2
+        ]
+ 
         return Response({
-            'comparison_data': comparison_data,
-            'subject': Subject.objects.get(id=subject_id).name if subject_id else 'All Subjects',
-            'date_range': f"Last {date_range} days",
-            'total_students_compared': len(comparison_data)
+            'comparison_data':      comparison_data,
+            'subject': (
+                Subject.objects.get(id=subject_id).name
+                if subject_id else 'All Subjects'
+            ),
+            'date_range':              f'Last {date_range} days',
+            'total_students_compared': len(comparison_data),
+            'shared_weak_topic_ids':   shared_weak_topics,  # questions both/all struggle with
         })
-
+ 
 
 class AdvancedFilterAPI(APIView):
     """
@@ -1997,7 +2669,49 @@ class BatchManagementAPI(APIView):
         except BatchModel.DoesNotExist:
             return Response({"error": "Batch not found"}, status=404)
 
+class BatchDetailAPI(APIView):
+    def get(self, request, batch_id):
+        try:
+            batch = BatchModel.objects.get(id=batch_id, is_active=True)
+        except BatchModel.DoesNotExist:
+            return Response({"error": "Batch not found"}, status=404)
 
+        # Build batch data similar to BatchManagementAPI.get()
+        student_count = batch.students.count()
+        students = batch.students.all()
+        all_percentages = []
+        for student in students:
+            attempts = StudentTestAttemptModel.objects.filter(student=student)
+            for a in attempts:
+                if a.test.total_marks > 0:
+                    all_percentages.append((a.score / a.test.total_marks) * 100)
+        avg_performance = round(sum(all_percentages) / len(all_percentages), 1) if all_percentages else 0
+
+        class_display = None
+        class_id = None
+        if batch.class_ref:
+            class_display = batch.class_ref.get_display_name()
+            class_id = batch.class_ref.id
+        elif batch.student_class:
+            class_display = f"Class {batch.student_class}"
+
+        batch_data = {
+            "id": batch.id,
+            "name": batch.name,
+            "timing": batch.timing,
+            "days": batch.days,
+            "class_id": class_id,
+            "class_display": class_display,
+            "student_class_legacy": batch.student_class,
+            "subject": batch.subject.name if batch.subject else None,
+            "subject_id": batch.subject.id if batch.subject else None,
+            "student_count": student_count,
+            "avg_performance": avg_performance,
+            "created_at": batch.created_at
+        }
+
+        return Response(batch_data)
+        
 class BatchAnalyticsAPI(APIView):
     """
     Batch Performance Analytics
@@ -2160,36 +2874,94 @@ class HomeworkAPI(APIView):
             "total_homework": len(homework_data)
         })
 
+    # def post(self, request):
+    #     """Create homework assignment"""
+    #     try:
+    #         from user_management.models import HomeworkModel, BatchModel
+    #     except ImportError:
+    #         return Response({"error": "Models not yet migrated."}, status=400)
+
+    #     data = request.data
+
+    #     required_fields = ['title', 'due_date']
+    #     for field in required_fields:
+    #         if field not in data:
+    #             return Response({"error": f"Missing required field: {field}"}, status=400)
+
+    #     # Get subject
+    #     subject = None
+    #     if 'subject_id' in data:
+    #         try:
+    #             subject = Subject.objects.get(id=data['subject_id'])
+    #         except Subject.DoesNotExist:
+    #             pass
+
+    #     # Get batch
+    #     batch = None
+    #     if 'batch_id' in data:
+    #         try:
+    #             batch = BatchModel.objects.get(id=data['batch_id'])
+    #         except BatchModel.DoesNotExist:
+    #             pass
+
+    #     homework = HomeworkModel.objects.create(
+    #         title=data['title'],
+    #         subject=subject,
+    #         description=data.get('description'),
+    #         due_date=data['due_date'],
+    #         batch=batch,
+    #         total_marks=data.get('total_marks', 100),
+    #         created_by=request.user
+    #     )
+
+    #     # Assign students
+    #     if 'student_ids' in data:
+    #         students = StudentModel.objects.filter(id__in=data['student_ids'])
+    #         homework.assigned_to.set(students)
+    #     elif batch:
+    #         # Assign all students in the batch
+    #         homework.assigned_to.set(batch.students.all())
+
+    #     return Response({
+    #         "message": "Homework created successfully",
+    #         "homework_id": homework.id
+    #     }, status=201)
+
     def post(self, request):
-        """Create homework assignment"""
-        try:
-            from user_management.models import HomeworkModel, BatchModel
-        except ImportError:
-            return Response({"error": "Models not yet migrated."}, status=400)
-
         data = request.data
-
+ 
         required_fields = ['title', 'due_date']
         for field in required_fields:
             if field not in data:
-                return Response({"error": f"Missing required field: {field}"}, status=400)
-
-        # Get subject
+                return Response(
+                    {'error': f'Missing required field: {field}'}, status=400
+                )
+ 
         subject = None
         if 'subject_id' in data:
             try:
                 subject = Subject.objects.get(id=data['subject_id'])
             except Subject.DoesNotExist:
                 pass
-
-        # Get batch
+ 
+        from user_management.models import BatchModel  # local import for safety
         batch = None
         if 'batch_id' in data:
             try:
                 batch = BatchModel.objects.get(id=data['batch_id'])
             except BatchModel.DoesNotExist:
                 pass
-
+ 
+        # ── group_id support (NEW) ───────────────────────────────────────────
+        group = None
+        if 'group_id' in data:
+            try:
+                group = StudentGroupModel.objects.get(id=data['group_id'])
+            except StudentGroupModel.DoesNotExist:
+                return Response(
+                    {'error': f'Group with id {data["group_id"]} not found'}, status=404
+                )
+ 
         homework = HomeworkModel.objects.create(
             title=data['title'],
             subject=subject,
@@ -2197,22 +2969,28 @@ class HomeworkAPI(APIView):
             due_date=data['due_date'],
             batch=batch,
             total_marks=data.get('total_marks', 100),
-            created_by=request.user
+            created_by=request.user if request.user.is_authenticated else None,
         )
-
-        # Assign students
+ 
+        # Priority: explicit student_ids > group > batch
         if 'student_ids' in data:
             students = StudentModel.objects.filter(id__in=data['student_ids'])
             homework.assigned_to.set(students)
+        elif group:
+            homework.assigned_to.set(group.students.all())
+            homework.group = group  # wire the FK
+            homework.save(update_fields=['group'])
         elif batch:
-            # Assign all students in the batch
             homework.assigned_to.set(batch.students.all())
-
+ 
         return Response({
-            "message": "Homework created successfully",
-            "homework_id": homework.id
+            'message':        'Homework created successfully',
+            'homework_id':    homework.id,
+            'assigned_to':    homework.assigned_to.count(),
+            'group_assigned': group.name if group else None,
+            'batch_assigned': batch.name if batch else None,
         }, status=201)
-
+    
     def delete(self, request, homework_id=None):
         """Delete homework"""
         try:
@@ -3185,4 +3963,366 @@ class TeacherSettingsAPI(APIView):
 
         teacher.save()
 
+        try:
+            assignment = TeacherAssignmentModel.objects.get(teacher=teacher, is_active=True)
+            if 'weak_student_alerts' in data:
+                assignment.notif_weak_student = data['weak_student_alerts']
+            if 'low_engagement_alerts' in data:
+                assignment.notif_low_engagement = data['low_engagement_alerts']
+            if 'test_submission_alerts' in data:
+                assignment.notif_test_submission = data['test_submission_alerts']
+            assignment.save()
+        except TeacherAssignmentModel.DoesNotExist:
+            pass
+ 
         return Response({'message': 'Settings updated successfully'})
+
+
+class CreateHomeworkView(APIView):
+    """
+    POST /api/homework/create/
+    Create homework and optionally assign to a group in one call.
+ 
+    Body:
+    {
+        "title": "Chapter 5 Problems",
+        "subject_id": 2,
+        "description": "Solve exercises 1-10",
+        "due_date": "2026-05-20T18:00:00Z",
+        "total_marks": 50,
+        "group_id": 3          ← optional, assigns to all students in group
+    }
+    """
+    def post(self, request):
+        serializer = HomeworkCreateSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        if serializer.is_valid():
+            homework = serializer.save()
+            return Response({
+                'message': 'Homework created successfully',
+                'homework_id': homework.id,
+                'assigned_students': homework.assigned_to.count()
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+ 
+class AssignHomeworkToGroupView(APIView):
+    """
+    POST /api/homework/<homework_id>/assign-group/
+    Assign an EXISTING homework to a group.
+    Body: { "group_id": 3 }
+    """
+    def post(self, request, homework_id):
+        try:
+            homework = HomeworkModel.objects.get(id=homework_id)
+        except HomeworkModel.DoesNotExist:
+            return Response(
+                {'error': 'Homework not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+ 
+        serializer = HomeworkAssignToGroupSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(homework=homework)
+            group = serializer.validated_data['group_id']
+            return Response({
+                'message': f'Homework assigned to group "{group.name}"',
+                'homework_id': homework.id,
+                'group_id': group.id,
+                'group_name': group.name,
+                'total_assigned': homework.assigned_to.count()
+            }, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+ 
+class GroupHomeworkListView(APIView):
+    """
+    GET /api/groups/<group_id>/homework/
+    List all homework assigned to a group.
+    """
+    def get(self, request, group_id):
+        try:
+            group = StudentGroupModel.objects.get(id=group_id)
+        except StudentGroupModel.DoesNotExist:
+            return Response(
+                {'error': 'Group not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+ 
+        homework_list = HomeworkModel.objects.filter(group=group).select_related('subject')
+        serializer = HomeworkDetailSerializer(homework_list, many=True)
+        return Response({
+            'group_id': group_id,
+            'group_name': group.name,
+            'homework': serializer.data
+        })
+ 
+ 
+# ------------------------------------------------------------
+# B) SUGGESTED TESTS FOR GROUP  (real recommendation logic)
+# ------------------------------------------------------------
+ 
+class GroupSuggestedTestsView(APIView):
+    # """
+    # GET /api/groups/<group_id>/suggested-tests/
+    # Returns AI-recommended tests for the group based on:
+    # - Subjects where group avg score < 60%  → HIGH priority
+    # - Tests not yet attempted by group      → MEDIUM priority
+    # """
+    # def get(self, request, group_id):
+    #     result = SuggestedTestSerializer.get_suggestions(group_id)
+    #     if result is None:
+    #         return Response(
+    #             {'error': 'Group not found'},
+    #             status=status.HTTP_404_NOT_FOUND
+    #         )
+    #     return Response(result, status=status.HTTP_200_OK)
+    """
+    GET /api/groups/<group_id>/suggested-tests/
+ 
+    Recommendation logic:
+      HIGH priority   → subject where group avg score < 60%
+      MEDIUM priority → tests not yet attempted by ≥50% of the group
+    """
+ 
+    def get(self, request, group_id):
+        try:
+            group = StudentGroupModel.objects.prefetch_related('students').get(
+                id=group_id
+            )
+        except StudentGroupModel.DoesNotExist:
+            return Response({'error': 'Group not found'},
+                            status=status.HTTP_404_NOT_FOUND)
+ 
+        student_ids = list(group.students.values_list('id', flat=True))
+        if not student_ids:
+            return Response({
+                'group_id':   group_id,
+                'group_name': group.name,
+                'suggestions': [],
+                'reason':     'No students in group',
+            })
+ 
+        # ── 1. Weak subjects (avg score < 60%) ──────────────────────────────
+        attempts_qs = StudentTestAttemptModel.objects.filter(
+            student_id__in=student_ids,
+            test__total_marks__gt=0,
+        ).annotate(
+            pct=F('score') * 100.0 / F('test__total_marks')
+        )
+ 
+        subject_stats = (
+            attempts_qs
+            .values('test__subject__id', 'test__subject__name')
+            .annotate(avg_score=Avg('pct'), attempt_count=Count('id'))
+        )
+ 
+        weak_subject_ids = [
+            row['test__subject__id']
+            for row in subject_stats
+            if row['avg_score'] is not None and row['avg_score'] < 60
+        ]
+ 
+        weak_subject_avg = {
+            row['test__subject__id']: round(row['avg_score'], 1)
+            for row in subject_stats
+            if row['avg_score'] is not None and row['avg_score'] < 60
+        }
+ 
+        # ── 2. Tests already done by > 50% of group ─────────────────────────
+        already_attempted = (
+            StudentTestAttemptModel.objects
+            .filter(student_id__in=student_ids)
+            .values('test_id')
+            .annotate(attempt_count=Count('student_id', distinct=True))
+            .filter(attempt_count__gte=len(student_ids) * 0.5)
+            .values_list('test_id', flat=True)
+        )
+ 
+        # ── 3. Build recommendations ─────────────────────────────────────────
+        recommended = (
+            TestModel.objects
+            .filter(
+                Q(subject_id__in=weak_subject_ids) |
+                Q(subject__isnull=False)
+            )
+            .exclude(id__in=already_attempted)
+            .select_related('subject')
+            .distinct()[:15]
+        )
+ 
+        suggestions = []
+        for test in recommended:
+            is_weak_subject = test.subject_id in weak_subject_ids
+            if is_weak_subject:
+                avg = weak_subject_avg.get(test.subject_id, 0)
+                reason   = (
+                    f'Group is weak in {test.subject.name} '
+                    f'(avg {avg}% < 60%)'
+                )
+                priority = 'high'
+            else:
+                reason   = 'Not yet attempted by most group members'
+                priority = 'medium'
+ 
+            # Per-student attempt count for this test
+            attempted_count = StudentTestAttemptModel.objects.filter(
+                test=test, student_id__in=student_ids
+            ).values('student_id').distinct().count()
+ 
+            suggestions.append({
+                'test_id':        test.id,
+                'title':          test.title,
+                'subject':        test.subject.name if test.subject else None,
+                'total_marks':    test.total_marks,
+                'questions':      test.number_of_questions,
+                'question_type':  test.question_type,
+                'reason':         reason,
+                'priority':       priority,
+                'attempted_by':   attempted_count,
+                'total_students': len(student_ids),
+                'attempt_rate':   round(
+                    attempted_count / len(student_ids) * 100, 1
+                ),
+            })
+ 
+        # Sort: high first, then medium; within same priority sort by attempt_rate asc
+        suggestions.sort(key=lambda x: (
+            0 if x['priority'] == 'high' else 1,
+            x['attempt_rate'],
+        ))
+ 
+        return Response({
+            'group_id':     group.id,
+            'group_name':   group.name,
+            'student_count': len(student_ids),
+            'weak_subjects': [
+                {'id': sid, 'avg': avg}
+                for sid, avg in weak_subject_avg.items()
+            ],
+            'suggestions':  suggestions,
+        }, status=status.HTTP_200_OK)
+ 
+
+class NotificationPreferenceView(APIView):
+    """
+    GET  /api/notifications/preferences/?user_id=5
+         /api/notifications/preferences/?student_id=3
+ 
+    POST /api/notifications/preferences/
+    {
+        "user_id": 5,
+        "homework_assigned": true,
+        "test_scheduled": false,
+        "push_enabled": true
+    }
+ 
+    PATCH /api/notifications/preferences/
+    {
+        "user_id": 5,
+        "push_enabled": false,
+        "weekly_report": true
+    }
+    FIXED: PATCH was not actually persisting preference field changes.
+    """
+ 
+    PREF_FIELDS = [
+        'homework_assigned', 'homework_due', 'homework_graded',
+        'test_scheduled', 'test_result',
+        'goal_achieved', 'badge_earned', 'weekly_report',
+        'teacher_remark',
+        'push_enabled', 'email_enabled', 'sms_enabled',
+    ]
+ 
+    def _resolve_owner(self, data):
+        """
+        Returns (filter_kwargs, error_message).
+        Accepts both dict (request.data) and QueryDict (request.query_params).
+        """
+        user_id    = data.get('user_id')
+        student_id = data.get('student_id')
+ 
+        if not user_id and not student_id:
+            return None, 'Provide either user_id or student_id'
+ 
+        if user_id:
+            try:
+                owner = UserModel.objects.get(id=user_id)
+                return {'user': owner}, None
+            except UserModel.DoesNotExist:
+                return None, 'User not found'
+ 
+        try:
+            owner = StudentModel.objects.get(id=student_id)
+            return {'student': owner}, None
+        except StudentModel.DoesNotExist:
+            return None, 'Student not found'
+ 
+    def get(self, request):
+        filter_kwargs, error = self._resolve_owner(request.query_params)
+        if error:
+            return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
+ 
+        pref, _ = NotificationPreferenceModel.objects.get_or_create(**filter_kwargs)
+        return Response(NotificationPreferenceSerializer(pref).data)
+ 
+    def post(self, request):
+        filter_kwargs, error = self._resolve_owner(request.data)
+        if error:
+            return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
+ 
+        pref, created = NotificationPreferenceModel.objects.get_or_create(**filter_kwargs)
+        serializer = NotificationPreferenceSerializer(
+            pref, data=request.data, partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'message':     'Preferences saved',
+                'created':     created,
+                'preferences': serializer.data,
+            }, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+    def patch(self, request):
+        """
+        FIXED: This was missing entirely. PATCH now finds the preference record
+        and updates only the fields provided, then saves to DB.
+        """
+        filter_kwargs, error = self._resolve_owner(request.data)
+        if error:
+            return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
+ 
+        try:
+            pref = NotificationPreferenceModel.objects.get(**filter_kwargs)
+        except NotificationPreferenceModel.DoesNotExist:
+            # Auto-create with defaults if not found
+            pref = NotificationPreferenceModel.objects.create(**filter_kwargs)
+ 
+        # Apply only the preference fields present in the request
+        updated_fields = []
+        for field in self.PREF_FIELDS:
+            if field in request.data:
+                value = request.data[field]
+                # Accept both bool and string ('true'/'false') from form data
+                if isinstance(value, str):
+                    value = value.lower() == 'true'
+                setattr(pref, field, value)
+                updated_fields.append(field)
+ 
+        if not updated_fields:
+            return Response(
+                {'error': f'No preference fields found. Valid fields: {self.PREF_FIELDS}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+ 
+        pref.save(update_fields=updated_fields + ['updated_at'])
+ 
+        return Response({
+            'message':         'Preferences updated',
+            'updated_fields':  updated_fields,
+            'preferences':     NotificationPreferenceSerializer(pref).data,
+        }, status=status.HTTP_200_OK)
+ 

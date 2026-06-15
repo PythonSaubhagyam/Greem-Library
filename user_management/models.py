@@ -6,6 +6,9 @@ from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 from uuid import uuid4
 from rest_framework.authtoken.models import Token
+from tablet_app.models import *
+
+
 # Create your models here.
 
 class RoleModel(models.Model):
@@ -145,7 +148,7 @@ class UserModel(AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
     role = models.ForeignKey(RoleModel,on_delete=models.CASCADE,null=True,blank=True)
-    mobile_no = PhoneNumberField(null=True,blank=True)
+    mobile_no =models.CharField(max_length=15,null=True,blank=True)
     address = models.ManyToManyField(AddressModel, blank=True)
     firm_name = models.CharField(max_length=100,blank=True,null=True)
     token = models.CharField(max_length=255,blank=True,null=True)
@@ -241,6 +244,10 @@ class StudentModel(models.Model):
 
     def __str__(self):
         return self.student_name
+    
+    class Meta:
+        verbose_name = "Student"
+        verbose_name_plural = "Students"
 
 class EmployeeModel(models.Model):
     user = models.ForeignKey(UserModel,on_delete=models.CASCADE)
@@ -559,13 +566,20 @@ class HomeworkModel(models.Model):
     total_marks = models.IntegerField(default=100)
     created_by = models.ForeignKey(UserModel, on_delete=models.SET_NULL, null=True, related_name='created_homework')
     created_at = models.DateTimeField(auto_now_add=True)
+    group = models.ForeignKey(
+        'tablet_app.StudentGroupModel',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='group_homework'
+    )
 
     def __str__(self):
         return f"{self.title} - {self.subject.name if self.subject else 'No Subject'}"
 
     class Meta:
         verbose_name = "Homework"
-        verbose_name_plural = "Homework Assignments"
+        verbose_name_plural = "Homework"
 
 
 class HomeworkSubmissionModel(models.Model):
@@ -648,3 +662,176 @@ class StudentAchievementModel(models.Model):
         verbose_name_plural = "Student Achievements"
         unique_together = ['student', 'achievement']
 
+
+class BadgeModel(models.Model):
+    """
+    Master list of all available badges in the system
+    """
+    BADGE_TYPE_CHOICES = (
+        ('performance', 'Performance'),      # Score based
+        ('consistency', 'Consistency'),      # Study streak based
+        ('improvement', 'Improvement'),      # Score improvement
+        ('completion', 'Completion'),        # Test completion
+        ('speed', 'Speed'),                  # Fast completion
+        ('subject', 'Subject'),              # Subject specific
+    )
+
+    name        = models.CharField(max_length=255)
+    description = models.TextField()
+    badge_type  = models.CharField(max_length=50, choices=BADGE_TYPE_CHOICES)
+    icon        = models.CharField(max_length=100, null=True, blank=True)  # icon name or emoji
+    threshold   = models.FloatField(help_text='Value needed to earn this badge (score%, streak days, etc)')
+    subject     = models.ForeignKey(
+        'tablet_app.Subject',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        help_text='If subject-specific badge'
+    )
+    is_active   = models.BooleanField(default=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
+class StudentBadgeModel(models.Model):
+    """
+    Badges earned by students
+    """
+    student    = models.ForeignKey(StudentModel, on_delete=models.CASCADE, related_name='badges')
+    badge      = models.ForeignKey(BadgeModel, on_delete=models.CASCADE, related_name='earned_by')
+    earned_at  = models.DateTimeField(auto_now_add=True)
+    context    = models.JSONField(null=True, blank=True, help_text='Extra info like test_id, score, streak_count')
+
+    class Meta:
+        unique_together = ('student', 'badge')  # Each badge earned once
+
+    def __str__(self):
+        return f"{self.student} - {self.badge.name}"
+
+
+# ============================================================
+# 2. LEARNING STYLE DETECTION
+# ============================================================
+
+class LearningStyleModel(models.Model):
+    """
+    Stores detected learning style for each student.
+    Detected automatically from study behavior.
+
+    Visual   → studies PDF/images more, high interaction_count
+    Reading  → long study sessions, high page count
+    Practice → attempts many tests, short sessions
+    Mixed    → balanced across all
+    """
+    STYLE_CHOICES = (
+        ('visual',    'Visual Learner'),
+        ('reading',   'Reading Learner'),
+        ('practice',  'Practice Learner'),
+        ('mixed',     'Mixed Learner'),
+    )
+
+    student           = models.OneToOneField(StudentModel, on_delete=models.CASCADE, related_name='learning_style')
+    style             = models.CharField(max_length=50, choices=STYLE_CHOICES, default='mixed')
+    visual_score      = models.FloatField(default=0)   # interaction_count avg
+    reading_score     = models.FloatField(default=0)   # avg session duration
+    practice_score    = models.FloatField(default=0)   # test attempts count
+    confidence        = models.FloatField(default=0)   # 0-100, how confident the detection is
+    last_calculated   = models.DateTimeField(auto_now=True)
+    data_points       = models.IntegerField(default=0) # how many sessions used for detection
+
+    def __str__(self):
+        return f"{self.student} - {self.style}"
+
+
+# ============================================================
+# 3. REWARD SUGGESTION SYSTEM
+# ============================================================
+
+class RewardModel(models.Model):
+    """
+    Master list of rewards teachers/parents can give students
+    """
+    REWARD_TYPE_CHOICES = (
+        ('digital',   'Digital Reward'),    # e.g. sticker, certificate
+        ('activity',  'Activity Reward'),   # e.g. extra break, game time
+        ('privilege', 'Privilege Reward'),  # e.g. class monitor, helper
+        ('praise',    'Praise Reward'),     # e.g. star of the week
+    )
+
+    name        = models.CharField(max_length=255)
+    description = models.TextField()
+    reward_type = models.CharField(max_length=50, choices=REWARD_TYPE_CHOICES)
+    icon        = models.CharField(max_length=100, null=True, blank=True)
+    min_score   = models.FloatField(default=0,   help_text='Min avg score% to suggest this reward')
+    max_score   = models.FloatField(default=100, help_text='Max avg score% to suggest this reward')
+    is_active   = models.BooleanField(default=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
+class StudentRewardModel(models.Model):
+    """
+    Rewards assigned to students by teacher or parent
+    """
+    student     = models.ForeignKey(StudentModel, on_delete=models.CASCADE, related_name='rewards')
+    reward      = models.ForeignKey(RewardModel, on_delete=models.CASCADE, related_name='given_to')
+    given_by    = models.ForeignKey(UserModel, on_delete=models.SET_NULL, null=True, related_name='given_rewards')
+    note        = models.TextField(null=True, blank=True)
+    given_at    = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student} - {self.reward.name}"
+
+
+class NotificationPreferenceModel(models.Model):
+    """
+    Stores notification preferences linked to both StudentModel and UserModel.
+    Either student or user must be set (not both required).
+    """
+
+    student = models.OneToOneField(
+        StudentModel,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notification_preferences'
+    )
+    user = models.OneToOneField(
+        UserModel,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notification_preferences'
+    )
+ 
+    homework_assigned   = models.BooleanField(default=True)
+    homework_due        = models.BooleanField(default=True)
+    homework_graded     = models.BooleanField(default=True)
+ 
+    test_scheduled      = models.BooleanField(default=True)
+    test_result         = models.BooleanField(default=True)
+ 
+    goal_achieved       = models.BooleanField(default=True)
+    badge_earned        = models.BooleanField(default=True)
+    weekly_report       = models.BooleanField(default=True)
+ 
+    teacher_remark      = models.BooleanField(default=True)
+ 
+    push_enabled        = models.BooleanField(default=True)
+    email_enabled       = models.BooleanField(default=False)
+    sms_enabled         = models.BooleanField(default=False)
+ 
+    updated_at          = models.DateTimeField(auto_now=True)
+ 
+    class Meta:
+        verbose_name = "Notification Preference"
+        verbose_name_plural = "Notification Preferences"
+ 
+    def __str__(self):
+        owner = self.student or self.user
+        return f"Preferences - {owner}"
+ 
+ 
