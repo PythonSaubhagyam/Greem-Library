@@ -127,6 +127,7 @@ class AddressModel(models.Model):
     state = models.CharField(max_length=150, blank=True, null=True)
     country = models.CharField(max_length=150, blank=True, null=True)
     postal_code = models.CharField(max_length=10, verbose_name='postal code', blank=True, null=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
 
     is_default = models.BooleanField(default=False)
 
