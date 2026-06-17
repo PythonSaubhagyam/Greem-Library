@@ -380,8 +380,8 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="d-flex align-items-center">
               <img src="{% static 'img/logo/logo.jpg' %}" alt class="w-px-40 h-auto rounded-circle me-3">
               <div>
-                <h6 class="mb-0">Admin</h6>
-                <small class="text-muted">Administrator</small>
+                <h6 class="mb-0">{{ request.user.first_name|default:request.user.email }}</h6>
+                <small class="text-muted">{{ request.user.role.type|default:"User" }}</small>
               </div>
             </div>
           </li>

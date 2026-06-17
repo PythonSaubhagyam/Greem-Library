@@ -11,6 +11,7 @@ from adminpanel.View.LeadView import LeadAPI
 from adminpanel.View.LeadFollowUpView import TabletLeadFollowUpAPI
 from adminpanel.views import LeadCreateUpdateView, LeadFollowUpView, LeadFollowupDetailView
 from adminpanel.MobileView.StudentView import MobileStudentsAPIView
+from adminpanel.views import CustomerDashboardView , CoordinatorDashboardView
 
 from adminpanel.MobileView.ParentsView import *
 from adminpanel.MobileView.TeachersView import *
@@ -39,7 +40,7 @@ urlpatterns = [
     path('states/<int:id>/',StatesAPI.as_view(),name='states'),
     path('cities/',CitiesAPI.as_view(),name='cities'),
     path('cities/<int:id>/',CitiesAPI.as_view(),name='cities'),
-
+ 
     path("students/",DashboardsView.as_view(template_name="Students_list.html"),name="students"),
     path("students/detail/<int:id>/",DashboardsView.as_view(template_name="student_details.html"),name="student-details"),
     path("students-api/",StudentsAPIView.as_view(),name="students-api"),
@@ -51,6 +52,8 @@ urlpatterns = [
     path("employees/edit/<int:id>/", DashboardsView.as_view(template_name="employees_add_update.html"),name='employees_add_update'),
     path("employees-api/", EmployeeAPIView.as_view(),name='employees'),
     path("employees-api/<int:pk>/", EmployeeAPIView.as_view(),name='employees-detail'),
+    # path("customer/dashboard/", CustomerDashboardView.as_view(), name="customer-dashboard"),
+    # path("coordinator/dashboard/", CoordinatorDashboardView.as_view(), name="coordinator-dashboard"),
 
     path("customers/",DashboardsView.as_view(template_name="Customer_list.html"),name='customers'),
     path("customers/add/",DashboardsView.as_view(template_name="customer_add_update.html"),name='customers-add-update'),

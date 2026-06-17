@@ -112,11 +112,16 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       if (data.status) {
-        // ✅ Save tokens in localStorage
         localStorage.setItem("access_token", data.access_token);
         localStorage.setItem("refresh_token", data.refresh_token);
-
-        window.location.href = "/";  // redirect to dashboard or home
+        const role = data.role;
+        if (role === 'Customer') {
+            window.location.href = '/customer/dashboard/';
+        } else if (role === 'Coordinator') {
+            window.location.href = '/coordinator/dashboard/';
+        } else {
+            window.location.href = '/';
+        }
       } else {
         errorDiv.textContent = data.message || "Invalid username or password.";
         errorDiv.classList.remove("d-none");

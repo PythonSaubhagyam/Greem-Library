@@ -13,7 +13,7 @@ from tablet_app.models import *
 
 class RoleModel(models.Model):
     name = models.CharField(max_length=150)
-    type = models.CharField(choices=[('Admin','Admin'),('Teacher','Teacher'),('Parent','Parent'),('Employee','Employee'),('Customer','Customer')],max_length=100,null=True,blank=True)
+    type = models.CharField(choices=[('Admin','Admin'),('Teacher','Teacher'),('Parent','Parent'),('Employee','Employee'),('Customer','Customer'),('Coordinator','Coordinator')],max_length=100,null=True,blank=True)
 
     def __str__(self):
         return self.type

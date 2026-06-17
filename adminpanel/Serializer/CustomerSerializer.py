@@ -104,7 +104,7 @@ class CustomerCreateUpdateSerializer(serializers.Serializer):
     city = serializers.IntegerField(required=False)
     state = serializers.IntegerField(required=False)
     country = serializers.IntegerField(required=False)
-
+    # password = serializers.CharField(required=False, write_only=True, allow_blank=True)
     # ---- DEVICES ----
     # devices = DeviceCreateUpdateSerializer(many=True)
 
@@ -139,6 +139,13 @@ class CustomerCreateUpdateSerializer(serializers.Serializer):
 
         # devices_data = validated_data.pop("devices")
         validated_data['role'] = RoleModel.objects.filter(type="Customer").first().id
+
+        if not validated_data.get('username'):
+           validated_data['username'] = validated_data.get('email')
+
+        # if not validated_data.get('password'):
+        #     mobile = str(validated_data.get('mobile_no', '')).replace('+91', '').strip()
+        #     validated_data['password'] = mobile
 
         # ---- CREATE USER USING YOUR EXISTING SERIALIZER ----
         user_serializer = UserSerializer(

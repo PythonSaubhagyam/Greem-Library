@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import AuthView, RegisterView, LogoutView
+from adminpanel.views import CustomerDashboardView , CoordinatorDashboardView
 
 
 urlpatterns = [
@@ -24,4 +25,14 @@ urlpatterns = [
         name="auth-forgot-password-basic",
     ),
     path("auth/logout/", LogoutView.as_view(), name="auth-logout"),
+      path(
+        "customer/dashboard/",
+        CustomerDashboardView.as_view(),
+        name="customer-dashboard",
+    ),
+    path(
+        "coordinator/dashboard/",
+        CoordinatorDashboardView.as_view(),
+        name="coordinator-dashboard",
+    ),
 ]

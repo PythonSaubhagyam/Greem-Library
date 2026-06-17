@@ -2,7 +2,7 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.views.generic import TemplateView
-from web_project import TemplateLayout
+from web_project import TemplateLayout, TemplateHelper
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from django.http import FileResponse, Http404
@@ -21,8 +21,32 @@ from user_management.models import TabletLeadModel, UserModel, TabletLeadFollowU
 from django.http import JsonResponse
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.views import View
+from django.shortcuts import render
 
 
+@method_decorator(login_required, name='dispatch')
+class CustomerDashboardView(View):
+    def get(self, request):
+        context = TemplateLayout.init(self, {})
+        context.update({
+            "layout_path": TemplateHelper.set_layout("layout_vertical.html", context),
+        })
+        context["user"] = request.user
+        return render(request, "customer_dashboard.html", context)
+    
+@method_decorator(login_required, name='dispatch')
+class CoordinatorDashboardView(View):
+    def get(self, request):
+        context = TemplateLayout.init(self, {})
+        context.update({
+            "layout_path": TemplateHelper.set_layout("layout_vertical.html", context),
+        })
+        context["user"] = request.user
+        return render(request, "coordinator_dashboard.html", context)
+    
 """
 This file is a view controller for multiple pages as a module.
 Here you can override the page view layout.
