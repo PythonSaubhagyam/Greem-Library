@@ -1,0 +1,178 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Classes {% endblock %}
+
+{% block page_css %}
+<style>
+.table td, .table th { vertical-align: middle; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5 class="mb-0">Classes
+        <span class="text-bold ms-1" id="datacount"></span>
+    </h5>
+
+    <div class="d-flex gap-2 align-items-center">
+      <div class="input-group input-group-sm" style="width: 220px;">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bx bx-search text-muted"></i>
+        </span>
+        <input type="text" id="searchClass" class="form-control border-start-0" placeholder="Search class...">
+      </div>
+
+      <a href="/administrator/classes/add/" class="btn btn-sm btn-primary">
+        <i class="bx bx-plus"></i> Add Class
+      </a>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Sr</th>
+            <th>Standard</th>
+            <th>Section</th>
+            <th>Academic Year</th>
+            <th>Students</th>
+            <th width="120px">Action</th>
+          </tr>
+        </thead>
+        <tbody id="classes-container"></tbody>
+      </table>
+
+      <div id="classes-loader" class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <label class="small mb-0">Rows per page:</label>
+        <select id="rowsPerPage" class="form-select form-select-sm w-auto">
+          <option>10</option>
+          <option>25</option>
+          <option selected>50</option>
+        </select>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <small id="pagination-info" class="text-muted"></small>
+        <ul id="pagination" class="pagination pagination-sm mb-0"></ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+<script>
+const container = document.getElementById("classes-container");
+const loader = document.getElementById("classes-loader");
+const search = document.getElementById("searchClass");
+const rowsSelect = document.getElementById("rowsPerPage");
+const pagination = document.getElementById("pagination");
+const paginationInfo = document.getElementById("pagination-info");
+
+let currentPage = 1;
+
+function fetchClasses(page = 1) {
+  const q = search.value;
+  const rows = rowsSelect.value;
+
+  loader.style.display = "block";
+  container.innerHTML = "";
+
+  fetch(`/administrator/classes-api/?q=${encodeURIComponent(q)}&page=${page}&row_per_page=${rows}`)
+    .then(res => res.json())
+    .then(res => {
+      loader.style.display = "none";
+      currentPage = res.current_page;
+
+      if (!res.results.length) {
+        container.innerHTML = `<tr><td colspan="6" class="text-center">No classes found</td></tr>`;
+        pagination.innerHTML = "";
+        paginationInfo.innerHTML = "";
+        return;
+      }
+
+      renderRows(res.results);
+      renderPagination(res);
+
+      const countEl = document.getElementById("datacount");
+      if (countEl) {
+        countEl.innerText = `(${res.count})`;
+      }
+    });
+}
+
+function renderRows(data) {
+  container.innerHTML = "";
+
+  data.forEach((c, i) => {
+    container.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>${(currentPage - 1) * rowsSelect.value + i + 1}</td>
+        <td>${c.standard}</td>
+        <td>${c.section || '-'}</td>
+        <td>${c.academic_year || '-'}</td>
+        <td>${c.student_count || 0}</td>
+        <td>
+          <div class="d-flex gap-2 align-items-center">
+            <a href="/administrator/classes/edit/${c.id}/" class="text-warning" title="Edit"><i class="bx bx-edit-alt fs-4"></i></a>
+            <a href="#" onclick="deactivate(${c.id})" class="text-danger" title="Deactivate"><i class="bx bx-trash-alt fs-4"></i></a>
+          </div>
+        </td>
+      </tr>
+    `);
+  });
+}
+
+function renderPagination(data) {
+  pagination.innerHTML = "";
+  paginationInfo.textContent = `Showing page ${data.current_page} of ${data.total_pages} (${data.count} Classes)`;
+
+  const prevDisabled = data.previous === null ? "disabled" : "";
+  pagination.insertAdjacentHTML("beforeend", `<li class="page-item ${prevDisabled}"><a class="page-link" href="#" data-page="${data.current_page - 1}">Previous</a></li>`);
+
+  for (let i = 1; i <= data.total_pages; i++) {
+    const active = i === data.current_page ? "active" : "";
+    pagination.insertAdjacentHTML("beforeend", `<li class="page-item ${active}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`);
+  }
+
+  const nextDisabled = data.next === null ? "disabled" : "";
+  pagination.insertAdjacentHTML("beforeend", `<li class="page-item ${nextDisabled}"><a class="page-link" href="#" data-page="${data.current_page + 1}">Next</a></li>`);
+
+  pagination.querySelectorAll(".page-link").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const page = parseInt(btn.dataset.page);
+      if (!isNaN(page) && page >= 1 && page <= data.total_pages) {
+        fetchClasses(page);
+      }
+    });
+  });
+}
+
+function deactivate(id) {
+  if (!confirm('Deactivate this class?')) return;
+  fetch(`/administrator/classes-api/${id}/`, { method: 'DELETE' })
+    .then(() => fetchClasses(currentPage));
+}
+
+search.addEventListener('input', () => fetchClasses(1));
+rowsSelect.addEventListener('change', () => fetchClasses(1));
+
+fetchClasses();
+</script>
+
+{% endblock %}

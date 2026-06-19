@@ -1,0 +1,117 @@
+{% extends layout_path %}
+{% load static %}
+
+{% block title %}Coordinators{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'customer-dashboard' %}">Home</a></li>
+      <li class="breadcrumb-item active">Coordinators</li>
+    </ol>
+  </nav>
+
+  <!-- Summary Card -->
+  <div class="row mb-4">
+    <div class="col-md-3 col-6">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">Total Coordinators</p>
+          <h3 class="fw-bold mb-0">{{ total_coordinators }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h5 class="mb-0">
+        Coordinators
+        <span class="badge bg-secondary ms-2">{{ total_coordinators }}</span>
+      </h5>
+      <div class="input-group input-group-sm" style="width:240px;">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bx bx-search text-muted"></i>
+        </span>
+        <input type="text" id="coordSearch"
+               class="form-control border-start-0"
+               placeholder="Search coordinator...">
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="coordTable">
+          <thead class="table-light">
+            <tr>
+              <th>SR</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Mobile</th>
+              <th>Classes</th>
+              <th>Teachers</th>
+              <th>Students</th>
+              <th>Weak Students</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for coord in coordinators %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td><strong>{{ coord.name }}</strong></td>
+              <td>{{ coord.email }}</td>
+              <td>{{ coord.mobile }}</td>
+              <td>
+                {{ coord.classes_count }}
+                {% if coord.classes %}
+                  <br><small class="text-muted">{{ coord.classes }}</small>
+                {% endif %}
+              </td>
+              <td>{{ coord.teachers_count }}</td>
+              <td>{{ coord.students_count }}</td>
+              <td>
+                {% if coord.weak_students > 0 %}
+                  <span class="badge bg-danger">{{ coord.weak_students }} weak</span>
+                {% else %}
+                  <span class="badge bg-success">0</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if coord.is_active %}
+                  <span class="badge bg-success">Active</span>
+                {% else %}
+                  <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="9" class="text-center text-muted py-5">
+                <i class="bx bx-user-x" style="font-size:32px; display:block;"></i>
+                <p class="mt-2 mb-1">No coordinators found for your school.</p>
+                <small>Make sure coordinators are created with role = <strong>Coordinator</strong> and the same firm/school name.</small>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.getElementById('coordSearch').addEventListener('keyup', function () {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#coordTable tbody tr').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

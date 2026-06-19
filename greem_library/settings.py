@@ -100,6 +100,7 @@ WSGI_APPLICATION = 'greem_library.wsgi.application'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ),
     'DEFAULT_FILTER_BACKENDS': (
@@ -133,8 +134,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'greem_library',
-        'USER': 'greem_user',
-        'PASSWORD': 'StrongPassword123',
+        'USER': 'postgres',
+        'PASSWORD': '1',
         'HOST': 'localhost',   # same VPS
         'PORT': '5432',
     }

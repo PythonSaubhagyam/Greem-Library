@@ -244,3 +244,10 @@ class StudentBadgeAdmin(admin.ModelAdmin):
     search_fields = ("student__student_name", "badge__name")
     list_filter = ("badge", "earned_at")
     raw_id_fields = ("student", "badge")
+
+@admin.register(PrincipalCoordinatorMapping)
+class PrincipalCoordinatorMappingAdmin(admin.ModelAdmin):
+    list_display = ("id", "principal", "coordinator", "created_at")
+    search_fields = ("principal__email", "coordinator__email")
+    list_filter = ("created_at",)
+    raw_id_fields = ("principal", "coordinator")

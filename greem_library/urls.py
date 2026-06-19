@@ -27,6 +27,7 @@ urlpatterns = [
 
     path("", include("apps.dashboards.urls")),
     
+    path("customer/", include("adminpanel.urls")),
     # layouts urls
     path("admin_panel/", include("apps.layouts.urls")),
 

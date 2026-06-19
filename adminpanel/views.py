@@ -27,26 +27,6 @@ from django.views import View
 from django.shortcuts import render
 
 
-@method_decorator(login_required, name='dispatch')
-class CustomerDashboardView(View):
-    def get(self, request):
-        context = TemplateLayout.init(self, {})
-        context.update({
-            "layout_path": TemplateHelper.set_layout("layout_vertical.html", context),
-        })
-        context["user"] = request.user
-        return render(request, "customer_dashboard.html", context)
-    
-@method_decorator(login_required, name='dispatch')
-class CoordinatorDashboardView(View):
-    def get(self, request):
-        context = TemplateLayout.init(self, {})
-        context.update({
-            "layout_path": TemplateHelper.set_layout("layout_vertical.html", context),
-        })
-        context["user"] = request.user
-        return render(request, "coordinator_dashboard.html", context)
-    
 """
 This file is a view controller for multiple pages as a module.
 Here you can override the page view layout.
@@ -91,6 +71,16 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
 
         return super().dispatch(request, *args, **kwargs)
 
+
+    def get_template_names(self):
+        user = self.request.user
+        user_role = getattr(user.role, 'type', None) if user.role else None
+        # If this view is explicitly serving the customer dashboard template
+        # and the user is a Customer, return the adminpanel namespaced dashboard.
+        # Do NOT override other templates (eg. add/edit pages) for Customer users.
+        if user_role == 'Customer' and (self.template_name is None or self.template_name == 'customer_dashboard.html'):
+            return ["adminpanel/customer_dashboard.html"]
+        return [self.template_name]
 
     # Predefined function
     def get_context_data(self, **kwargs):
@@ -203,7 +193,13 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
 
             "lead_followup_details.html": ("Lead Management", reverse("lead-management"), "Follow-Ups"),
             "lead_followup_add.html": ("Lead Management", reverse("lead-management"), "Add Follow-Up" ),
-
+            "subjects_list.html": ("Subjects", None),
+            "study_time.html": ("Study Time", None),
+            "weakness_analysis.html": ("Weakness Analysis", None),
+            "reports.html":("Reports",None),
+            "device_management.html": ("Device Management", None),
+            "settings.html": ("Settings", None),
+            "coordinators_list.html": ("Coordinators", None),
 
             # "property_add.html": ("Properties", reverse("properties"), "Add Property"),
             # "property_edit.html": ("Properties", reverse("properties"), "Edit Property"),
@@ -348,6 +344,29 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
         context["breadcrumbs"] = breadcrumbs
         # context['ADMIN_IDS'] = settings.ADMIN_IDS
         return context
+
+
+@method_decorator(login_required, name='dispatch')
+class CustomerDashboardView(DashboardsView):
+    template_name = "customer_dashboard.html"
+
+    def get(self, request):
+        context = self.get_context_data()
+        context.update({
+            "layout_path": TemplateHelper.set_layout("layout_vertical.html", context),
+        })
+        return render(request, self.template_name, context)
+
+
+@method_decorator(login_required, name='dispatch')
+class CoordinatorDashboardView(View):
+    def get(self, request):
+        context = TemplateLayout.init(self, {})
+        context.update({
+            "layout_path": TemplateHelper.set_layout("layout_vertical.html", context),
+        })
+        context["user"] = request.user
+        return render(request, "coordinator_dashboard.html", context)
 
 
 
