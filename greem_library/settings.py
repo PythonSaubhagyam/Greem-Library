@@ -134,8 +134,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'greem_library',
-        'USER': 'greem_user',
-        'PASSWORD': 'StrongPassword123',
+        'USER': 'postgres',
+        'PASSWORD': '1',
         'HOST': 'localhost',   # same VPS
         'PORT': '5432',
     }
