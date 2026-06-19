@@ -1,0 +1,115 @@
+{% extends layout_path %}
+{% load static %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'customer-dashboard' %}">Home</a></li>
+      <li class="breadcrumb-item active">Device Management</li>
+    </ol>
+  </nav>
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3 col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">Total Devices</p>
+          <h3 class="fw-bold mb-0">{{ total_devices }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+      <div class="card text-center h-100 border-success">
+        <div class="card-body py-3">
+          <p class="text-success mb-1" style="font-size:13px;">Active</p>
+          <h3 class="fw-bold mb-0 text-success">{{ active_devices }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+      <div class="card text-center h-100 border-danger">
+        <div class="card-body py-3">
+          <p class="text-danger mb-1" style="font-size:13px;">Inactive</p>
+          <h3 class="fw-bold mb-0 text-danger">{{ inactive_devices }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">Total Students</p>
+          <h3 class="fw-bold mb-0">{{ total_students }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search + Table -->
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Device Management
+          <span class="badge bg-secondary ms-2">{{ total_devices }}</span>
+        </h5>
+        <input type="text" id="deviceSearch"
+               class="form-control" style="max-width:250px;"
+               placeholder="Search IMEI...">
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover" id="deviceTable">
+          <thead style="background:#f0f0f0;">
+            <tr>
+              <th>SR</th>
+              <th>IMEI Number</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for device in devices %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ device.imei_number|default:"—" }}</td>
+              <td>
+                {% if device.is_active %}
+                  <span class="badge bg-success">Active</span>
+                {% else %}
+                  <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge {% if device.is_active %}bg-label-success{% else %}bg-label-danger{% endif %}">
+                  {% if device.is_active %}In Use{% else %}Not In Use{% endif %}
+                </span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4">
+                No devices assigned to your school.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.getElementById('deviceSearch').addEventListener('keyup', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#deviceTable tbody tr').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

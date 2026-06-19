@@ -1,0 +1,130 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}Add Test{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  <div class="card mb-4">
+    <div class="card-body d-flex justify-content-between align-items-center">
+      <h4 class="mb-0">Add Test</h4>
+      <div>
+        <a href="/administrator/tests/" class="btn btn-sm btn-outline-secondary">Back</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <form id="testForm">
+        <div class="mb-3">
+          <label class="form-label">Title <span class="text-danger">*</span></label>
+          <input type="text" id="title" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Subject <span class="text-danger">*</span></label>
+          <select id="subject" class="form-control" required>
+            <option value="">Select Subject</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Number of Questions</label>
+          <input type="number" id="number_of_questions" class="form-control" min="1" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Question Type</label>
+          <select id="question_type" class="form-control">
+            <option value="MCQ">MCQ</option>
+            <option value="Short Answer">Short Answer</option>
+            <option value="True/False">True/False</option>
+            <option value="Mixed">Mixed</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Duration (minutes)</label>
+          <input type="number" id="duration_minutes" class="form-control" min="1" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Total Marks <span class="text-danger">*</span></label>
+          <input type="number" id="total_marks" class="form-control" min="1" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">
+            <input type="checkbox" id="shuffle_questions" />
+            Shuffle Questions
+          </label>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">
+            <input type="checkbox" id="enable_timer" />
+            Enable Timer
+          </label>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Scheduled Date & Time</label>
+          <input type="datetime-local" id="scheduled_date" class="form-control" />
+        </div>
+        <div class="mb-3">
+          <button type="submit" class="btn btn-primary">Create Test</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+// Load subjects on page load
+function loadSubjects(){
+  fetch('/administrator/subjects-api/')
+    .then(r=>r.json())
+    .then(data=>{
+      const select = document.getElementById('subject');
+      if(data.results && data.results.length > 0){
+        data.results.forEach(subject=>{
+          const option = document.createElement('option');
+          option.value = subject.id;
+          option.text = subject.name;
+          select.appendChild(option);
+        });
+      }
+    })
+    .catch(err=>{ console.error('Error loading subjects:', err); });
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  loadSubjects();
+});
+
+document.getElementById('testForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const payload = {
+    title: document.getElementById('title').value,
+    subject: document.getElementById('subject').value || null,
+    number_of_questions: document.getElementById('number_of_questions').value || 0,
+    question_type: document.getElementById('question_type').value,
+    duration_minutes: document.getElementById('duration_minutes').value || null,
+    total_marks: document.getElementById('total_marks').value,
+    shuffle_questions: document.getElementById('shuffle_questions').checked,
+    enable_timer: document.getElementById('enable_timer').checked,
+    scheduled_date: document.getElementById('scheduled_date').value || null
+  };
+
+  fetch('/administrator/tests-api/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload)
+  }).then(r=>r.json()).then(res=>{
+    if(res.message){
+      const next = new URLSearchParams(window.location.search).get('next');
+      window.location.href = next || '/administrator/tests/';
+    } else if(res.errors){
+      alert('Error: ' + JSON.stringify(res.errors));
+    } else {
+      alert('Unexpected response');
+    }
+  }).catch(err=>{ alert('Network error'); console.error(err); });
+});
+</script>
+{% endblock %}

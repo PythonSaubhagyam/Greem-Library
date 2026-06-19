@@ -1,0 +1,252 @@
+{% extends layout_path %}
+{% load static %}
+
+{% block title %}Subjects{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">Subjects</h4>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubjectModal">
+      + Add Subject
+    </button>
+  </div>
+
+  <!-- Stats Card -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <p class="text-muted mb-1">Total Subjects</p>
+          <h3 class="fw-bold text-primary" id="totalSubjects">-</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Subject List</h5>
+      <input type="text" id="searchInput" class="form-control w-25"
+             placeholder="Search subject...">
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0" id="subjectTable">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Subject Name</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="subjectTableBody">
+          <tr>
+            <td colspan="3" class="text-center py-4 text-muted">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination -->
+    <div class="card-footer d-flex justify-content-between align-items-center">
+      <span id="paginationInfo" class="text-muted small"></span>
+      <div id="paginationButtons"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Add Subject Modal -->
+<div class="modal fade" id="addSubjectModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalTitle">Add Subject</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editSubjectId">
+        <div class="mb-3">
+          <label class="form-label">Subject Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="subjectNameInput"
+                 placeholder="e.g. Mathematics">
+          <div class="text-danger small mt-1" id="nameError"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveSubjectBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete Subject</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete <strong id="deleteSubjectName"></strong>?
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block page_js %}
+<script>
+let currentPage = 1;
+let deleteId = null;
+
+const API_BASE = '/administrator/api/subjects/';
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    document.cookie.split(';').forEach(cookie => {
+      const c = cookie.trim();
+      if (c.startsWith(name + '=')) {
+        cookieValue = decodeURIComponent(c.substring(name.length + 1));
+      }
+    });
+  }
+  return cookieValue;
+}
+
+function loadSubjects(page = 1, search = '') {
+  let url = `${API_BASE}?page=${page}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      const tbody = document.getElementById('subjectTableBody');
+      const results = data.results || [];
+
+      document.getElementById('totalSubjects').textContent = data.count || 0;
+      document.getElementById('paginationInfo').textContent =
+        `Showing ${results.length} of ${data.count || 0} subjects`;
+
+      if (results.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-muted">No subjects found</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = results.map((s, i) => `
+        <tr>
+          <td>${(page - 1) * 10 + i + 1}</td>
+          <td><strong>${s.name}</strong></td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-1"
+                    onclick="openEdit(${s.id}, '${s.name}')">
+              Edit
+            </button>
+            <button class="btn btn-sm btn-outline-danger"
+                    onclick="openDelete(${s.id}, '${s.name}')">
+              Delete
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      let btns = '';
+      if (data.previous) btns += `<button class="btn btn-sm btn-outline-secondary me-1" onclick="loadSubjects(${page-1})">Previous</button>`;
+      if (data.next) btns += `<button class="btn btn-sm btn-outline-primary" onclick="loadSubjects(${page+1})">Next</button>`;
+      document.getElementById('paginationButtons').innerHTML = btns;
+      currentPage = page;
+    })
+    .catch(err => {
+      console.error('API Error:', err);
+      document.getElementById('subjectTableBody').innerHTML =
+        `<tr><td colspan="3" class="text-center text-danger py-4">Failed to load. Check console.</td></tr>`;
+    });
+}
+
+function openEdit(id, name) {
+  document.getElementById('modalTitle').textContent = 'Edit Subject';
+  document.getElementById('editSubjectId').value = id;
+  document.getElementById('subjectNameInput').value = name;
+  document.getElementById('nameError').textContent = '';
+  new bootstrap.Modal(document.getElementById('addSubjectModal')).show();
+}
+
+function openDelete(id, name) {
+  deleteId = id;
+  document.getElementById('deleteSubjectName').textContent = name;
+  new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+document.getElementById('saveSubjectBtn').addEventListener('click', function () {
+  const name = document.getElementById('subjectNameInput').value.trim();
+  const id = document.getElementById('editSubjectId').value;
+
+  if (!name) {
+    document.getElementById('nameError').textContent = 'Subject name is required';
+    return;
+  }
+
+  const method = id ? 'PUT' : 'POST';
+  const url = id ? `${API_BASE}${id}/` : API_BASE;
+
+  fetch(url, {
+    method: method,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify({ name: name })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.errors) {
+      document.getElementById('nameError').textContent =
+        Object.values(data.errors).join(', ');
+      return;
+    }
+    bootstrap.Modal.getInstance(document.getElementById('addSubjectModal')).hide();
+    document.getElementById('subjectNameInput').value = '';
+    document.getElementById('editSubjectId').value = '';
+    loadSubjects(currentPage);
+  });
+});
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+  if (!deleteId) return;
+  fetch(`${API_BASE}${deleteId}/`, {
+    method: 'DELETE',
+    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+  })
+  .then(() => {
+    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+    loadSubjects(currentPage);
+  });
+});
+
+document.getElementById('addSubjectModal').addEventListener('hidden.bs.modal', function () {
+  document.getElementById('modalTitle').textContent = 'Add Subject';
+  document.getElementById('editSubjectId').value = '';
+  document.getElementById('subjectNameInput').value = '';
+  document.getElementById('nameError').textContent = '';
+});
+
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', function () {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => loadSubjects(1, this.value), 400);
+});
+
+loadSubjects();
+</script>
+{% endblock %}

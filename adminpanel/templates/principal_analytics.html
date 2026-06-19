@@ -1,0 +1,420 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}Principal Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  <div class="card mb-4">
+    <div class="card-body d-flex justify-content-between align-items-center">
+      <h4 class="mb-0">Analytics Dashboard</h4>
+      <div>
+        <button class="btn btn-sm btn-outline-secondary" id="exportPdfBtn">📄 Export PDF</button>
+        <button class="btn btn-sm btn-outline-secondary" id="exportExcelBtn">📊 Export Excel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-2">
+          <label class="form-label">Academic Year</label>
+          <select id="academicYear" class="form-control form-control-sm">
+            <option value="">All Years</option>
+            <option value="2024-25">2024-25</option>
+            <option value="2023-24">2023-24</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Date Range</label>
+          <select id="dateRange" class="form-control form-control-sm">
+            <option value="all">All</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Class</label>
+          <select id="classFilter" class="form-control form-control-sm">
+            <option value="">All Classes</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Subject</label>
+          <select id="subjectFilter" class="form-control form-control-sm">
+            <option value="">All Subjects</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Teacher</label>
+          <select id="teacherFilter" class="form-control form-control-sm">
+            <option value="">All Teachers</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Risk Level</label>
+          <select id="riskLevel" class="form-control form-control-sm">
+            <option value="">All</option>
+            <option value="high">High Risk</option>
+            <option value="medium">Medium Risk</option>
+            <option value="low">Low Risk</option>
+          </select>
+        </div>
+      </div>
+      <div class="row mt-3">
+        <div class="col-md-12">
+          <button class="btn btn-sm btn-primary" id="applyFiltersBtn">Apply Filters</button>
+          <button class="btn btn-sm btn-outline-secondary" id="clearFiltersBtn">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="card">
+    <div class="card-header">
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" data-bs-toggle="tab" href="#teachersTab" role="tab">Teachers</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#coordinatorsTab" role="tab">Coordinators</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#subjectsTab" role="tab">Subjects</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#testsTab" role="tab">Tests</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#homeworkTab" role="tab">Homework</a>
+        </li>
+      </ul>
+    </div>
+    <div class="card-body">
+      <div class="tab-content">
+
+        <!-- TEACHERS TAB -->
+        <div class="tab-pane fade show active" id="teachersTab" role="tabpanel">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Teacher Name</th>
+                  <th>Subject</th>
+                  <th>Classes Assigned</th>
+                  <th>Classes Taken</th>
+                  <th>Tests Conducted</th>
+                  <th>Homework Given</th>
+                  <th>Homework Checked</th>
+                  <th>Avg Score</th>
+                  <th>Weak Students</th>
+                  <th>Last Active</th>
+                  <th>Accountability Score</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="teachersList"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- COORDINATORS TAB -->
+        <div class="tab-pane fade" id="coordinatorsTab" role="tabpanel">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Coordinator Name</th>
+                  <th>Classes Handled</th>
+                  <th>Teachers</th>
+                  <th>Students</th>
+                  <th>Weak Students</th>
+                  <th>Avg Score</th>
+                  <th>Teacher Activity</th>
+                  <th>Pending Actions</th>
+                  <th>Status</th>
+                  <th>Control Score</th>
+                </tr>
+              </thead>
+              <tbody id="coordinatorsList"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SUBJECTS TAB -->
+        <div class="tab-pane fade" id="subjectsTab" role="tabpanel">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Subject Name</th>
+                  <th>Avg Score</th>
+                  <th>Weak Students</th>
+                  <th>Best Class</th>
+                  <th>Weakest Class</th>
+                  <th>Responsible Teachers</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="subjectsList"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TESTS TAB -->
+        <div class="tab-pane fade" id="testsTab" role="tabpanel">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Teacher</th>
+                  <th>Subject</th>
+                  <th>Class</th>
+                  <th>Date</th>
+                  <th>Avg Marks</th>
+                  <th>Highest</th>
+                  <th>Lowest</th>
+                  <th>Absent</th>
+                  <th>Failed</th>
+                  <th>Passed</th>
+                  <th>Retest</th>
+                </tr>
+              </thead>
+              <tbody id="testsList"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- HOMEWORK TAB -->
+        <div class="tab-pane fade" id="homeworkTab" role="tabpanel">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Teacher</th>
+                  <th>Subject</th>
+                  <th>Class</th>
+                  <th>Assigned</th>
+                  <th>Submitted</th>
+                  <th>Pending</th>
+                  <th>Late</th>
+                  <th>Checked</th>
+                  <th>Feedback</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="homeworkList"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+// Load all tabs on page load
+function loadTeachers(){
+  fetch('/administrator/analytics/teachers/')
+    .then(r=>r.json())
+    .then(data=>{
+      const tbody = document.getElementById('teachersList');
+      tbody.innerHTML = '';
+      if(data.results && data.results.length > 0){
+        data.results.forEach(t=>{
+          const row = `
+            <tr>
+              <td>${t.teacher_name}</td>
+              <td>${t.subject}</td>
+              <td>${t.classes_assigned || 'Not Available'}</td>
+              <td>${t.classes_taken || 'Not Available'}</td>
+              <td>${t.tests_conducted || 'Not Available'}</td>
+              <td>${t.homework_given || 'Not Available'}</td>
+              <td>${t.homework_checked || 'Not Available'}</td>
+              <td>${t.avg_student_score || 'Not Available'}</td>
+              <td>${t.weak_students_count || 'Not Available'}</td>
+              <td>${t.last_active_date ? new Date(t.last_active_date).toLocaleDateString() : 'Not Available'}</td>
+              <td><strong>${t.accountability_score}</strong></td>
+              <td><button class="btn btn-xs btn-info">View Profile</button></td>
+            </tr>
+          `;
+          tbody.insertAdjacentHTML('beforeend', row);
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center">No teachers data available</td></tr>';
+      }
+    });
+}
+
+function loadCoordinators(){
+  fetch('/administrator/analytics/coordinators/')
+    .then(r=>r.json())
+    .then(data=>{
+      const tbody = document.getElementById('coordinatorsList');
+      tbody.innerHTML = '';
+      if(data.results && data.results.length > 0){
+        data.results.forEach(c=>{
+          const statusBadge = c.status === 'Good' ? 'success' : c.status === 'Average' ? 'warning' : 'danger';
+          const alertClass = c.has_neglect_alert ? 'table-danger' : '';
+          const row = `
+            <tr class="${alertClass}">
+              <td>${c.coordinator_name}</td>
+              <td>${c.classes_handled || 'Not Available'}</td>
+              <td>${c.teachers_under || 'Not Available'}</td>
+              <td>${c.students_under || 'Not Available'}</td>
+              <td>${c.weak_students_count || 'Not Available'}</td>
+              <td>${c.avg_score || 'Not Available'}</td>
+              <td>${c.teacher_activity_score || 'Not Available'}</td>
+              <td>${c.pending_actions || 'Not Available'}</td>
+              <td><span class="badge bg-${statusBadge}">${c.status}</span></td>
+              <td>${c.control_score || 'Not Available'}</td>
+            </tr>
+          `;
+          tbody.insertAdjacentHTML('beforeend', row);
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center">No coordinators data available</td></tr>';
+      }
+    });
+}
+
+function loadSubjects(){
+  fetch('/administrator/analytics/subjects/')
+    .then(r=>r.json())
+    .then(data=>{
+      const tbody = document.getElementById('subjectsList');
+      tbody.innerHTML = '';
+      if(data.results && data.results.length > 0){
+        data.results.forEach(s=>{
+          const row = `
+            <tr>
+              <td>${s.subject_name}</td>
+              <td>${s.avg_score || 'Not Available'}</td>
+              <td>${s.weak_students_count || 'Not Available'}</td>
+              <td>${s.best_class || 'Not Available'}</td>
+              <td>${s.weakest_class || 'Not Available'}</td>
+              <td>${(s.responsible_teachers || []).join(', ') || 'Not Available'}</td>
+              <td><button class="btn btn-xs btn-info">Drill Down</button></td>
+            </tr>
+          `;
+          tbody.insertAdjacentHTML('beforeend', row);
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No subjects data available</td></tr>';
+      }
+    });
+}
+
+function loadTests(){
+  fetch('/administrator/analytics/tests/')
+    .then(r=>r.json())
+    .then(data=>{
+      const tbody = document.getElementById('testsList');
+      tbody.innerHTML = '';
+      if(data.results && data.results.length > 0){
+        data.results.forEach(t=>{
+          const retestBadge = t.retest_needed ? '<span class="badge bg-warning">Yes</span>' : '<span class="badge bg-success">No</span>';
+          const row = `
+            <tr>
+              <td>${t.teacher_name}</td>
+              <td>${t.subject || 'Not Available'}</td>
+              <td>${t.class_name || 'Not Available'}</td>
+              <td>${new Date(t.date).toLocaleDateString()}</td>
+              <td>${t.avg_marks || 'Not Available'}</td>
+              <td>${t.highest_marks || 'Not Available'}</td>
+              <td>${t.lowest_marks || 'Not Available'}</td>
+              <td>${t.students_absent || 'Not Available'}</td>
+              <td>${t.students_failed || 'Not Available'}</td>
+              <td>${t.students_passed || 'Not Available'}</td>
+              <td>${retestBadge}</td>
+            </tr>
+          `;
+          tbody.insertAdjacentHTML('beforeend', row);
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center">No tests data available</td></tr>';
+      }
+    });
+}
+
+function loadHomework(){
+  fetch('/administrator/analytics/homework/')
+    .then(r=>r.json())
+    .then(data=>{
+      const tbody = document.getElementById('homeworkList');
+      tbody.innerHTML = '';
+      if(data.results && data.results.length > 0){
+        data.results.forEach(h=>{
+          const feedbackBadge = h.feedback_given ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-warning">No</span>';
+          const statusBadge = h.status === 'Good' ? 'success' : h.status === 'Average' ? 'warning' : 'danger';
+          const row = `
+            <tr>
+              <td>${h.teacher_name}</td>
+              <td>${h.subject || 'Not Available'}</td>
+              <td>${h.class_name || 'Not Available'}</td>
+              <td>${h.assigned_count || 'Not Available'}</td>
+              <td>${h.submitted_count || 'Not Available'}</td>
+              <td>${h.pending_count || 'Not Available'}</td>
+              <td>${h.late_count || 'Not Available'}</td>
+              <td>${h.checked_count || 'Not Available'}</td>
+              <td>${feedbackBadge}</td>
+              <td><span class="badge bg-${statusBadge}">${h.status}</span></td>
+            </tr>
+          `;
+          tbody.insertAdjacentHTML('beforeend', row);
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center">No homework data available</td></tr>';
+      }
+    });
+}
+
+// Export functions
+document.getElementById('exportPdfBtn').addEventListener('click', function(){
+  alert('PDF export feature coming soon');
+});
+
+document.getElementById('exportExcelBtn').addEventListener('click', function(){
+  alert('Excel export feature coming soon');
+});
+
+// Filter functions
+document.getElementById('applyFiltersBtn').addEventListener('click', function(){
+  loadTeachers();
+  loadCoordinators();
+  loadSubjects();
+  loadTests();
+  loadHomework();
+});
+
+document.getElementById('clearFiltersBtn').addEventListener('click', function(){
+  document.getElementById('academicYear').value = '';
+  document.getElementById('dateRange').value = 'all';
+  document.getElementById('classFilter').value = '';
+  document.getElementById('subjectFilter').value = '';
+  document.getElementById('teacherFilter').value = '';
+  document.getElementById('riskLevel').value = '';
+  loadTeachers();
+  loadCoordinators();
+  loadSubjects();
+  loadTests();
+  loadHomework();
+});
+
+// Load on page load
+document.addEventListener('DOMContentLoaded', function(){
+  loadTeachers();
+  loadCoordinators();
+  loadSubjects();
+  loadTests();
+  loadHomework();
+});
+</script>
+{% endblock %}

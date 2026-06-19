@@ -69,16 +69,10 @@
 
     {% elif request.user.role.type == 'Customer' %}
 
-      <li
-        class="menu-item {% if request.resolver_match.url_name == 'customer-dashboard' %}active open{% endif %}"
-      >
-        <a href="{% url 'customer-dashboard' %}" class="menu-link">
-          <i class="menu-icon tf-icons bx bx-home-smile"></i>
-          <div class="text-truncate" data-i18n="Dashboard">Dashboard</div>
-        </a>
-      </li>
+      {% include "layout/partials/menu/vertical/principal_sidebar.html" %}
 
     {% elif request.user.role.type == 'Coordinator' %}
+
 
       <li class="menu-item {% if request.resolver_match.url_name == 'coordinator-dashboard' %}active open{% endif %}">
         <a href="{% url 'coordinator-dashboard' %}" class="menu-link">

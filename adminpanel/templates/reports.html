@@ -1,0 +1,242 @@
+{% extends layout_path %}
+{% load static %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">Total Students</p>
+          <h3 class="fw-bold mb-0">{{ total_students }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">Overall Avg Score</p>
+          <h3 class="fw-bold mb-0">{{ overall_avg }}%</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">Tests Taken</p>
+          <h3 class="fw-bold mb-0">{{ total_tests }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">HW Assigned</p>
+          <h3 class="fw-bold mb-0">{{ total_hw_assigned }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">HW Submitted</p>
+          <h3 class="fw-bold mb-0">{{ total_hw_submitted }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="card">
+    <div class="card-body">
+      <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+          <a class="nav-link active" data-bs-toggle="tab" href="#studentReport"
+             style="color:#0d9c6e; font-weight:500;">Students</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" data-bs-toggle="tab" href="#classReport">Classes</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" data-bs-toggle="tab" href="#subjectReport">Subjects</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" data-bs-toggle="tab" href="#testReport">Tests</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" data-bs-toggle="tab" href="#hwReport">Homework</a>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+
+        <!-- Students Tab -->
+        <div class="tab-pane fade show active" id="studentReport">
+          <table class="table table-hover">
+            <thead style="background:#f0f0f0;">
+              <tr>
+                <th>#</th><th>Name</th><th>Class</th>
+                <th>Avg Score</th><th>Tests</th>
+                <th>HW</th><th>Study Hrs</th><th>Risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in student_report %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ s.name }}</td>
+                <td>{{ s.class }}</td>
+                <td>
+                  <span class="fw-bold
+                    {% if s.avg_score < 40 %}text-danger
+                    {% elif s.avg_score < 60 %}text-warning
+                    {% else %}text-success{% endif %}">
+                    {{ s.avg_score }}%
+                  </span>
+                </td>
+                <td>{{ s.tests_taken }}</td>
+                <td>{{ s.hw_completion }}</td>
+                <td>{{ s.study_hours }}h</td>
+                <td>
+                  <span class="badge
+                    {% if s.risk == 'High Risk' %}bg-danger
+                    {% elif s.risk == 'Needs Attention' %}bg-warning text-dark
+                    {% else %}bg-success{% endif %}">
+                    {{ s.risk }}
+                  </span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center text-muted py-4">No student data.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Classes Tab -->
+        <div class="tab-pane fade" id="classReport">
+          <table class="table table-hover">
+            <thead style="background:#f0f0f0;">
+              <tr>
+                <th>#</th><th>Class</th><th>Students</th>
+                <th>Avg Score</th><th>Weak Students</th><th>Tests</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in class_report %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ c.name }}</td>
+                <td>{{ c.student_count }}</td>
+                <td><span class="fw-bold {% if c.avg_score < 40 %}text-danger{% elif c.avg_score < 60 %}text-warning{% else %}text-success{% endif %}">{{ c.avg_score }}%</span></td>
+                <td><span class="text-danger">{{ c.weak_students }}</span></td>
+                <td>{{ c.tests_count }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="text-center text-muted py-4">No class data.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Subjects Tab -->
+        <div class="tab-pane fade" id="subjectReport">
+          <table class="table table-hover">
+            <thead style="background:#f0f0f0;">
+              <tr>
+                <th>#</th><th>Subject</th><th>Avg Score</th>
+                <th>Attempts</th><th>Weak Students</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in subject_report %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ sub.name }}</td>
+                <td><span class="fw-bold {% if sub.avg_score < 40 %}text-danger{% elif sub.avg_score < 60 %}text-warning{% else %}text-success{% endif %}">{{ sub.avg_score }}%</span></td>
+                <td>{{ sub.attempts }}</td>
+                <td><span class="text-danger">{{ sub.weak_students }}</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center text-muted py-4">No subject data.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tests Tab -->
+        <div class="tab-pane fade" id="testReport">
+          <table class="table table-hover">
+            <thead style="background:#f0f0f0;">
+              <tr>
+                <th>#</th><th>Title</th><th>Subject</th>
+                <th>Total Marks</th><th>Attempts</th>
+                <th>Avg Score</th><th>Completed</th><th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in test_report %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ t.title }}</td>
+                <td>{{ t.subject }}</td>
+                <td>{{ t.total_marks }}</td>
+                <td>{{ t.attempts }}</td>
+                <td><span class="fw-bold {% if t.avg_score < 40 %}text-danger{% elif t.avg_score < 60 %}text-warning{% else %}text-success{% endif %}">{{ t.avg_score }}%</span></td>
+                <td>{{ t.completed }}</td>
+                <td>{{ t.date }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" class="text-center text-muted py-4">No test data.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Homework Tab -->
+        <div class="tab-pane fade" id="hwReport">
+          <table class="table table-hover">
+            <thead style="background:#f0f0f0;">
+              <tr>
+                <th>#</th><th>Title</th><th>Due Date</th>
+                <th>Assigned</th><th>Submitted</th>
+                <th>Pending</th><th>Checked</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for hw in hw_report %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ hw.title }}</td>
+                <td>{{ hw.due_date }}</td>
+                <td>{{ hw.assigned }}</td>
+                <td class="text-success">{{ hw.submitted }}</td>
+                <td class="text-danger">{{ hw.pending }}</td>
+                <td>{{ hw.checked }}</td>
+                <td>
+                  <span class="badge
+                    {% if hw.status == 'Good' %}bg-success
+                    {% elif hw.status == 'Bad' %}bg-danger
+                    {% else %}bg-warning text-dark{% endif %}">
+                    {{ hw.status }}
+                  </span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" class="text-center text-muted py-4">No homework data.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

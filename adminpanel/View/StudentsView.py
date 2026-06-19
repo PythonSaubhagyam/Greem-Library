@@ -23,28 +23,34 @@ class StudentsAPIView(APIView):
         teacher_id = request.query_params.get('teacher_id')
         parent_id = request.query_params.get('parent_id')
         linked_user = request.GET.get("linked_user")
-   
+
+        def to_int(val):
+            try:
+                return int(val) if val is not None and str(val) != '' else None
+            except (ValueError, TypeError):
+                return None
 
         student_id = request.GET.get('id')
         q = request.GET.get('q')
         students = StudentModel.objects.all().order_by('-id')
         
-        if student_id:
-            # print(student_id,'student_id')
-            students = students.filter(id=student_id)
+        # normalize numeric params to avoid ValueError on bad input
+        student_id_num = to_int(student_id)
+        teacher_id_num = to_int(teacher_id)
+        parent_id_num = to_int(parent_id)
+        linked_user_num = to_int(linked_user)
+
+        if student_id_num is not None:
+            students = students.filter(id=student_id_num)
 
         
-        if linked_user:
-            students = students.filter(parent__id=linked_user)
-        
-            print(student_id)
+        if linked_user_num is not None:
+            students = students.filter(parent__id=linked_user_num)
 
-        if parent_id:
-            students = students.filter(parent__id=parent_id)
-            print(parent_id)
- 
-        elif teacher_id:
-            students = students.filter(parent__id=teacher_id)
+        if parent_id_num is not None:
+            students = students.filter(parent__id=parent_id_num)
+        elif teacher_id_num is not None:
+            students = students.filter(parent__id=teacher_id_num)
  
 
         if q:
@@ -56,6 +62,20 @@ class StudentsAPIView(APIView):
                 Q(email__icontains=q) |
                 Q(student_class__icontains=q)
             ).distinct()
+
+        # If the requester is a Customer (school), restrict to their students
+        try:
+            req_user = request.user
+            role_obj = getattr(req_user, 'role', None)
+            role_type = None
+            if role_obj:
+                role_type = getattr(role_obj, 'type', None) or getattr(role_obj, 'name', None)
+
+            if role_type and str(role_type).lower() == 'customer':
+                # Restrict customer users to students where this customer is a parent
+                students = students.filter(parent__id=req_user.id).distinct()
+        except Exception:
+            pass
         
         paginator = ListPagination()
         paginated_students = paginator.paginate_queryset(students,request)

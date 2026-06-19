@@ -1,0 +1,192 @@
+{% extends layout_path %}
+{% load static %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+ 
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md col-sm-4 col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">Total PDFs</p>
+          <h3 class="fw-bold mb-0">{{ total_pdfs }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-4 col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">Groups</p>
+          <h3 class="fw-bold mb-0">{{ total_groups }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-4 col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">Tests Taken</p>
+          <h3 class="fw-bold mb-0">{{ tests_taken }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-4 col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">Completed Tests</p>
+          <h3 class="fw-bold mb-0">{{ completed_tests }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-4 col-6 mb-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-3">
+          <p class="text-muted mb-1" style="font-size:13px;">Incomplete Tests</p>
+          <h3 class="fw-bold mb-0">{{ incomplete_tests }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="d-flex justify-content-end mb-3">
+    <input type="text" id="studySearch" class="form-control"
+           style="max-width:250px;" placeholder="Search...">
+  </div>
+
+  <!-- Tabs -->
+  <div class="card">
+    <div class="card-body">
+      <ul class="nav nav-tabs mb-3" id="studyTimeTabs">
+        <li class="nav-item">
+          <a class="nav-link active" data-bs-toggle="tab" href="#uploadedPdfs"
+             style="color:#0d9c6e; font-weight:500;">
+            Uploaded PDFs
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" data-bs-toggle="tab" href="#groupOfPdfs">
+            Group Of Pdfs
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" data-bs-toggle="tab" href="#testsTab">
+            Tests
+          </a>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+
+        <!-- Uploaded PDFs Tab -->
+        <div class="tab-pane fade show active" id="uploadedPdfs">
+          <table class="table table-hover" id="pdfTable">
+            <thead style="background:#f0f0f0;">
+              <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Pages</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pdf in pdfs %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ pdf.title|default:"—" }}</td>
+                <td>{{ pdf.total_pages }}</td>
+                <td>{{ pdf.created_at|date:"d M Y"|default:"—" }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-4">
+                  No PDFs uploaded yet.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Group Of PDFs Tab -->
+        <div class="tab-pane fade" id="groupOfPdfs">
+          <table class="table table-hover" id="groupTable">
+            <thead style="background:#f0f0f0;">
+              <tr>
+                <th>#</th>
+                <th>Group Name</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for group in pdf_groups %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ group.name }}</td>
+                <td>{{ group.created_at|date:"d M Y"|default:"—" }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="3" class="text-center text-muted py-4">
+                  No PDF groups yet.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tests Tab -->
+        <div class="tab-pane fade" id="testsTab">
+          <table class="table table-hover" id="testTable">
+            <thead style="background:#f0f0f0;">
+              <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Subject</th>
+                <th>Questions</th>
+                <th>Total Marks</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for test in tests %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ test.title|default:"—" }}</td>
+                <td>{{ test.subject.name|default:"—" }}</td>
+                <td>{{ test.number_of_questions }}</td>
+                <td>{{ test.total_marks }}</td>
+                <td>{{ test.created_at|date:"d M Y" }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                  No tests yet.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Simple search filter across active tab table
+document.getElementById('studySearch').addEventListener('keyup', function() {
+  const q = this.value.toLowerCase();
+  const activeTab = document.querySelector('.tab-pane.active table tbody');
+  if (!activeTab) return;
+  activeTab.querySelectorAll('tr').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

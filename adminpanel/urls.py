@@ -11,14 +11,36 @@ from adminpanel.View.LeadView import LeadAPI
 from adminpanel.View.LeadFollowUpView import TabletLeadFollowUpAPI
 from adminpanel.views import LeadCreateUpdateView, LeadFollowUpView, LeadFollowupDetailView
 from adminpanel.MobileView.StudentView import MobileStudentsAPIView
-from adminpanel.views import CustomerDashboardView , CoordinatorDashboardView
+# from adminpanel.views import CustomerDashboardView , CoordinatorDashboardView
 
 from adminpanel.MobileView.ParentsView import *
 from adminpanel.MobileView.TeachersView import *
 
+from adminpanel.View.PrincipalFlowView import *
+from adminpanel.View.HomeworkView import *
+from adminpanel.View.ClassView import ClassAPIView
+from adminpanel.View.TestsView import TestsAPI, StudentTestAttemptAPI, SubjectsAPI, TestDetailView
+from adminpanel.View.AnalyticsAPI import (
+    TeachersAnalyticsAPI, CoordinatorsAnalyticsAPI, SubjectsAnalyticsAPI,
+    TestsAnalyticsAPI, HomeworkAnalyticsAPI
+)
+from adminpanel.Schoolwisestudentview import SchoolStudentsAPIView
+from adminpanel.View.SubjectView import SubjectAPI, SubjectView
+from rest_framework.views import APIView as _APIView
+from rest_framework.response import Response as _Response
+
+class SidebarPermissionsAPI(_APIView):
+    def get(self, request):
+        return _Response([])
+
+
 urlpatterns = [
-    
-    
+    # Principal Flow APIs
+    path('principal-flow/', PrincipalFlowAPI.as_view(), name='principal-flow'),
+    path('principal-flow/coordinator/<int:coordinator_id>/', CoordinatorDetailAPI.as_view(), name='principal-coordinator-detail'),
+    path('principal-flow/teacher/<int:teacher_id>/', TeacherDetailAPI.as_view(), name='principal-teacher-detail'),
+    path('principal-flow/class/<int:class_id>/', ClassDetailAPI.as_view(), name='principal-class-detail'),
+
     path('users-list/', UserAPIView.as_view(), name='companies-list'),
     path('users-list/<int:id>/', UserAPIView.as_view(), name='companies-list'),
     path("users/",DashboardsView.as_view(template_name="companies_list.html"),name="companies"),
@@ -45,6 +67,8 @@ urlpatterns = [
     path("students/detail/<int:id>/",DashboardsView.as_view(template_name="student_details.html"),name="student-details"),
     path("students-api/",StudentsAPIView.as_view(),name="students-api"),
     path("students-api/<int:id>/",StudentsAPIView.as_view(),name="students-api-id"),
+    path("school-students-api/", SchoolStudentsAPIView.as_view(), name='school-students-api'),
+    path("school-students-api/<int:id>/", SchoolStudentsAPIView.as_view(), name='school-students-api-id'),
     path("students/add/",DashboardsView.as_view(template_name="students_add_update.html"),name="Students_add_update"),
     path("students/edit/<int:id>/",DashboardsView.as_view(template_name="students_add_update.html"),name="Students_add_update"),
     path("employees/", DashboardsView.as_view(template_name="Employees_list.html"),name='employees_list'),
@@ -97,6 +121,49 @@ urlpatterns = [
 
 
     path('mobile-student/', MobileStudentsAPIView.as_view(), name='mobile-student-api'),
+    # Classes API
+    path('classes-api/', ClassAPIView.as_view(), name='classes-api'),
+    path('classes-api/<int:pk>/', ClassAPIView.as_view(), name='classes-api-detail'),
+    # Classes pages
+    path('classes/', DashboardsView.as_view(template_name="Classes_list.html"), name='classes-list'),
+    path('classes/add/', DashboardsView.as_view(template_name="classes_add_update.html"), name='classes-add'),
+    path('classes/edit/<int:id>/', DashboardsView.as_view(template_name="classes_add_update.html"), name='classes-edit'),
+    # Homework APIs
+    # Homework pages
+    path('homework/add/', DashboardsView.as_view(template_name="homework_add.html"), name='homework-add'),
+
+    # Tests pages
+    path('tests/', DashboardsView.as_view(template_name="tests_list.html"), name='tests-list'),
+    path('tests/add/', DashboardsView.as_view(template_name="tests_add.html"), name='tests-add'),
+    path('tests/<int:pk>/', TestDetailView.as_view(), name='test-detail'),
+
+    path('dashboard/subjects/', SubjectView.as_view(), name='subjects-page'),
+    path('subjects-api/', SubjectsAPI.as_view(), name='old-subjects-api'),
+    path('api/subjects/', SubjectAPI.as_view(), name='subjects-api'),           # ← આ ઉમેરો
+    path('api/subjects/<int:pk>/', SubjectAPI.as_view(), name='subjects-api-detail'),
+    path('api/sidebar-permissions/', SidebarPermissionsAPI.as_view(), name='sidebar-permissions'),
+        # Analytics Dashboard
+    path('analytics/', DashboardsView.as_view(template_name="principal_analytics.html"), name='principal-analytics'),
+
+    # Tests APIs
+    path('tests-api/', TestsAPI.as_view(), name='tests-api'),
+    path('tests-api/<int:pk>/', TestsAPI.as_view(), name='tests-api-id'),
+    path('test-attempts/', StudentTestAttemptAPI.as_view(), name='test-attempts-api'),
+    path('test-attempts/<int:pk>/', StudentTestAttemptAPI.as_view(), name='test-attempts-api-id'),
+    # path('subjects-api/', SubjectsAPI.as_view(), name='subjects-api'),
+    
+    path('homework/', HomeworkAPI.as_view(), name='homework-api'),
+    path('homework/<int:pk>/', HomeworkAPI.as_view(), name='homework-api-id'),
+    path('homework/submissions/', HomeworkSubmissionAPI.as_view(), name='homework-submissions-api'),
+    path('homework/submissions/<int:pk>/', HomeworkSubmissionAPI.as_view(), name='homework-submissions-api-id'),
+    path('homework/dashboard/', HomeworkDashboardAPI.as_view(), name='homework-dashboard-api'),
+
+    # Analytics APIs
+    path('analytics/teachers/', TeachersAnalyticsAPI.as_view(), name='teachers-analytics-api'),
+    path('analytics/coordinators/', CoordinatorsAnalyticsAPI.as_view(), name='coordinators-analytics-api'),
+    path('analytics/subjects/', SubjectsAnalyticsAPI.as_view(), name='subjects-analytics-api'),
+    path('analytics/tests/', TestsAnalyticsAPI.as_view(), name='tests-analytics-api'),
+    path('analytics/homework/', HomeworkAnalyticsAPI.as_view(), name='homework-analytics-api'),
 
     path("analytics/learning-behaviour/<int:pk>/",LearningBehaviourAPI.as_view(),name="learning-behaviour"),
     path("analytics/risk/<int:pk>/", RiskDetectionAPI.as_view(),name='risk-behavioiur'),

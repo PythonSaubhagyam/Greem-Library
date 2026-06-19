@@ -1,0 +1,188 @@
+{% extends layout_path %}
+{% load static %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+
+  <div class="row">
+
+    <!-- Profile Settings -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header d-flex align-items-center">
+          <i class="bx bx-user me-2 text-primary"></i>
+          <h5 class="mb-0">Profile Settings</h5>
+        </div>
+        <div class="card-body">
+          <div id="profileMsg" class="alert d-none mb-3"></div>
+
+          <div class="mb-3">
+            <label class="form-label">First Name</label>
+            <input type="text" id="first_name" class="form-control"
+                   value="{{ user.first_name }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Last Name</label>
+            <input type="text" id="last_name" class="form-control"
+                   value="{{ user.last_name }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control"
+                   value="{{ user.email }}" disabled>
+            <small class="text-muted">Email cannot be changed.</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Mobile No</label>
+            <input type="text" id="mobile_no" class="form-control"
+                   value="{{ user.mobile_no|default:'' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">School / Firm Name</label>
+            <input type="text" id="firm_name" class="form-control"
+                   value="{{ user.firm_name|default:'' }}">
+          </div>
+          <button class="btn btn-primary" onclick="updateProfile()">
+            <i class="bx bx-save me-1"></i> Save Profile
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change Password -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header d-flex align-items-center">
+          <i class="bx bx-lock me-2 text-warning"></i>
+          <h5 class="mb-0">Change Password</h5>
+        </div>
+        <div class="card-body">
+          <div id="passwordMsg" class="alert d-none mb-3"></div>
+
+          <div class="mb-3">
+            <label class="form-label">Current Password</label>
+            <input type="password" id="old_password" class="form-control"
+                   placeholder="Enter current password">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">New Password</label>
+            <input type="password" id="new_password" class="form-control"
+                   placeholder="Enter new password">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" id="confirm_password" class="form-control"
+                   placeholder="Confirm new password">
+          </div>
+          <button class="btn btn-primary" onclick="changePassword()">
+            <i class="bx bx-key me-1"></i> Change Password
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account Info (read-only) -->
+    <div class="col-md-12 mb-4">
+      <div class="card">
+        <div class="card-header d-flex align-items-center">
+          <i class="bx bx-info-circle me-2 text-info"></i>
+          <h5 class="mb-0">Account Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 col-6 mb-3">
+              <p class="text-muted mb-1" style="font-size:13px;">Role</p>
+              <p class="fw-bold mb-0">{{ user.role.type|default:"—" }}</p>
+            </div>
+            <div class="col-md-3 col-6 mb-3">
+              <p class="text-muted mb-1" style="font-size:13px;">Email</p>
+              <p class="fw-bold mb-0">{{ user.email }}</p>
+            </div>
+            <div class="col-md-3 col-6 mb-3">
+              <p class="text-muted mb-1" style="font-size:13px;">Date Joined</p>
+              <p class="fw-bold mb-0">{{ user.date_joined|date:"d M Y" }}</p>
+            </div>
+            <div class="col-md-3 col-6 mb-3">
+              <p class="text-muted mb-1" style="font-size:13px;">Account Status</p>
+              <p class="fw-bold mb-0">
+                {% if user.is_active %}
+                  <span class="badge bg-success">Active</span>
+                {% else %}
+                  <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const csrfToken = '{{ csrf_token }}';
+
+function showMsg(id, message, type) {
+  const el = document.getElementById(id);
+  el.className = `alert alert-${type}`;
+  el.textContent = message;
+  el.classList.remove('d-none');
+  setTimeout(() => el.classList.add('d-none'), 4000);
+}
+
+function updateProfile() {
+  const data = new FormData();
+  data.append('action', 'update_profile');
+  data.append('first_name', document.getElementById('first_name').value);
+  data.append('last_name', document.getElementById('last_name').value);
+  data.append('mobile_no', document.getElementById('mobile_no').value);
+  data.append('firm_name', document.getElementById('firm_name').value);
+  data.append('csrfmiddlewaretoken', csrfToken);
+
+  fetch("{% url 'customer-settings' %}", {
+    method: 'POST',
+    body: data,
+  })
+  .then(r => r.json())
+  .then(res => {
+    showMsg('profileMsg', res.message, res.status ? 'success' : 'danger');
+  });
+}
+
+function changePassword() {
+  const old_password = document.getElementById('old_password').value;
+  const new_password = document.getElementById('new_password').value;
+  const confirm_password = document.getElementById('confirm_password').value;
+
+  if (!old_password || !new_password || !confirm_password) {
+    showMsg('passwordMsg', 'All fields are required.', 'danger');
+    return;
+  }
+
+  const data = new FormData();
+  data.append('action', 'change_password');
+  data.append('old_password', old_password);
+  data.append('new_password', new_password);
+  data.append('confirm_password', confirm_password);
+  data.append('csrfmiddlewaretoken', csrfToken);
+
+  fetch("{% url 'customer-settings' %}", {
+    method: 'POST',
+    body: data,
+  })
+  .then(r => r.json())
+  .then(res => {
+    showMsg('passwordMsg', res.message, res.status ? 'success' : 'danger');
+    if (res.status) {
+      document.getElementById('old_password').value = '';
+      document.getElementById('new_password').value = '';
+      document.getElementById('confirm_password').value = '';
+      // redirect to login after password change
+      setTimeout(() => window.location.href = "{% url 'auth-login-basic' %}", 2000);
+    }
+  });
+}
+</script>
+{% endblock %}

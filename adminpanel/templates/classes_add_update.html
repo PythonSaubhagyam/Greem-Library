@@ -1,0 +1,88 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Add / Edit Class {% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <h5 id="form-title">Add Class</h5>
+  </div>
+  <div class="card-body">
+    <form id="classForm">
+      <div class="mb-3">
+        <label class="form-label">Standard</label>
+        <input type="number" name="standard" id="standard" class="form-control" min="1" max="12" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Section</label>
+        <input type="text" name="section" id="section" class="form-control">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Academic Year</label>
+        <input type="text" name="academic_year" id="academic_year" class="form-control" value="2024-25">
+      </div>
+
+      <button class="btn btn-primary" id="saveBtn">Save</button>
+      <a href="/administrator/classes/" class="btn btn-secondary">Back</a>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+<script>
+const form = document.getElementById('classForm');
+const saveBtn = document.getElementById('saveBtn');
+
+const urlParams = new URLSearchParams(window.location.search);
+const editId = window.location.pathname.split('/').filter(Boolean).pop();
+
+if (window.location.pathname.includes('/edit/') && editId) {
+  document.getElementById('form-title').innerText = 'Edit Class';
+  // load existing
+  fetch(`/administrator/classes-api/${editId}/`)
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('standard').value = data.standard || '';
+      document.getElementById('section').value = data.section || '';
+      document.getElementById('academic_year').value = data.academic_year || '';
+    });
+}
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  saveBtn.disabled = true;
+
+  const payload = {
+    standard: parseInt(document.getElementById('standard').value),
+    section: document.getElementById('section').value,
+    academic_year: document.getElementById('academic_year').value
+  };
+
+  const method = (window.location.pathname.includes('/edit/') && editId) ? 'PUT' : 'POST';
+  const url = (method === 'POST') ? '/administrator/classes-api/' : `/administrator/classes-api/${editId}/`;
+
+  fetch(url, {
+    method: method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(res => {
+      if (!res.ok) throw res;
+      return res.json();
+    })
+    .then(() => {
+      window.location.href = '/administrator/classes/';
+    })
+    .catch(async (err) => {
+      let msg = 'Save failed';
+      try { const j = await err.json(); msg = JSON.stringify(j); } catch(e){}
+      alert(msg);
+      saveBtn.disabled = false;
+    });
+});
+</script>
+
+{% endblock %}

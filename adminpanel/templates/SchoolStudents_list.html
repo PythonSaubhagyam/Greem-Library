@@ -29,9 +29,7 @@
         <i class="bx bx-refresh me-1"></i> Reset
       </button>
 
-      <a href="/administrator/students/add/" class="btn btn-sm btn-primary">
-        <i class="bx bx-plus"></i> Add Student
-      </a>
+      <!-- NO Add Student button for school/customer role -->
     </div>
   </div>
 
@@ -48,7 +46,6 @@
             <th>Class</th>
             <th>Parents</th>
             <th>Teachers</th>
-            <th>Customer</th>
             <th width="120px">Action</th>
           </tr>
         </thead>
@@ -61,7 +58,6 @@
     </div>
 
     <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-      <!-- Left -->
       <div class="d-flex align-items-center gap-2">
         <label class="small mb-0">Rows per page:</label>
         <select id="rowsPerPage" class="form-select form-select-sm w-auto">
@@ -71,31 +67,12 @@
         </select>
       </div>
 
-      <!-- Right -->
       <div class="d-flex align-items-center gap-3">
         <small id="pagination-info" class="text-muted"></small>
         <ul id="pagination" class="pagination pagination-sm mb-0"></ul>
       </div>
     </div>
 
-
-  </div>
-</div>
-
-<!-- Delete Modal -->
-<div class="modal fade" id="deleteConfirmModal">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5>Confirm Delete</h5>
-        <button class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">Delete this student?</div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -104,96 +81,96 @@
 {% block page_js %}
 <script>
 const container = document.getElementById("students-container");
-const loader = document.getElementById("students-loader");
-const search = document.getElementById("searchStudent");
+const loader    = document.getElementById("students-loader");
+const search    = document.getElementById("searchStudent");
 const rowsSelect = document.getElementById("rowsPerPage");
-const pagination = document.getElementById("pagination");
+const paginationEl   = document.getElementById("pagination");
 const paginationInfo = document.getElementById("pagination-info");
 
-let deleteId = null;
 let currentPage = 1;
 
-const urlParams = new URLSearchParams(window.location.search);
-const teacherId = urlParams.get("teacher_id");
-const parentId = urlParams.get("parent_id");
-const deleteModal = new bootstrap.Modal(document.getElementById("deleteConfirmModal"));
+// ✅ CSRF token helper (needed for session auth)
+function getCsrf() {
+  const match = document.cookie.match(/csrftoken=([^;]+)/);
+  return match ? match[1] : '';
+}
+
+// ✅ Always use school-students-api for this template
+const BASE_API = '/administrator/school-students-api/';
 
 function fetchStudents(page = 1) {
-  const q = search.value;
+  const q    = search.value;
   const rows = rowsSelect.value;
 
   loader.style.display = "block";
-  container.innerHTML = "";
-
-  const baseApi = window.location.pathname.includes('/customer/dashboard') ? '/administrator/school-students-api/' : '/administrator/students-api/';
+  container.innerHTML  = "";
 
   fetch(
-    `${baseApi}?q=${encodeURIComponent(q)}&page=${page}&row_per_page=${rows}` +
-    `&teacher_id=${teacherId || ""}&parent_id=${parentId || ""}`
+    `${BASE_API}?q=${encodeURIComponent(q)}&page=${page}&row_per_page=${rows}`,
+    {
+      credentials: 'same-origin',          // ✅ sends Django session cookie
+      headers: {
+        'X-CSRFToken': getCsrf(),          // ✅ CSRF header
+        'Content-Type': 'application/json'
+      }
+    }
   )
-    .then(res => res.json())
+    .then(res => {
+      if (res.status === 401 || res.status === 403) {
+        container.innerHTML = `<tr><td colspan="8" class="text-center text-danger">Session expired. Please <a href="/login/">log in again</a>.</td></tr>`;
+        loader.style.display = "none";
+        throw new Error("Unauthorized");
+      }
+      return res.json();
+    })
     .then(res => {
       loader.style.display = "none";
       currentPage = res.current_page;
 
-      if (!res.results.length) {
+      const countEl = document.getElementById("datacount");
+      if (countEl) countEl.innerText = `(${res.count})`;
+
+      if (!res.results || !res.results.length) {
         container.innerHTML = `<tr><td colspan="8" class="text-center">No students found</td></tr>`;
-        pagination.innerHTML = "";
+        paginationEl.innerHTML   = "";
         paginationInfo.innerHTML = "";
         return;
       }
 
       renderRows(res.results);
       renderPagination(res);
-
-      const countEl = document.getElementById("datacount");
-      if (countEl) {
-        countEl.innerText = `(${res.count})`;
+    })
+    .catch(err => {
+      if (err.message !== "Unauthorized") {
+        loader.style.display = "none";
+        container.innerHTML = `<tr><td colspan="8" class="text-center text-danger">Failed to load students.</td></tr>`;
       }
     });
 }
 
 function renderRows(data) {
   container.innerHTML = "";
-
   data.forEach((s, i) => {
+    // parent_name may be array or string
+    const parentName  = Array.isArray(s.parent_name)  ? (s.parent_name.join(', ')  || '-') : (s.parent_name  || '-');
+    const teacherName = Array.isArray(s.teacher_name) ? (s.teacher_name.join(', ') || '-') : (s.teacher_name || '-');
+
     container.insertAdjacentHTML("beforeend", `
       <tr>
-        <td>${(currentPage - 1) * rowsSelect.value + i + 1}</td>
+        <td>${(currentPage - 1) * parseInt(rowsSelect.value) + i + 1}</td>
         <td>${s.student_name}</td>
-        <td>${s.device_imei_number}</td>
+        <td>${s.device_imei_number || '-'}</td>
         <td>${s.email || '-'}</td>
         <td>${s.student_class || '-'}</td>
-        <td>${s.parent_name || '-'}</td>
-        <td>${s.teacher_name || '-'}</td>
-        <td>${s.customer_name || '-'}</td>
+        <td>${parentName}</td>
+        <td>${teacherName}</td>
         <td>
           <div class="d-flex gap-2 align-items-center">
-
-            
-            <!-- VIEW DETAILS -->
-            <a href="/administrator/students/detail/${s.id}/"
-              class="text-info"
-              title="View Details">
+            <!-- VIEW DETAILS only — no edit/delete for school role -->
+            <a href="/customer/dashboard/students/detail/${s.id}/"
+               class="text-info" title="View Details">
               <i class="bx bx-show fs-4"></i>
             </a>
-
-
-            <!-- EDIT -->
-            <a href="/administrator/students/edit/${s.id}/"
-              class="text-warning"
-              title="Edit">
-              <i class="bx bx-edit-alt fs-4"></i>
-            </a>
-
-            <!-- DELETE -->
-            <a href="#"
-              onclick="askDelete(${s.id})"
-              class="text-danger"
-              title="Delete">
-              <i class="bx bx-trash-alt fs-4"></i>
-            </a>
-
           </div>
         </td>
       </tr>
@@ -202,45 +179,31 @@ function renderRows(data) {
 }
 
 function renderPagination(data) {
-  const pagination = document.getElementById("pagination");
-  const info = document.getElementById("pagination-info");
+  paginationEl.innerHTML = "";
+  paginationInfo.textContent = `Showing page ${data.current_page} of ${data.total_pages} (${data.count} Students)`;
 
-  pagination.innerHTML = "";
-
-  info.textContent = `Showing page ${data.current_page} of ${data.total_pages} (${data.count} Students)`;
-
-  /* Previous */
   const prevDisabled = data.previous === null ? "disabled" : "";
-  pagination.insertAdjacentHTML(
-    "beforeend",
+  paginationEl.insertAdjacentHTML("beforeend",
     `<li class="page-item ${prevDisabled}">
       <a class="page-link" href="#" data-page="${data.current_page - 1}">Previous</a>
-    </li>`
-  );
+    </li>`);
 
-  /* Pages */
   for (let i = 1; i <= data.total_pages; i++) {
     const active = i === data.current_page ? "active" : "";
-    pagination.insertAdjacentHTML(
-      "beforeend",
+    paginationEl.insertAdjacentHTML("beforeend",
       `<li class="page-item ${active}">
         <a class="page-link" href="#" data-page="${i}">${i}</a>
-      </li>`
-    );
+      </li>`);
   }
 
-  /* Next */
   const nextDisabled = data.next === null ? "disabled" : "";
-  pagination.insertAdjacentHTML(
-    "beforeend",
+  paginationEl.insertAdjacentHTML("beforeend",
     `<li class="page-item ${nextDisabled}">
       <a class="page-link" href="#" data-page="${data.current_page + 1}">Next</a>
-    </li>`
-  );
+    </li>`);
 
-  /* Click handlers – same UX as Parents/Teachers */
-  pagination.querySelectorAll(".page-link").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
+  paginationEl.querySelectorAll(".page-link").forEach(btn => {
+    btn.addEventListener("click", e => {
       e.preventDefault();
       const page = parseInt(btn.dataset.page);
       if (!isNaN(page) && page >= 1 && page <= data.total_pages) {
@@ -250,22 +213,8 @@ function renderPagination(data) {
   });
 }
 
-
-
-function askDelete(id) {
-  deleteId = id;
-  deleteModal.show();
-}
-
-document.getElementById("confirmDeleteBtn").onclick = function () {
-  fetch(`/administrator/students-api/${deleteId}/`, { method: "DELETE" })
-    .then(() => fetchStudents(currentPage));
-  deleteModal.hide();
-};
-
 search.addEventListener("input", () => fetchStudents(1));
 rowsSelect.addEventListener("change", () => fetchStudents(1));
-
 document.getElementById("resetFilters").onclick = () => {
   search.value = "";
   fetchStudents(1);
@@ -273,5 +222,4 @@ document.getElementById("resetFilters").onclick = () => {
 
 fetchStudents();
 </script>
-
 {% endblock %}

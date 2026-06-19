@@ -745,9 +745,69 @@ class LearningStyleModel(models.Model):
         return f"{self.student} - {self.style}"
 
 
-# ============================================================
-# 3. REWARD SUGGESTION SYSTEM
-# ============================================================
+class PrincipalCoordinatorMapping(models.Model):
+    """Links a Principal (Customer role) to their assigned Coordinators."""
+    principal = models.ForeignKey(
+        UserModel, 
+        on_delete=models.CASCADE, 
+        related_name='assigned_coordinators',
+        limit_choices_to={'role__type': 'Customer'}
+    )
+    coordinator = models.ForeignKey(
+        UserModel, 
+        on_delete=models.CASCADE, 
+        related_name='managed_by_principal',
+        limit_choices_to={'role__type': 'Coordinator'}
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['principal', 'coordinator']
+        verbose_name = "Principal Coordinator Mapping"
+
+class CoordinatorTeacherMapping(models.Model):
+    """Links a Coordinator to specific Teachers and Classes."""
+    coordinator = models.ForeignKey(
+        UserModel, 
+        on_delete=models.CASCADE, 
+        related_name='assigned_teachers',
+        limit_choices_to={'role__type': 'Coordinator'}
+    )
+    teacher = models.ForeignKey(
+        UserModel, 
+        on_delete=models.CASCADE, 
+        related_name='managed_by_coordinator',
+        limit_choices_to={'role__type': 'Teacher'}
+    )
+    assigned_classes = models.ManyToManyField(
+        ClassModel, 
+        related_name='coordinator_managed_classes'
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['coordinator', 'teacher']
+        verbose_name = "Coordinator Teacher Mapping"
+
+class ScoringDataModel(models.Model):
+    """Caches calculated scores for performance tracking."""
+    ENTITY_TYPES = [
+        ('student', 'Student'),
+        ('teacher', 'Teacher'),
+        ('coordinator', 'Coordinator'),
+        ('class', 'Class'),
+        ('school', 'School'),
+    ]
+    entity_type = models.CharField(max_length=20, choices=ENTITY_TYPES)
+    entity_id = models.IntegerField()  # ID of student, teacher, etc.
+    score = models.FloatField()
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['entity_type', 'entity_id']
+        verbose_name = "Scoring Data"
 
 class RewardModel(models.Model):
     """
