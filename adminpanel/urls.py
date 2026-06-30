@@ -1,3 +1,5 @@
+# adminpanel --->url
+
 from django.urls import path,include
 from adminpanel.View.CompanyView import *
 from adminpanel.View.CountryStateCityView import *
@@ -11,6 +13,7 @@ from adminpanel.View.LeadView import LeadAPI
 from adminpanel.View.LeadFollowUpView import TabletLeadFollowUpAPI
 from adminpanel.views import LeadCreateUpdateView, LeadFollowUpView, LeadFollowupDetailView
 from adminpanel.MobileView.StudentView import MobileStudentsAPIView
+from adminpanel.View.school_view import *
 # from adminpanel.views import CustomerDashboardView , CoordinatorDashboardView
 
 from adminpanel.MobileView.ParentsView import *
@@ -28,6 +31,9 @@ from adminpanel.Schoolwisestudentview import SchoolStudentsAPIView
 from adminpanel.View.SubjectView import SubjectAPI, SubjectView
 from rest_framework.views import APIView as _APIView
 from rest_framework.response import Response as _Response
+from django.urls import path
+from adminpanel.View import coordinator_views as cv
+from adminpanel.views import *
 
 class SidebarPermissionsAPI(_APIView):
     def get(self, request):
@@ -229,6 +235,11 @@ urlpatterns = [
     path('teachers/groups/<int:group_id>/suggested-tests/',GroupSuggestedTestsView.as_view(),name='group-suggested-tests'),
     path('teachers/notifications/preferences/',NotificationPreferenceView.as_view(),name='notification-preferences'),
     path("teachers/groups/<int:group_id>/homework/",HomeworkAPI.as_view(),name="group-homework-list"),
+    
+    # new api teacher 
+    path('teachers/classrooms/upload-pdf/', TeacherUploadPDFAPI.as_view(), name='teacher-upload-pdf'),
+    path('teachers/create-class/', TeacherCreateClassAPI.as_view(), name='teacher-create-class'),
+    path("teachers/class-list/",TeacherClassListAPI.as_view(),name="teacher-class-list",),
 
     # Parent APIs - New 
     path("analytics/learning-habit-score/<int:pk>/",LearningHabitScoreAPI.as_view(),name="learning-habit-score"),
@@ -269,4 +280,26 @@ urlpatterns = [
     path("analytics/goals/<int:goal_id>/delete/",GoalSettingAPI.as_view(),name="goals-delete"),
     #    GET → single goal detail by goal_id
     path("analytics/goals/detail/<int:goal_id>/",GoalDetailAPI.as_view(),name="goal-detail"),
+
+    # customer(school)
+    path("customer/dashboard/school-setup/",SchoolSetupView.as_view(),name='school-setup'),
+    path("customer/api/school-setup/",SchoolProfileAPI.as_view(),name='school-profile-api'),
+    path('api/onboarding/excel-import/', OnboardingExcelImportAPI.as_view(), name='excel-import-api'),
+    # 2. Student Risk & Attention Lists
+    path('api/students/risk-categories/', StudentRiskCategoriesAPI.as_view(), name='students-risk'),
+    path('api/students/needs-attention/', StudentsImmediateAttentionAPI.as_view(), name='immediate-attention'),
+    # 3. Class Performance Comparison
+    path('api/classes/comparison-dashboard/', ClassComparisonDashboardAPI.as_view(), name='class-comparison-dashboard'),
+    # 4. Teacher Rankings & Accountability
+    path('api/teachers/rankings/', TeacherRankingsAPI.as_view(), name='teacher-rankings'),
+    # 5. Coordinator Neglect Detection
+    path('api/coordinators/neglect-report/', CoordinatorNeglectAPI.as_view(), name='coordinator-neglect'),
+    # 6. Chapter Weakness & Heatmap Matrix
+    path('api/subjects/chapters-weakness/', ChapterWeaknessAPI.as_view(), name='chapter-weakness'),
+    path('api/subjects/chapter-heatmap/', ChapterHeatmapAPI.as_view(), name='chapter-heatmap'),
+    # 7. Action Required console
+    path('api/action-required/list/', ActionRequiredAPI.as_view(), name='action-required-list'),
+    # 8. Automated Parent Meeting PDF Exporter
+    path('api/reports/parent-meeting/<int:student_id>/', ParentMeetingPDFReportAPI.as_view(), name='parent-meeting-report'),
+
 ]

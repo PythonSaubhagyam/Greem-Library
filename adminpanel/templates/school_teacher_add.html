@@ -1,0 +1,199 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}{% if teacher_id %}Edit Teacher{% else %}Add Teacher{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0" id="formTitle">Add Teacher</h4>
+    <a href="{% url 'customer-teachers' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bx bx-arrow-back me-1"></i>Back to Teachers
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <form id="teacherForm">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">First Name <span class="text-danger">*</span></label>
+            <input type="text" id="first_name" class="form-control" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Last Name</label>
+            <input type="text" id="last_name" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email <span class="text-danger">*</span></label>
+            <input type="email" id="email" class="form-control" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Mobile No</label>
+            <input type="text" id="mobile_no" class="form-control" placeholder="+91XXXXXXXXXX">
+          </div>
+          <div class="col-md-6" id="passwordField">
+            <label class="form-label">Password <span class="text-danger">*</span></label>
+            <input type="password" id="password" class="form-control" placeholder="Minimum 6 characters">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Assign to Class</label>
+            <select id="class_id" class="form-select">
+              <option value="">-- Select Class --</option>
+            </select>
+            <small class="text-muted">Links the teacher to this school via the class.</small>
+          </div>
+        </div>
+
+        <div id="formError" class="alert alert-danger mt-3 d-none"></div>
+        <div id="formSuccess" class="alert alert-success mt-3 d-none"></div>
+
+        <div class="mt-4 d-flex gap-2">
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <i class="bx bx-save me-1"></i><span id="submitText">Create Teacher</span>
+          </button>
+          <a href="{% url 'customer-teachers' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function getCookie(name) {
+  const val = `; ${document.cookie}`;
+  const parts = val.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+// teacherId is injected by the URL — set via Django context if editing
+const teacherId = "{{ teacher_id|default:'' }}";
+const isEdit = !!teacherId;
+
+if (isEdit) {
+  document.getElementById('formTitle').textContent = 'Edit Teacher';
+  document.getElementById('submitText').textContent = 'Update Teacher';
+  document.getElementById('passwordField').querySelector('label').innerHTML = 'Password <small class="text-muted">(leave blank to keep unchanged)</small>';
+  document.getElementById('password').removeAttribute('required');
+}
+
+// ── Load classes for the dropdown (scoped to this school) ──────────────────
+fetch("{% url 'customer-class-comparison-api' %}")
+  .then(r => r.json())
+  .then(data => {
+    const sel = document.getElementById('class_id');
+    (data.classes || data.results || []).forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id || c.class_id;
+      o.textContent = c.name || c.class_name;
+      sel.appendChild(o);
+    });
+  })
+  .catch(() => {});
+
+// ── If editing, prefill the form ────────────────────────────────────────────
+if (isEdit) {
+    fetch(`{% url 'customer-users-list-api' %}?id=${teacherId}&principal_id={{ request.user.id }}`)
+    .then(r => r.json())
+    .then(data => {
+      const t = (data.results || [])[0];
+      if (!t) return;
+      const [first, ...rest] = (t.full_name || '').split(' ');
+      document.getElementById('first_name').value = first || '';
+      document.getElementById('last_name').value  = rest.join(' ') || '';
+      document.getElementById('email').value       = t.email || '';
+      document.getElementById('mobile_no').value   = t.mobile_no || '';
+    });
+}
+
+document.getElementById('teacherForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+
+  const errDiv = document.getElementById('formError');
+  const okDiv  = document.getElementById('formSuccess');
+  errDiv.classList.add('d-none');
+  okDiv.classList.add('d-none');
+
+  const first_name = document.getElementById('first_name').value.trim();
+  const last_name  = document.getElementById('last_name').value.trim();
+  const email      = document.getElementById('email').value.trim();
+  const mobile_no  = document.getElementById('mobile_no').value.trim();
+  const password   = document.getElementById('password').value;
+  const class_id   = document.getElementById('class_id').value;
+
+  if (!first_name || !email) {
+    errDiv.textContent = 'First name and email are required.';
+    errDiv.classList.remove('d-none');
+    return;
+  }
+  if (!isEdit && !password) {
+    errDiv.textContent = 'Password is required for new teachers.';
+    errDiv.classList.remove('d-none');
+    return;
+  }
+
+  const body = {
+    first_name,
+    last_name,
+    email,
+    mobile_no,
+    role_type: 'Teacher',
+  };
+  if (password) body.password = password;
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+
+  const url    = isEdit ? `{% url 'customer-users-list-api' %}${teacherId}/` : "{% url 'customer-users-list-api' %}";
+  const method = isEdit ? 'PATCH' : 'POST';
+
+  fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken'),
+    },
+    body: JSON.stringify(body),
+  })
+    .then(r => r.json().then(data => ({ status: r.status, data })))
+    .then(({ status, data }) => {
+      submitBtn.disabled = false;
+
+      if (status >= 200 && status < 300) {
+        okDiv.textContent = isEdit ? 'Teacher updated successfully.' : 'Teacher created successfully.';
+        okDiv.classList.remove('d-none');
+
+        // If a class was selected and this is a new teacher, link via TeacherAssignmentModel
+        const newTeacherId = data.id || data.user_id;
+        if (newTeacherId) {
+        fetch("{% url 'customer-teacher-assign-class-api' %}", {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+            teacher_id: newTeacherId,
+            class_id: class_id || null,
+            principal_id: "{{ request.user.id }}",
+            }),
+        }).catch(() => {});
+        }
+
+        setTimeout(() => {
+          window.location.href = "{% url 'customer-teachers' %}";
+        }, 1200);
+      } else {
+        errDiv.textContent = (data.errors ? JSON.stringify(data.errors) : data.error) || 'Something went wrong.';
+        errDiv.classList.remove('d-none');
+      }
+    })
+    .catch(() => {
+      submitBtn.disabled = false;
+      errDiv.textContent = 'Network error — please try again.';
+      errDiv.classList.remove('d-none');
+    });
+});
+</script>
+{% endblock %}

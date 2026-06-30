@@ -1,0 +1,289 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}Students — Coordinator{% endblock %}
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">My Students</h4>
+    <div class="d-flex gap-2">
+      <a href="{% url 'coordinator-export-student-excel' %}" class="btn btn-outline-success btn-sm"><i class="ti ti-file-spreadsheet me-1"></i>Excel</a>
+      <a href="{% url 'coordinator-export-student-pdf' %}" class="btn btn-outline-danger btn-sm"><i class="ti ti-file-description me-1"></i>PDF</a>
+    </div>
+  </div>
+
+  <!-- ── Summary Cards ── -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card text-center"><div class="card-body py-3">
+        <h3 class="mb-0 text-primary" id="totalCount">—</h3><small class="text-muted">Total Students</small>
+      </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center"><div class="card-body py-3">
+        <h3 class="mb-0 text-danger" id="highRiskCount">—</h3><small class="text-muted">High Risk</small>
+      </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center"><div class="card-body py-3">
+        <h3 class="mb-0 text-warning" id="needsCount">—</h3><small class="text-muted">Needs Attention</small>
+      </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center"><div class="card-body py-3">
+        <h3 class="mb-0 text-secondary" id="inactiveCount">—</h3><small class="text-muted">Inactive</small>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ── FILTER BAR ── -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-3">
+          <label class="form-label small mb-1">Search name</label>
+          <input type="text" id="f-search" class="form-control form-control-sm" placeholder="Student name…">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-1">Class</label>
+          <select id="f-class" class="form-select form-select-sm">
+            <option value="">All classes</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-1">Risk level</label>
+          <select id="f-risk" class="form-select form-select-sm">
+            <option value="">All risk levels</option>
+            <option value="High Risk">High Risk</option>
+            <option value="Needs Attention">Needs Attention</option>
+            <option value="Stable">Stable</option>
+            <option value="Excellent">Excellent</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-1">Min score %</label>
+          <input type="number" id="f-score-min" class="form-control form-control-sm" placeholder="0" min="0" max="100">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-1">Max score %</label>
+          <input type="number" id="f-score-max" class="form-control form-control-sm" placeholder="100" min="0" max="100">
+        </div>
+        <div class="col-6 col-md-1">
+          <label class="form-label small mb-1">HW pending</label>
+          <div class="form-check form-switch mt-1">
+            <input class="form-check-input" type="checkbox" id="f-hw-pending">
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small mb-1">Inactive days</label>
+          <input type="number" id="f-inactive" class="form-control form-control-sm" placeholder="e.g. 3" min="1">
+        </div>
+        <div class="col-6 col-md-1">
+          <button class="btn btn-outline-secondary btn-sm w-100" onclick="applyFilters()"><i class="bx bx-search"></i></button>
+        </div>
+        <div class="col-6 col-md-1">
+          <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetFilters()">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Student Table ── -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Student List</h5>
+      <span class="badge bg-label-primary" id="resultCount">Loading…</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Class</th>
+              <th>Teacher</th>
+              <th>Avg Score</th>
+              <th>Study Time</th>
+              <th>HW Pending</th>
+              <th>Last Active</th>
+              <th>Inactive Days</th>
+              <th>Risk</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="studentBody">
+            <tr><td colspan="11" class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-primary"></div> Loading…
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Student Detail Modal ── -->
+  <div class="modal fade" id="studentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="studentModalTitle">Student Detail</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="studentModalBody">
+          <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let allStudents = [];
+
+const riskBadge = r => ({
+  'High Risk':       '<span class="badge bg-danger">High Risk</span>',
+  'Needs Attention': '<span class="badge bg-warning text-dark">Needs Attention</span>',
+  'Stable':          '<span class="badge bg-success">Stable</span>',
+  'Excellent':       '<span class="badge bg-primary">Excellent</span>',
+  'Inactive':        '<span class="badge bg-secondary">Inactive</span>',
+}[r] || `<span class="badge bg-secondary">${r}</span>`);
+
+function buildParams(){
+  const p = new URLSearchParams();
+  const s = document.getElementById('f-search').value.trim();
+  const c = document.getElementById('f-class').value;
+  const r = document.getElementById('f-risk').value;
+  const mn = document.getElementById('f-score-min').value;
+  const mx = document.getElementById('f-score-max').value;
+  const hw = document.getElementById('f-hw-pending').checked;
+  const ind = document.getElementById('f-inactive').value;
+  if(s)  p.append('search', s);
+  if(c)  p.append('class_id', c);
+  if(r)  p.append('risk', r);
+  if(mn) p.append('score_min', mn);
+  if(mx) p.append('score_max', mx);
+  if(hw) p.append('hw_pending', 'true');
+  if(ind) p.append('inactive_days', ind);
+  return p;
+}
+
+async function loadStudents(params=''){
+  document.getElementById('resultCount').textContent = 'Loading…';
+  const url = "{% url 'coordinator-student-filter-api' %}" + (params ? '?'+params : '');
+  const res = await fetch(url);
+  const data = await res.json();
+  allStudents = data.students || [];
+  renderStudents(allStudents);
+  updateSummary(allStudents);
+}
+
+function updateSummary(list){
+  document.getElementById('totalCount').textContent    = list.length;
+  document.getElementById('highRiskCount').textContent = list.filter(s=>s.risk==='High Risk').length;
+  document.getElementById('needsCount').textContent    = list.filter(s=>s.risk==='Needs Attention').length;
+  document.getElementById('inactiveCount').textContent = list.filter(s=>s.risk==='Inactive').length;
+}
+
+function renderStudents(list){
+  document.getElementById('resultCount').textContent = list.length + ' students';
+  const tbody = document.getElementById('studentBody');
+  if(!list.length){
+    tbody.innerHTML='<tr><td colspan="11" class="text-center py-3 text-muted">No students match the filter</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map((s,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td><strong>${s.name}</strong></td>
+      <td>${s.class}</td>
+      <td>${s.teacher}</td>
+      <td>
+        <div class="d-flex align-items-center gap-1">
+          <div class="progress flex-grow-1" style="height:5px;min-width:50px">
+            <div class="progress-bar ${s.avg_score>=60?'bg-success':s.avg_score>=40?'bg-warning':'bg-danger'}"
+                 style="width:${s.avg_score}%"></div>
+          </div>
+          <small>${s.avg_score}%</small>
+        </div>
+      </td>
+      <td>${s.study_time}</td>
+      <td>${s.hw_pending > 0 ? `<span class="badge bg-label-warning">${s.hw_pending}</span>` : '<span class="text-muted">0</span>'}</td>
+      <td>${s.last_active}</td>
+      <td>${s.days_inactive !== '-' && s.days_inactive >= 3 ? `<span class="text-danger">${s.days_inactive}d</span>` : (s.days_inactive==='-'?'-':`${s.days_inactive}d`)}</td>
+      <td>${riskBadge(s.risk)}</td>
+      <td>
+        <a href="/coordinator/students/${s.id}/" class="btn btn-sm btn-icon btn-label-primary" title="View Detail">
+          <i class="bx bx-show"></i>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function applyFilters(){
+  loadStudents(buildParams().toString());
+}
+
+function resetFilters(){
+  ['f-search','f-score-min','f-score-max','f-inactive'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-class').value='';
+  document.getElementById('f-risk').value='';
+  document.getElementById('f-hw-pending').checked=false;
+  loadStudents();
+}
+
+async function populateClassFilter(){
+  const res = await fetch("{% url 'coordinator-class-comparison-api' %}");
+  const data = await res.json();
+  const sel = document.getElementById('f-class');
+  (data.classes||[]).forEach(c=>{
+    const o = document.createElement('option');
+    o.value = c.id; o.textContent = c.name;
+    sel.appendChild(o);
+  });
+}
+
+async function viewStudent(id, name){
+  window.location.href = `/coordinator/students/${id}/`;
+  document.getElementById('studentModalTitle').textContent = name;
+  document.getElementById('studentModalBody').innerHTML =
+    '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+  new bootstrap.Modal(document.getElementById('studentModal')).show();
+
+  const res = await fetch(`/coordinator/students/${id}/`);
+  const d = await res.json();
+  if(d.error){ document.getElementById('studentModalBody').innerHTML=`<p class="text-danger">${d.error}</p>`; return; }
+
+  document.getElementById('studentModalBody').innerHTML = `
+    <div class="row g-3">
+      <div class="col-md-6">
+        <table class="table table-sm">
+          <tr><td class="text-muted">Class</td><td><strong>${d.class}</strong></td></tr>
+          <tr><td class="text-muted">Avg Score</td><td><strong>${d.avg_score}%</strong></td></tr>
+          <tr><td class="text-muted">Study Time</td><td>${d.study_time}</td></tr>
+          <tr><td class="text-muted">Tests Attempted</td><td>${d.tests_attempted}</td></tr>
+          <tr><td class="text-muted">HW Completion</td><td>${d.homework_pct}%</td></tr>
+          <tr><td class="text-muted">Last Active</td><td>${d.last_active}</td></tr>
+          <tr><td class="text-muted">Risk</td><td>${riskBadge(d.risk)}</td></tr>
+        </table>
+      </div>
+      <div class="col-md-6">
+        <h6 class="fw-semibold mb-2">Teacher Remarks</h6>
+        ${(d.remarks||[]).length ? d.remarks.map(r=>`
+          <div class="border rounded p-2 mb-2 small">
+            <span class="badge bg-label-secondary me-1">${r.remark_type}</span>
+            ${r.remark}
+            <div class="text-muted mt-1" style="font-size:11px">${r.created_at}</div>
+          </div>`).join('') : '<p class="text-muted small">No remarks yet</p>'}
+      </div>
+    </div>
+  `;
+}
+
+populateClassFilter();
+loadStudents();
+</script>
+{% endblock %}

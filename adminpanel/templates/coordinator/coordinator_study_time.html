@@ -1,0 +1,157 @@
+{% extends layout_path %}
+{% load static %}
+<style>
+  thead th {
+    text-transform: capitalize;
+  }
+</style>
+{% block title %}Study Time Analytics{% endblock %}
+
+{% block content %}
+
+<div class="row mb-4">
+  <div class="col-md-3 col-sm-6 mb-3">
+    <div class="card">
+      <div class="card-body text-center">
+        <i class="bx bx-user bx-lg text-primary"></i>
+        <h6 class="mt-2">Total Students</h6>
+        <h3 id="total-students">0</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6 mb-3">
+    <div class="card">
+      <div class="card-body text-center">
+        <i class="bx bx-time-five bx-lg text-success"></i>
+        <h6 class="mt-2">Avg Study Time Today</h6>
+        <h3 id="avg-study-time">0</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6 mb-3">
+    <div class="card">
+      <div class="card-body text-center">
+        <i class="bx bx-user-x bx-lg text-danger"></i>
+        <h6 class="mt-2">Inactive Students</h6>
+        <h3 id="inactive-students">0</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6 mb-3">
+    <div class="card">
+      <div class="card-body text-center">
+        <i class="bx bx-table bx-lg text-warning"></i>
+        <h6 class="mt-2">Inactive Tablets</h6>
+        <h3 id="inactive-tablets">0</h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="bx bx-time me-2 text-primary"></i>
+      Study Time Analytics
+    </h5>
+    <input type="text" id="search-study"
+           class="form-control form-control-sm"
+           placeholder="Search student..."
+           style="width:250px;">
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+      <tr>
+        <th class="text-capitalize">sr</th>
+        <th class="text-capitalize">student</th>
+        <th class="text-capitalize">class</th>
+        <th class="text-capitalize">teacher</th>
+        <th class="text-capitalize">total study</th>
+        <th class="text-capitalize">today study</th>
+        <th class="text-capitalize">test done</th>
+        <th class="text-capitalize">hw submitted</th>
+        <th class="text-capitalize">last active</th>
+        <th class="text-capitalize">tablet id</th>
+        <th class="text-capitalize">status</th>
+      </tr>
+    </thead>
+      <tbody id="study-tbody">
+        <tr>
+          <td colspan="11" class="text-center py-5">Loading study analytics...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let allStudyData = [];
+
+document.addEventListener('DOMContentLoaded', function(){
+
+    fetch("{% url 'coordinator-study-time-api' %}")
+    .then(r => {
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    })
+    .then(data => {
+        // Summary — key is avg_study_today not avg_study_time
+        document.getElementById('total-students').textContent    = data.summary.total_students    || 0;
+        document.getElementById('avg-study-time').textContent    = data.summary.avg_study_today   || '0 min';
+        document.getElementById('inactive-students').textContent = data.summary.inactive_students || 0;
+        document.getElementById('inactive-tablets').textContent  = data.summary.inactive_tablets  || 0;
+
+        allStudyData = data.study_time || [];
+        renderStudy(allStudyData);
+    })
+    .catch(error => {
+        document.getElementById('study-tbody').innerHTML =
+            `<tr><td colspan="11" class="text-center py-5 text-danger">
+                Failed to load study analytics.<br>${error.message}
+            </td></tr>`;
+    });
+
+    document.getElementById('search-study').addEventListener('keyup', function(){
+        const q = this.value.toLowerCase();
+        renderStudy(allStudyData.filter(s =>
+            s.student_name.toLowerCase().includes(q) ||
+            s.class_name.toLowerCase().includes(q) ||
+            s.teacher_name.toLowerCase().includes(q)
+        ));
+    });
+});
+
+function renderStudy(items){
+    const tbody = document.getElementById('study-tbody');
+
+    if(!items.length){
+        tbody.innerHTML =
+            `<tr><td colspan="11" class="text-center py-5 text-success">
+                <i class="bx bx-check-circle fs-2 d-block mb-2"></i>No study records found.
+            </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = items.map((item, index) => {
+        const badgeColor = item.status === 'Active' ? 'success' : 'danger';
+        return `
+        <tr>
+            <td>${index + 1}</td>
+            <td><strong>${item.student_name}</strong></td>
+            <td>${item.class_name}</td>
+            <td>${item.teacher_name}</td>
+            <td>${item.study_time}</td>
+            <td>${item.today_study}</td>
+            <td>${item.tests_attempted}</td>
+            <td>${item.homework_opened}</td>
+            <td>${item.last_active}</td>
+            <td><code>${item.tablet_id}</code></td>
+            <td><span class="badge bg-${badgeColor}">${item.status}</span></td>
+        </tr>`;
+    }).join('');
+}
+</script>
+
+{% endblock %}

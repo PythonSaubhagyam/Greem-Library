@@ -237,16 +237,16 @@ document.addEventListener("DOMContentLoaded", function() {
 
                                 <!-- VIEW -->
                                 <a href="/administrator/lead-followups/lead/${lead.id}/"
-                                  class="text-info"
+                                  class="btn btn-sm btn-icon btn-label-primary"
                                   title="View">
-                                  <i class="bx bx-show fs-4"></i>
+                                  <i class="bx bx-show"></i>
                                 </a>
 
                                 <!-- EDIT -->
                                 <a href="/administrator/leads/edit/${lead.id}/"
-                                  class="text-warning"
+                                  class="btn btn-sm btn-icon btn-label-warning me-1"
                                   title="Edit">
-                                  <i class="bx bx-edit-alt fs-4"></i>
+                                  <i class="bx bx-edit"></i>
                                 </a>
 
                                 {% comment %}<!-- ADD STUDENT -->
@@ -259,9 +259,9 @@ document.addEventListener("DOMContentLoaded", function() {
                                 <!-- DELETE -->
                                 <a href="#"
                                   onclick="askDelete(${lead.id})"
-                                  class="text-danger"
+                                  class="btn btn-sm btn-icon btn-label-danger"
                                   title="Delete">
-                                  <i class="bx bx-trash-alt fs-4"></i>
+                                  <i class="bx bx-trash"></i>
                                 </a>
                               </div>
                             </td>

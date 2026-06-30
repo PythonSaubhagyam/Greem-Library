@@ -4,6 +4,7 @@
 
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
+
   <div class="card mb-4">
     <div class="card-body d-flex justify-content-between align-items-center">
       <h4 class="mb-0">Homework Reports</h4>
@@ -70,42 +71,198 @@
   </div>
 </div>
 
+<!-- ── View Submissions Modal ─────────────────────────── -->
+<div class="modal fade" id="submissionsModal" tabindex="-1" aria-labelledby="submissionsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="submissionsModalLabel">Submissions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="submissionsModalBody">
+        <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Homework Detail Modal ──────────────────────────── -->
+<div class="modal fade" id="homeworkDetailModal" tabindex="-1" aria-labelledby="homeworkDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="homeworkDetailModalLabel">Homework Detail</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="homeworkDetailModalBody">
+        <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function(){
-  // If this reports page is rendered under customer dashboard, ensure Add Homework link redirects back
-  try{
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ── helpers ─────────────────────────────────────────── */
+  function fmtDate(raw) {
+    if (!raw) return '-';
+    const d = new Date(raw);
+    return isNaN(d) ? raw : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  function spinnerHtml() {
+    return '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+  }
+
+  /* ── stats ───────────────────────────────────────────── */
+  function loadStats() {
+    fetch('/administrator/homework/dashboard/')
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('stat-assigned').innerText  = data.assigned  ?? 0;
+        document.getElementById('stat-submitted').innerText = data.submitted ?? 0;
+        document.getElementById('stat-pending').innerText   = data.pending   ?? 0;
+        document.getElementById('stat-checked').innerText   = data.checked   ?? 0;
+      })
+      .catch(() => {});
+  }
+
+  /* ── list ────────────────────────────────────────────── */
+  function loadList() {
+    fetch('/administrator/homework/?page=1&row_per_page=50')
+      .then(r => r.json())
+      .then(data => {
+        const tbody = document.getElementById('homework-list');
+        tbody.innerHTML = '';
+
+        if (!data.results || data.results.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">No homework found</td></tr>';
+          return;
+        }
+
+        data.results.forEach((h, i) => {
+          const assignedTo = (h.students && h.students.length)
+            ? h.students.map(s => s.student_name).join(', ')
+            : (h.target_class || '-');
+
+          const row = `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${h.title}</td>
+              <td>${fmtDate(h.due_date)}</td>
+              <td>${assignedTo}</td>
+              <td>
+                <button class="btn btn-sm btn-outline-info"
+                        onclick="openSubmissions(${h.id}, '${h.title.replace(/'/g, "\\'")}')">
+                  View
+                </button>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary"
+                        onclick="openDetail(${h.id}, '${h.title.replace(/'/g, "\\'")}')">
+                  Open
+                </button>
+              </td>
+            </tr>`;
+          tbody.insertAdjacentHTML('beforeend', row);
+        });
+      })
+      .catch(() => {
+        document.getElementById('homework-list').innerHTML =
+          '<tr><td colspan="6" class="text-center text-danger">Failed to load</td></tr>';
+      });
+  }
+
+  /* ── View submissions modal ──────────────────────────── */
+  window.openSubmissions = function (hwId, title) {
+    const modal = new bootstrap.Modal(document.getElementById('submissionsModal'));
+    document.getElementById('submissionsModalLabel').textContent = 'Submissions — ' + title;
+    document.getElementById('submissionsModalBody').innerHTML = spinnerHtml();
+    modal.show();
+
+    fetch(`/administrator/homework/submissions/?homework_id=${hwId}`)
+      .then(r => r.json())
+      .then(data => {
+        const results = data.results || data;    // handle both paginated and plain list
+        if (!results.length) {
+          document.getElementById('submissionsModalBody').innerHTML =
+            '<p class="text-muted text-center">No submissions yet.</p>';
+          return;
+        }
+        let rows = results.map(s => `
+          <tr>
+            <td>${s.student?.student_name || s.student_name || '-'}</td>
+            <td>${fmtDate(s.submitted_at)}</td>
+            <td>${s.score !== null && s.score !== undefined ? s.score : '-'}</td>
+            <td>${s.remarks || '-'}</td>
+          </tr>`).join('');
+
+        document.getElementById('submissionsModalBody').innerHTML = `
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr><th>Student</th><th>Submitted</th><th>Score</th><th>Remarks</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+      })
+      .catch(() => {
+        document.getElementById('submissionsModalBody').innerHTML =
+          '<p class="text-danger text-center">Failed to load submissions.</p>';
+      });
+  };
+
+  /* ── Open detail modal ───────────────────────────────── */
+  window.openDetail = function (hwId, title) {
+    const modal = new bootstrap.Modal(document.getElementById('homeworkDetailModal'));
+    document.getElementById('homeworkDetailModalLabel').textContent = title;
+    document.getElementById('homeworkDetailModalBody').innerHTML = spinnerHtml();
+    modal.show();
+
+    fetch(`/administrator/homework/${hwId}/`)
+      .then(r => r.json())
+      .then(h => {
+        const assignedTo = (h.students && h.students.length)
+          ? h.students.map(s => s.student_name).join(', ')
+          : (h.target_class || '-');
+
+        document.getElementById('homeworkDetailModalBody').innerHTML = `
+          <dl class="row mb-0">
+            <dt class="col-sm-4">Title</dt>
+            <dd class="col-sm-8">${h.title}</dd>
+
+            <dt class="col-sm-4">Description</dt>
+            <dd class="col-sm-8">${h.description || '-'}</dd>
+
+            <dt class="col-sm-4">Due Date</dt>
+            <dd class="col-sm-8">${fmtDate(h.due_date)}</dd>
+
+            <dt class="col-sm-4">Assigned To</dt>
+            <dd class="col-sm-8">${assignedTo}</dd>
+
+            <dt class="col-sm-4">Created</dt>
+            <dd class="col-sm-8">${fmtDate(h.created_at)}</dd>
+          </dl>`;
+      })
+      .catch(() => {
+        document.getElementById('homeworkDetailModalBody').innerHTML =
+          '<p class="text-danger text-center">Failed to load homework detail.</p>';
+      });
+  };
+
+  /* ── init ────────────────────────────────────────────── */
+  try {
     const addBtn = document.getElementById('addHomeworkBtn');
-    if(addBtn && window.location.pathname.includes('/customer/dashboard')){
-      // set next param so the add page returns to customer dashboard
+    if (addBtn && window.location.pathname.includes('/customer/dashboard')) {
       const next = '/customer/dashboard/homework/';
       addBtn.href = addBtn.href.split('?')[0] + '?next=' + encodeURIComponent(next);
     }
-  }catch(e){/* ignore */}
-  function loadStats(){
-    fetch('/administrator/homework/dashboard/')
-      .then(r=>r.json()).then(data=>{
-        document.getElementById('stat-assigned').innerText = data.assigned;
-        document.getElementById('stat-submitted').innerText = data.submitted;
-        document.getElementById('stat-pending').innerText = data.pending;
-        document.getElementById('stat-checked').innerText = data.checked;
-      });
-  }
+  } catch (e) {}
 
-  function loadList(){
-    fetch('/administrator/homework/?page=1&row_per_page=50')
-      .then(r=>r.json()).then(data=>{
-        const tbody = document.getElementById('homework-list');
-        tbody.innerHTML = '';
-        data.results.forEach((h,i)=>{
-          const assignedTo = h.students.length ? h.students.map(s=>s.student_name).join(', ') : (h.target_class||'-');
-          const row = `\n            <tr>\n              <td>${i+1}</td>\n              <td>${h.title}</td>\n              <td>${h.due_date||'-'}</td>\n              <td>${assignedTo}</td>\n              <td><a href="/administrator/homework/submissions/?homework_id=${h.id}">View</a></td>\n              <td><a href="/administrator/homework/${h.id}/">Open</a></td>\n            </tr>\n          `;
-          tbody.insertAdjacentHTML('beforeend', row);
-        });
-      });
-  }
-
-  document.getElementById('refreshBtn').addEventListener('click', ()=>{ loadStats(); loadList(); });
-  loadStats(); loadList();
+  document.getElementById('refreshBtn').addEventListener('click', () => { loadStats(); loadList(); });
+  loadStats();
+  loadList();
 });
 </script>
+
 {% endblock %}

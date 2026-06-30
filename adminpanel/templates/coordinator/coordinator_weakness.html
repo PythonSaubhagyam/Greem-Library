@@ -1,0 +1,181 @@
+{% extends layout_path %}
+{% load static %}
+
+{% block title %}Weakness Analysis{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <!-- Summary -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card bg-label-danger text-center p-3">
+        <h6>High Risk Students</h6><h3 id="high-risk">-</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-label-warning text-center p-3">
+        <h6>Needs Attention</h6><h3 id="needs-attention">-</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-label-info text-center p-3">
+        <h6>Inactive Students</h6><h3 id="inactive-count">-</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-label-primary text-center p-3">
+        <h6>Total Weak</h6><h3 id="total-weak">-</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weak Students Table -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="bx bx-error-circle me-2 text-danger"></i>Weak Students (Below 40%)
+      </h5>
+      <input type="text" id="search-weak" class="form-control form-control-sm"
+             placeholder="Search..." style="width:200px;">
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-capitalize">
+          <tr>
+            <th>Sr</th>
+            <th>Student</th>
+            <th>Class</th>
+            <th>Avg Score</th>
+            <th>Study Time</th>
+            <th>Homework %</th>
+            <th>Tests Done</th>
+            <th>Last Active</th>
+            <th>Risk</th>
+          </tr>
+        </thead>
+        <tbody id="weak-tbody">
+          <tr><td colspan="9" class="text-center py-4">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Class Weakness Comparison -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bx bx-bar-chart-alt-2 me-2 text-warning"></i>Class Weakness Comparison
+      </h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-capitalize">
+          <tr>
+            <th>Class</th>
+            <th>Avg Score</th>
+            <th>Weak Students</th>
+            <th>HW Completion</th>
+            <th>Tests Taken</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="class-tbody">
+          <tr><td colspan="6" class="text-center py-4">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let allWeak = [];
+
+document.addEventListener('DOMContentLoaded', function(){
+    // Load weak students
+    fetch("{% url 'coordinator-weak-students-api' %}")
+    .then(r => r.json())
+    .then(data => {
+        allWeak = data.weak_students || [];
+
+        document.getElementById('high-risk').textContent      = allWeak.filter(s => s.risk === 'High Risk').length;
+        document.getElementById('needs-attention').textContent = allWeak.filter(s => s.risk === 'Needs Attention').length;
+        document.getElementById('inactive-count').textContent  = allWeak.filter(s => s.last_active === 'Never').length;
+        document.getElementById('total-weak').textContent      = allWeak.length;
+
+        renderWeak(allWeak);
+    })
+    .catch(() => {
+        document.getElementById('weak-tbody').innerHTML =
+            `<tr><td colspan="9" class="text-danger text-center py-4">Failed to load</td></tr>`;
+    });
+
+    // Load class comparison
+    fetch("{% url 'coordinator-class-comparison-api' %}")
+    .then(r => r.json())
+    .then(data => {
+        const classes = data.classes || [];
+        const tbody = document.getElementById('class-tbody');
+        if(!classes.length){
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No classes</td></tr>';
+            return;
+        }
+        const sc = { Excellent:'success', Good:'primary', Average:'warning', Weak:'danger', Critical:'danger' };
+        tbody.innerHTML = classes.map(c => `<tr>
+            <td><strong>${c.name}</strong></td>
+            <td><span class="fw-bold text-${c.avg_score < 40 ? 'danger' : c.avg_score < 60 ? 'warning' : 'success'}">${c.avg_score}%</span></td>
+            <td><span class="badge bg-label-${c.weak_students > 0 ? 'danger' : 'success'}">${c.weak_students}</span></td>
+            <td>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height:6px;">
+                        <div class="progress-bar bg-${c.homework_completion > 50 ? 'success' : 'danger'}"
+                             style="width:${c.homework_completion}%"></div>
+                    </div>
+                    <small>${c.homework_completion}%</small>
+                </div>
+            </td>
+            <td>${c.tests_taken}</td>
+            <td><span class="badge bg-${sc[c.status]||'secondary'}">${c.status}</span></td>
+        </tr>`).join('');
+    });
+});
+
+function renderWeak(items){
+    const tbody = document.getElementById('weak-tbody');
+    if(!items.length){
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-success">No weak students found</td></tr>`;
+        return;
+    }
+    const rc = { 'High Risk':'danger', 'Needs Attention':'warning', 'Stable':'success' };
+    tbody.innerHTML = items.map((s, i) => `<tr>
+        <td>${i+1}</td>
+        <td><strong>${s.name}</strong></td>
+        <td>${s.class}</td>
+        <td><span class="fw-bold text-${s.avg_score < 25 ? 'danger' : 'warning'}">${s.avg_score}%</span></td>
+        <td>${s.study_time}</td>
+        <td>
+            <div class="d-flex align-items-center gap-1">
+                <div class="progress flex-grow-1" style="height:6px;min-width:50px;">
+                    <div class="progress-bar bg-${s.homework_pct > 50 ? 'success' : 'danger'}"
+                         style="width:${s.homework_pct}%"></div>
+                </div>
+                <small>${s.homework_pct}%</small>
+            </div>
+        </td>
+        <td>${s.tests_attempted}</td>
+        <td><small>${s.last_active}</small></td>
+        <td><span class="badge bg-${rc[s.risk]||'secondary'}">${s.risk}</span></td>
+    </tr>`).join('');
+}
+
+document.getElementById('search-weak').addEventListener('input', function(){
+    const q = this.value.toLowerCase();
+    renderWeak(allWeak.filter(s =>
+        s.name.toLowerCase().includes(q) ||
+        s.class.toLowerCase().includes(q) ||
+        s.risk.toLowerCase().includes(q)
+    ));
+});
+</script>
+{% endblock %}

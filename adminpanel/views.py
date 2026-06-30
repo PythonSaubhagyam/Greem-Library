@@ -84,16 +84,16 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
 
     # Predefined function
     def get_context_data(self, **kwargs):
-        # A function to init the global layout. It is defined in web_project/__init__.py file
         context = TemplateLayout.init(self, super().get_context_data(**kwargs))
 
+        #  Define template FIRST
         template = self.template_name
+        
         import re
         match = re.search(r'/companies/detail/(\d+)/', self.request.path)
-        company_id =  self.request.GET.get('company')
+        company_id = self.request.GET.get('company')
         detail_name = self.request.GET.get("type")
 
-        # context['admin_company_id'] = FacebookMetadata.objects.filter(user__email="info@saubhagyam.com").first().id if FacebookMetadata.objects.filter(user__email="info@saubhagyam.com").exists() else None
         context['slug'] = kwargs.get('slug')
         context['sub_slug'] = kwargs.get('sub_slug')
         context['inquiry_id'] = kwargs.get('id')
@@ -111,10 +111,8 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
 
         if "/leads/add/" in self.request.path.lower():
             add_edit_label = "Add Lead"
-
         elif "/leads/edit/" in self.request.path.lower():
             add_edit_label = "Edit Lead"
-
 
         student_name = ''
         customer_name = ''
@@ -134,7 +132,7 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
         elif "/employees/add/" in self.request.path.lower():
             add_edit_label = "Add Employee"
         elif "/employees/edit/" in self.request.path.lower():
-            add_edit_label = "Edit Employee" 
+            add_edit_label = "Edit Employee"
         elif "/customers/add/" in self.request.path.lower():
             add_edit_label = "Add Customer"
         elif "/customers/edit/" in self.request.path.lower():
@@ -143,7 +141,7 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             add_edit_label = "Add Device"
         elif "/devices/edit/" in self.request.path.lower():
             add_edit_label = "Edit Device"
-       
+
         if "administrator/students/detail/" in self.request.path.lower():
             student_id = self.kwargs.get("id")
             student_name = StudentModel.objects.filter(id=student_id).first().student_name
@@ -152,15 +150,20 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             customer = UserModel.objects.filter(id=user_id).first()
             customer_name = customer.first_name + " " + customer.last_name if customer else ""
 
-        
-        # context['ADMIN_IDS'] = settings.ADMIN_IDS
+        context['request'] = self.request
 
-        context['request'] =  self.request
+        # ✅ Role-based breadcrumb — defined ONCE here, no overwrite below
+        user = self.request.user
+        user_role = getattr(getattr(user, 'role', None), 'type', None)
 
-        # Common breadcrumb base
-        breadcrumbs = [{"label": "Home", "url": reverse("index")}]  
-        if template in ["admin_properties_list.html", "admin_properties_add_update.html","admin_premium_properties_list.html", "admin_imp_properties_list.html", "admin_properties_dashboard.html"]:
+        if user_role == 'Coordinator':
+            breadcrumbs = [{"label": "Home", "url": reverse("coordinator-dashboard")}]
+        elif template in ["admin_properties_list.html", "admin_properties_add_update.html",
+                        "admin_premium_properties_list.html", "admin_imp_properties_list.html",
+                        "admin_properties_dashboard.html"]:
             breadcrumbs = [{"label": "Home", "url": reverse("admin-dashboard")}]
+        else:
+            breadcrumbs = [{"label": "Home", "url": reverse("index")}]
 
         def section(label, url=None):
             if url:
@@ -168,6 +171,11 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             else:
                 breadcrumbs.append({"label": label})
 
+        if template == "school_teacher_add.html":
+            if "/teachers/add/" in self.request.path.lower():
+                add_edit_label = "Add Teacher"
+            elif "/teachers/edit/" in self.request.path.lower():
+                add_edit_label = "Edit Teacher"
         # Map templates to breadcrumbs
         route_map = {
             "companies_list.html": (company_label, None),
@@ -184,6 +192,17 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             "Devices_list.html": ("Devices Management", None),
             "customer_device_add_update.html": ("Devices Management", reverse('devices'), add_edit_label),
             "customer_detail.html": ("Customers Management", reverse('customers'), customer_name),
+            "school_setup.html":("School Setup",None),
+            "class_comparison.html":("Class Comparison",None),
+            "onboarding_upload.html":("Onboarding",None),
+            "action_required.html":("Actions",None),
+            "alerts.html":("Alert",None),
+            "Classes_list.html":("Class",None),
+            "homework_reports.html":("Homework",None),
+            "homework_add.html":("Homework", reverse('homework-add')),
+            "tests_list.html":("Test",None),
+            "school_teachers_list.html":("Teacher",None),
+            "school_teacher_add.html": ("Teacher",reverse("customer-teachers"),add_edit_label),
 
             # "leads_details.html": ("Lead Management", None),
             # "lead_add.html": ("Lead Management", reverse('lead-management'), "Add Tablet Lead"),
@@ -200,6 +219,28 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             "device_management.html": ("Device Management", None),
             "settings.html": ("Settings", None),
             "coordinators_list.html": ("Coordinators", None),
+
+            # "coordinator/coordinator_dashboard.html": ("", None),
+            "coordinator/coordinator_classes.html": ("Classes Management", None),
+            "coordinator/coordinator_class_detail.html": ("Classes Management", reverse('coordinator-classes'), "Class Details"),
+            "coordinator/coordinator_teachers.html": ("Teachers Management", None),
+            "coordinator/coordinator_teacher_neglect.html": ("Teacher Neglect", None),
+            "coordinator/coordinator_students.html": ("Students", None),
+            "coordinator/coordinator_subjects.html": ("Subjects", None),
+            "coordinator/coordinator_tests.html": ("Tests Management", None),
+            "coordinator/coordinator_homework.html": ("Homework Management", None),
+            "coordinator/coordinator_study_time.html": ("Study Time", None),
+            "coordinator/coordinator_weakness.html": ("Weakness Analysis", None),
+            "coordinator/coordinator_actions.html": ("Actions", None),
+            "coordinator/coordinator_alerts.html": ("Alerts Management", None),
+            "coordinator/coordinator_reports.html": ("Reports Management", None),
+            "coordinator/coordinator_devices.html": ("Device Management", None),
+            "coordinator/coordinator_escalations.html": ("Escalations", None),
+            "coordinator/coordinator_profile.html": ("My Profile", None),
+            "coordinator/coordinator_settings.html": ("Settings", None),
+            "coordinator/coordinator_student_detail.html": ("Students", reverse('coordinator-students'), "Student Detail"),
+            "coordinator/coordinator_teacher_neglect.html": ("Teacher Neglect Detection", None),
+        # }
 
             # "property_add.html": ("Properties", reverse("properties"), "Add Property"),
             # "property_edit.html": ("Properties", reverse("properties"), "Edit Property"),
@@ -301,7 +342,7 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             # "admin_properties_dashboard.html": ("Dashboard Details", None),
 
             # "property_filter.html": ("Advance Search", None),
-        }
+    } 
 
         if company_id:
             route_map["company_details_table.html"] = (
@@ -359,15 +400,15 @@ class CustomerDashboardView(DashboardsView):
 
 
 @method_decorator(login_required, name='dispatch')
-class CoordinatorDashboardView(View):
-    def get(self, request):
-        context = TemplateLayout.init(self, {})
-        context.update({
-            "layout_path": TemplateHelper.set_layout("layout_vertical.html", context),
-        })
-        context["user"] = request.user
-        return render(request, "coordinator_dashboard.html", context)
+class CoordinatorDashboardView(DashboardsView):
+    template_name = "coordinator/coordinator_dashboard.html"
 
+    def get(self, request):
+        if request.user.role.type != 'Coordinator':
+            return redirect('index')
+        context = self.get_context_data()
+        context["user"] = request.user
+        return render(request, self.template_name, context)
 
 
 class LeadCreateUpdateView(DashboardsView):
@@ -557,3 +598,13 @@ def cors_media_serve(request, path):
 
 def csrf_failure(request, reason=""):
     return render(request, "403_csrf.html", status=403)
+
+
+class SchoolSetupView(TemplateView):
+    template_name = "school_setup.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['layout_path'] = "layout/master.html"
+        return context

@@ -1,0 +1,148 @@
+{% extends layout_path %}
+{% load static %}
+
+{% block title %}Subjects{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="bx bx-book me-2 text-primary"></i>Subject Analytics
+      </h5>
+      <input type="text" id="search-subject" class="form-control form-control-sm"
+             placeholder="Search subject..." style="width:200px;">
+    </div>
+
+    <!-- Summary -->
+    <div class="card-body border-bottom">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <div class="card bg-label-primary text-center p-3">
+            <h6>Total Subjects</h6><h3 id="total-subjects">-</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-label-success text-center p-3">
+            <h6>Avg Score</h6><h3 id="avg-score">-</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-label-danger text-center p-3">
+            <h6>Weak Subjects</h6><h3 id="weak-subjects">-</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-label-warning text-center p-3">
+            <h6>Total Tests</h6><h3 id="total-tests">-</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-capitalize">
+          <tr>
+            <th>Sr</th>
+            <th>Subject</th>
+            <th>Teacher</th>
+            <th>Total Tests</th>
+            <th>Avg Score</th>
+            <th>Weak Students</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="subjects-tbody">
+          <tr><td colspan="7" class="text-center py-4">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let allSubjects = [];
+
+document.addEventListener('DOMContentLoaded', function(){
+    // Build subject data from test stats API
+
+    fetch("{% url 'coordinator-subject-api' %}")
+    .then(response => response.json())
+    .then(data => {
+
+        allSubjects = data.subjects || [];
+
+        // Summary cards
+        document.getElementById('total-subjects').textContent =
+            allSubjects.length;
+
+        document.getElementById('weak-subjects').textContent =
+            allSubjects.filter(s => s.avg_score < 40).length;
+
+        document.getElementById('total-tests').textContent =
+            allSubjects.reduce((sum, s) => sum + s.tests_count, 0);
+
+        const overall =
+            allSubjects.length
+            ? (
+                allSubjects.reduce((sum, s) => sum + s.avg_score, 0)
+                / allSubjects.length
+              ).toFixed(1)
+            : 0;
+
+        document.getElementById('avg-score').textContent =
+            overall + '%';
+
+        renderSubjects(allSubjects);
+    })
+    .catch(error => {
+        console.error(error);
+
+        document.getElementById('subjects-tbody').innerHTML =
+            `<tr>
+                <td colspan="7" class="text-center text-danger py-4">
+                    Failed to load subjects
+                </td>
+            </tr>`;
+    });
+
+});
+
+function renderSubjects(items){
+    const tbody = document.getElementById('subjects-tbody');
+    if(!items.length){
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted">No subject data available</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = items.map((s, i) => {
+        const status = s.avg_score >= 75 ? 'Excellent' : s.avg_score >= 60 ? 'Good' : s.avg_score >= 40 ? 'Average' : 'Weak';
+        const sc = { Excellent:'success', Good:'primary', Average:'warning', Weak:'danger' };
+        return `<tr>
+            <td>${i+1}</td>
+            <td><strong>${s.subject}</strong></td>
+            <td>${s.teacher}</td>
+            <td><span class="badge bg-label-info">${s.tests_count}</span></td>
+            <td><span class="${s.avg_score < 40 ? 'text-danger fw-bold' : 'text-success'}">${s.avg_score}%</span></td>
+            <td>
+                <span class="badge bg-label-${s.weak_students > 0 ? 'danger' : 'success'}">
+                    ${s.weak_students}
+                </span>
+            </td>
+            <td><span class="badge bg-${sc[status]||'secondary'}">${status}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+document.getElementById('search-subject').addEventListener('input', function(){
+    const q = this.value.toLowerCase();
+    renderSubjects(allSubjects.filter(s =>
+        s.subject.toLowerCase().includes(q) ||
+        s.teacher.toLowerCase().includes(q)
+    ));
+});
+</script>
+
+{% endblock %}

@@ -20,12 +20,31 @@ class LogoutView(View):
 class AuthView(View):
     template_name = "auth_login_basic.html"
 
+    # def get(self, request):
+    #     if request.user.is_authenticated:
+    #         # if request.user.role.name == "Admin" and request.user.id in settings.ADMIN_IDS:
+    #         #     return redirect("admin-dashboard")
+    #         return redirect("index")
+        
+    #     context = TemplateLayout.init(self, {})
+    #     context.update({
+    #         "layout_path": TemplateHelper.set_layout("layout_blank.html", context),
+    #     })
+    #     return render(request, self.template_name, context)
     def get(self, request):
         if request.user.is_authenticated:
-            # if request.user.role.name == "Admin" and request.user.id in settings.ADMIN_IDS:
-            #     return redirect("admin-dashboard")
-            return redirect("index")
-        
+            try:
+                role_name = request.user.role.type
+            except AttributeError:
+                role_name = None
+
+            if role_name == "Customer":
+                return redirect("customer-dashboard")
+            elif role_name == "Coordinator":
+                return redirect("coordinator-dashboard")
+            else:
+                return redirect("index")   # Admin, Teacher, Employee, Parent
+
         context = TemplateLayout.init(self, {})
         context.update({
             "layout_path": TemplateHelper.set_layout("layout_blank.html", context),

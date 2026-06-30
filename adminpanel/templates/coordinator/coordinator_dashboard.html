@@ -1,0 +1,341 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}Dashboard — Coordinator{% endblock %}
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">Coordinator Dashboard</h4>
+    <span class="text-muted small" id="dashDate"></span>
+  </div>
+
+  <!-- ── Stat Cards ── -->
+  <div class="row g-3 mb-4" id="statCards">
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar avatar-md bg-label-primary rounded"><i class="ti ti-building-school ti-md"></i></div>
+          <div><div class="h5 mb-0" id="s-classes">—</div><small class="text-muted">Assigned Classes</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar avatar-md bg-label-success rounded"><i class="ti ti-users ti-md"></i></div>
+          <div><div class="h5 mb-0" id="s-teachers">—</div><small class="text-muted">Assigned Teachers</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar avatar-md bg-label-info rounded"><i class="ti ti-user-check ti-md"></i></div>
+          <div><div class="h5 mb-0" id="s-students">—</div><small class="text-muted">Total Students</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar avatar-md bg-label-warning rounded"><i class="ti ti-activity ti-md"></i></div>
+          <div><div class="h5 mb-0" id="s-active">—</div><small class="text-muted">Active Today</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar avatar-md bg-label-danger rounded"><i class="ti ti-trending-down ti-md"></i></div>
+          <div><div class="h5 mb-0" id="s-weak">—</div><small class="text-muted">Weak Students</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar avatar-md bg-label-secondary rounded"><i class="ti ti-notebook ti-md"></i></div>
+          <div><div class="h5 mb-0" id="s-hw">—</div><small class="text-muted">Pending Homework</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar avatar-md bg-label-primary rounded"><i class="ti ti-file-check ti-md"></i></div>
+          <div><div class="h5 mb-0" id="s-tests">—</div><small class="text-muted">Tests This Week</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar avatar-md bg-label-danger rounded"><i class="ti ti-bell-ringing ti-md"></i></div>
+          <div><div class="h5 mb-0" id="s-actions">—</div><small class="text-muted">Action Required</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- ── WIDGET 1: Today's Action Required ── -->
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="ti ti-alert-triangle text-danger me-2"></i>Today's Action Required</h5>
+          <a href="{% url 'coordinator-actions' %}" class="btn btn-sm btn-outline-primary">View all</a>
+        </div>
+        <div class="card-body p-0">
+          <div id="actionWidget" style="max-height:280px;overflow-y:auto">
+            <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WIDGET 2: Class Health Summary ── -->
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="ti ti-school text-primary me-2"></i>Class Health Summary</h5>
+          <a href="{% url 'coordinator-classes' %}" class="btn btn-sm btn-outline-primary">View all</a>
+        </div>
+        <div class="card-body p-0">
+          <div id="classWidget" style="max-height:280px;overflow-y:auto">
+            <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WIDGET 3: Recent Alerts ── -->
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="ti ti-bell text-warning me-2"></i>Recent Alerts</h5>
+          <a href="{% url 'coordinator-alerts' %}" class="btn btn-sm btn-outline-warning">View all</a>
+        </div>
+        <div class="card-body p-0">
+          <div id="alertWidget" style="max-height:280px;overflow-y:auto">
+            <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WIDGET 4: Device / Inactive Tablet Summary ── -->
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="ti ti-device-tablet text-info me-2"></i>Device / Tablet Summary</h5>
+          <a href="{% url 'coordinator-devices' %}" class="btn btn-sm btn-outline-info">View all</a>
+        </div>
+        <div class="card-body" id="deviceWidget">
+          <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- row -->
+</div>
+
+<script>
+// ── Dashboard Widget Wiring ──────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+
+    // 1. Action Required widget
+    fetch('/coordinator/api/actions/assign/')
+        .then(r => r.json())
+        .then(data => {
+            const actions = data.actions || [];
+            const el = document.getElementById('widget-action-count');
+            if (el) el.textContent = actions.filter(a => ['New','Pending'].includes(a.status)).length;
+
+            const tbody = document.getElementById('widget-action-list');
+            if (tbody) {
+                tbody.innerHTML = actions.slice(0, 5).map(a => `
+                    <tr>
+                        <td>${a.description || '-'}</td>
+                        <td><span class="badge bg-${a.priority === 'High' ? 'danger' : a.priority === 'Medium' ? 'warning' : 'secondary'}">${a.priority}</span></td>
+                        <td>${a.status}</td>
+                        <td>${a.due_date}</td>
+                    </tr>`).join('');
+            }
+        });
+
+    // 2. Class Health widget
+    fetch('/coordinator/api/class-comparison/')
+        .then(r => r.json())
+        .then(data => {
+            const classes = data.classes || [];
+            const tbody = document.getElementById('widget-class-health');
+            if (tbody) {
+                tbody.innerHTML = classes.map(c => `
+                    <tr>
+                        <td>${c.name}</td>
+                        <td>${c.avg_score}%</td>
+                        <td>${c.weak_students}</td>
+                        <td>${c.homework_completion}%</td>
+                        <td><span class="badge bg-${c.status === 'Excellent' ? 'success' : c.status === 'Critical' ? 'danger' : c.status === 'Weak' ? 'warning' : 'info'}">${c.status}</span></td>
+                    </tr>`).join('');
+            }
+        });
+
+    // 3. Device / Inactive Tablet widget
+    fetch('/coordinator/api/device-stats/')
+        .then(r => r.json())
+        .then(data => {
+            const s = data.summary || {};
+            const el = document.getElementById('widget-inactive-tablets');
+            if (el) el.textContent = s.inactive || 0;
+            const el2 = document.getElementById('widget-active-tablets');
+            if (el2) el2.textContent = s.active || 0;
+        });
+
+    // 4. Recent Alerts widget
+    fetch('/coordinator/api/alerts/all/')
+        .then(r => r.json())
+        .then(data => {
+            const alerts = (data.alerts || []).slice(0, 5);
+            const el = document.getElementById('widget-alert-count');
+            if (el) el.textContent = data.count || 0;
+
+            const list = document.getElementById('widget-alert-list');
+            if (list) {
+                list.innerHTML = alerts.map(a => `
+                    <li class="list-group-item d-flex justify-content-between align-items-start px-0">
+                        <div>
+                            <span class="badge bg-${a.priority === 'High' ? 'danger' : 'warning'} me-2">${a.priority}</span>
+                            <small>${a.message}</small>
+                        </div>
+                        <small class="text-muted">${a.type}</small>
+                    </li>`).join('');
+            }
+        });
+});
+
+document.getElementById('dashDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+const priColor = p => p==='High'?'danger':p==='Medium'?'warning':'secondary';
+
+async function loadStats(){
+  const r = await fetch("{% url 'coordinator-dashboard-stats' %}");
+  const d = await r.json();
+  document.getElementById('s-classes').textContent  = d.assigned_classes;
+  document.getElementById('s-teachers').textContent = d.assigned_teachers;
+  document.getElementById('s-students').textContent = d.total_students;
+  document.getElementById('s-active').textContent   = d.active_today;
+  document.getElementById('s-weak').textContent     = d.weak_students;
+  document.getElementById('s-hw').textContent       = d.pending_homework;
+  document.getElementById('s-tests').textContent    = d.tests_this_week;
+  document.getElementById('s-actions').textContent  = d.action_required;
+}
+
+async function loadActions(){
+  const r = await fetch("{% url 'coordinator-action-assign-api' %}");
+  const d = await r.json();
+  const list = (d.actions||[]).filter(a=>['New','Pending'].includes(a.status)).slice(0,8);
+  if(!list.length){
+    document.getElementById('actionWidget').innerHTML='<p class="text-muted text-center py-3 small">No pending actions today</p>';
+    return;
+  }
+  document.getElementById('actionWidget').innerHTML = list.map(a=>`
+    <div class="d-flex align-items-start gap-2 px-3 py-2 border-bottom">
+      <span class="badge bg-${priColor(a.priority)} mt-1">${a.priority}</span>
+      <div class="flex-grow-1">
+        <div class="fw-medium small">${a.issue || 'No issue description'}</div>
+        <div class="text-muted" style="font-size:11px">
+          Responsible: ${a.responsible || '-'} &nbsp;|&nbsp; Due: ${a.due_date}
+        </div>
+        ${a.required_action ? `<div style="font-size:11px;color:#666">Action: ${a.required_action}</div>` : ''}
+      </div>
+      <span class="badge bg-label-secondary small">${a.status}</span>
+    </div>
+  `).join('');
+}
+
+async function loadClasses(){
+  const r = await fetch("{% url 'coordinator-class-comparison-api' %}");
+  const d = await r.json();
+  const list = (d.classes||[]).slice(0,6);
+  if(!list.length){
+    document.getElementById('classWidget').innerHTML='<p class="text-muted text-center py-3 small">No class data</p>';
+    return;
+  }
+  const statusColor = s=>({Excellent:'success',Good:'primary',Average:'warning',Weak:'orange',Critical:'danger'}[s]||'secondary');
+  document.getElementById('classWidget').innerHTML = list.map(c=>`
+    <div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom">
+      <div class="flex-grow-1">
+        <div class="d-flex justify-content-between">
+          <span class="fw-medium small">${c.name}</span>
+          <span class="badge bg-${statusColor(c.status)}">${c.status}</span>
+        </div>
+        <div class="d-flex gap-3 mt-1" style="font-size:11px;color:var(--bs-secondary)">
+          <span>Avg: <strong>${c.avg_score}%</strong></span>
+          <span>Weak: <strong class="text-danger">${c.weak_students}</strong></span>
+          <span>HW: <strong>${c.homework_completion}%</strong></span>
+        </div>
+        <div class="progress mt-1" style="height:4px">
+          <div class="progress-bar bg-${statusColor(c.status)}" style="width:${c.avg_score}%"></div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadAlerts(){
+  const r = await fetch("{% url 'coordinator-alerts-all-api' %}");
+  const d = await r.json();
+  const list = (d.alerts||[]).slice(0,8);
+  if(!list.length){
+    document.getElementById('alertWidget').innerHTML='<p class="text-muted text-center py-3 small">No active alerts</p>';
+    return;
+  }
+  document.getElementById('alertWidget').innerHTML = list.map(a=>`
+    <div class="d-flex align-items-start gap-2 px-3 py-2 border-bottom">
+      <span class="badge bg-${priColor(a.priority)} mt-1" style="font-size:10px">${a.priority}</span>
+      <div class="flex-grow-1">
+        <div class="small">${a.message}</div>
+        <div class="text-muted" style="font-size:11px">${a.type} &nbsp;|&nbsp; ${a.class}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadDevices(){
+  const r = await fetch("{% url 'coordinator-device-stats-api' %}");
+  const d = await r.json();
+  const s = d.summary||{};
+  const activePct = s.total ? Math.round(s.active/s.total*100) : 0;
+  document.getElementById('deviceWidget').innerHTML = `
+    <div class="row g-3 mb-3">
+      <div class="col-4 text-center">
+        <div class="h4 mb-0 text-primary">${s.total||0}</div><small class="text-muted">Total</small>
+      </div>
+      <div class="col-4 text-center">
+        <div class="h4 mb-0 text-success">${s.active||0}</div><small class="text-muted">Active</small>
+      </div>
+      <div class="col-4 text-center">
+        <div class="h4 mb-0 text-danger">${s.inactive||0}</div><small class="text-muted">Inactive</small>
+      </div>
+    </div>
+    <div class="mb-2 small text-muted">Active rate</div>
+    <div class="progress" style="height:8px">
+      <div class="progress-bar bg-success" style="width:${activePct}%"></div>
+      <div class="progress-bar bg-danger" style="width:${100-activePct}%"></div>
+    </div>
+    <div class="d-flex justify-content-between mt-1" style="font-size:11px;color:var(--bs-secondary)">
+      <span>${activePct}% active</span><span>${100-activePct}% inactive</span>
+    </div>
+    ${s.inactive > 0 ? `<div class="alert alert-warning mt-3 py-2 small mb-0"><i class="ti ti-alert-triangle me-1"></i>${s.inactive} tablet(s) inactive — <a href="{% url 'coordinator-devices' %}">check now</a></div>` : ''}
+  `;
+}
+
+loadStats();
+loadActions();
+loadClasses();
+loadAlerts();
+loadDevices();
+</script>
+{% endblock %}

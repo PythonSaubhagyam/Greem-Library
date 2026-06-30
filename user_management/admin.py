@@ -251,3 +251,24 @@ class PrincipalCoordinatorMappingAdmin(admin.ModelAdmin):
     search_fields = ("principal__email", "coordinator__email")
     list_filter = ("created_at",)
     raw_id_fields = ("principal", "coordinator")
+
+@admin.register(CoordinatorAssignmentModel)
+class CoordinatorAssignmentModelAdmin(admin.ModelAdmin):
+    list_display = ("id", "coordinator", "class_obj", "subject", "teacher", "created_at")
+    search_fields = ("coordinator__email",)
+    list_filter = ("created_at",)
+
+    raw_id_fields = ("coordinator", "class_obj", "teacher", "subject")
+@admin.register(CoordinatorEscalationModel)
+class CoordinatorEscalationModelAdmin(admin.ModelAdmin):
+    list_display = ("id","coordinator","title","priority","status","teacher","created_at")
+    search_fields = ("coordinator__email","title","description")
+    list_filter = ("priority","status","created_at")
+    raw_id_fields = ("coordinator","teacher","student")
+
+@admin.register(CoordinatorActionModel)
+class CoordinatorActionModelAdmin(admin.ModelAdmin):
+    list_display = ("id","coordinator","priority","status","due_date","created_at")
+    search_fields = ("coordinator__email","issue","responsible")
+    list_filter = ("priority","status","due_date","created_at")
+    raw_id_fields = ("coordinator",)

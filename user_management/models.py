@@ -7,6 +7,7 @@ from phonenumber_field.modelfields import PhoneNumberField
 from uuid import uuid4
 from rest_framework.authtoken.models import Token
 from tablet_app.models import *
+from django.conf import settings
 
 
 # Create your models here.
@@ -175,6 +176,13 @@ class DeviceModel(models.Model):
     user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
     imei_number = models.CharField(max_length=255,null=True,blank=True)
     is_active = models.BooleanField(default=True)
+    tablet_id = models.CharField(max_length=50, null=True, blank=True)
+    serial_number = models.CharField(max_length=100, null=True, blank=True)
+    activation_date = models.DateField(null=True, blank=True)
+    warranty_status = models.CharField(max_length=100, null=True, blank=True)
+    last_sync = models.DateTimeField(null=True, blank=True)
+    battery_health = models.IntegerField(null=True, blank=True)
+    device_status = models.CharField(max_length=50, default='Active') #
 
     def __str__(self):
         return self.imei_number
@@ -184,8 +192,8 @@ class ClassModel(models.Model):
     """Represents a class/section like 8A, 9B, etc."""
     standard = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(12)],
-        help_text="Class standard (1-12)"
-    )
+        help_text="Class standard (1-12)",
+        null=True,blank=True)
     section = models.CharField(
         max_length=10, 
         blank=True, 
@@ -197,6 +205,20 @@ class ClassModel(models.Model):
         default='2024-25',
         help_text="Academic year like 2024-25"
     )
+    teacher = models.ForeignKey(
+        UserModel,
+        on_delete=models.CASCADE,
+        related_name="teacher_classes",
+        null=True,
+        blank=True,
+        limit_choices_to={"role__type": "Teacher"}
+    )
+    classname = models.CharField(max_length=100)
+
+    subject = models.CharField(max_length=100)
+
+    room = models.CharField(max_length=100,blank=True,null=True)
+
     
     # NO ManyToManyField here!
     # Students are linked via ForeignKey in StudentModel
@@ -462,6 +484,16 @@ class TeacherAssignmentModel(models.Model):
         ClassModel, 
         related_name='assigned_teachers',
         help_text="Classes this teacher teaches (e.g., 8A, 8B, 9A)"
+    )
+    
+
+    school_principal = models.ForeignKey(
+        UserModel,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='owned_teacher_assignments',
+        limit_choices_to={'role__type': 'Customer'}
     )
     
     assigned_subjects = models.ManyToManyField(
@@ -895,4 +927,82 @@ class NotificationPreferenceModel(models.Model):
         owner = self.student or self.user
         return f"Preferences - {owner}"
  
- 
+class CoordinatorAssignmentModel(models.Model):
+    coordinator = models.ForeignKey(UserModel, on_delete=models.CASCADE,
+                                    related_name='coordinator_assignments')
+    class_obj   = models.ForeignKey(ClassModel,   on_delete=models.CASCADE, null=True, blank=True)
+    teacher     = models.ForeignKey(UserModel,     on_delete=models.CASCADE,
+                                    null=True, blank=True, related_name='assigned_to_coordinator')
+    subject     = models.ForeignKey(Subject,  on_delete=models.CASCADE, null=True, blank=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('coordinator', 'class_obj', 'teacher')
+
+class CoordinatorActionModel(models.Model):
+    PRIORITY_CHOICES = [('High','High'),('Medium','Medium'),('Low','Low')]
+    STATUS_CHOICES   = [
+        ('New','New'),('Pending','Pending'),('Assigned','Assigned'),
+        ('Discussed','Discussed'),('In Progress','In Progress'),
+        ('Resolved','Resolved'),('Escalated','Escalated to Principal'),('Closed','Closed'),
+    ]
+    coordinator      = models.ForeignKey(UserModel, on_delete=models.CASCADE)
+    priority         = models.CharField(max_length=10, choices=PRIORITY_CHOICES)
+    issue            = models.TextField()
+    responsible      = models.CharField(max_length=200)
+    required_action  = models.TextField()
+    status           = models.CharField(max_length=20, choices=STATUS_CHOICES, default='New')
+    due_date         = models.DateField(null=True, blank=True)
+    remarks          = models.TextField(blank=True)
+    created_at       = models.DateTimeField(auto_now_add=True)
+    updated_at       = models.DateTimeField(auto_now=True)
+
+
+class CoordinatorEscalationModel(models.Model):
+    PRIORITY_CHOICES = [('High', 'High'), ('Medium', 'Medium'), ('Low', 'Low')]
+    STATUS_CHOICES   = [
+        ('Open', 'Open'),
+        ('In Progress', 'In Progress'),
+        ('Resolved', 'Resolved'),
+    ]
+
+    coordinator   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='escalations'
+    )
+    title         = models.CharField(max_length=255)
+    description   = models.TextField(blank=True, null=True)
+    priority      = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
+    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Open')
+    student       = models.ForeignKey(
+        'user_management.StudentModel', on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
+    teacher       = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='escalations_against'
+    )
+    resolved_at   = models.DateTimeField(null=True, blank=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.status}"
+
+    class Meta:
+        verbose_name = "Coordinator Escalation"
+        verbose_name_plural = "Coordinator Escalations"
+
+class SchoolProfileModel(models.Model):
+    school_name = models.CharField(max_length=255)
+    address = models.TextField()
+    board = models.CharField(max_length=50, choices=[('GSEB', 'GSEB'), ('CBSE', 'CBSE'), ('ICSE', 'ICSE'), ('Other', 'Other')])
+    medium = models.CharField(max_length=50, choices=[('Gujarati', 'Gujarati'), ('Hindi', 'Hindi'), ('English', 'English'), ('Other', 'Other')])
+    principal_name = models.CharField(max_length=150)
+    principal_phone = models.CharField(max_length=15)
+    principal_email = models.EmailField()
+    total_tablets_given = models.IntegerField(default=0)
+    working_days = models.IntegerField(default=220)
+    timetable_structure = models.JSONField(blank=True, null=True)
+    exam_test_structure = models.JSONField(blank=True, null=True)
+    academic_year = models.CharField(max_length=20, default='2024-25')
+    created_at = models.DateTimeField(auto_now_add=True)

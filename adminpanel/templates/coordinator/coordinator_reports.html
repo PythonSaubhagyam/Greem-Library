@@ -1,0 +1,460 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}Reports — Coordinator{% endblock %}
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <h4 class="fw-bold mb-4"><i class="ti ti-report-analytics me-2"></i>Reports</h4>
+
+  <!-- ── Export Quick Links ── -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header"><h5 class="mb-0">Download Reports</h5></div>
+    <div class="card-body">
+      <div class="row g-3">
+
+        <div class="col-6 col-md-4 col-lg-3">
+          <div class="card border h-100">
+            <div class="card-body text-center py-3">
+              <i class="ti ti-building-school ti-lg text-primary mb-2 d-block"></i>
+              <div class="fw-medium small mb-2">Class Report</div>
+              <div class="d-flex gap-1 justify-content-center">
+                <a href="{% url 'coordinator-export-class-excel' %}" class="btn btn-xs btn-outline-success px-2 py-1" style="font-size:11px">
+                  <i class="ti ti-file-spreadsheet me-1"></i>Excel
+                </a>
+                <a href="{% url 'coordinator-export-class-pdf' %}" class="btn btn-xs btn-outline-danger px-2 py-1" style="font-size:11px">
+                  <i class="ti ti-file-description me-1"></i>PDF
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-3">
+          <div class="card border h-100">
+            <div class="card-body text-center py-3">
+              <i class="ti ti-users ti-lg text-success mb-2 d-block"></i>
+              <div class="fw-medium small mb-2">Teacher Report</div>
+              <div class="d-flex gap-1 justify-content-center">
+                <a href="{% url 'coordinator-export-teacher-excel' %}" class="btn btn-xs btn-outline-success px-2 py-1" style="font-size:11px">
+                  <i class="ti ti-file-spreadsheet me-1"></i>Excel
+                </a>
+                <a href="{% url 'coordinator-export-teacher-pdf' %}" class="btn btn-xs btn-outline-danger px-2 py-1" style="font-size:11px">
+                  <i class="ti ti-file-description me-1"></i>PDF
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-3">
+          <div class="card border h-100">
+            <div class="card-body text-center py-3">
+              <i class="ti ti-user-check ti-lg text-info mb-2 d-block"></i>
+              <div class="fw-medium small mb-2">Student Report</div>
+              <div class="d-flex gap-1 justify-content-center">
+                <a href="{% url 'coordinator-export-student-excel' %}" class="btn btn-xs btn-outline-success px-2 py-1" style="font-size:11px">
+                  <i class="ti ti-file-spreadsheet me-1"></i>Excel
+                </a>
+                <a href="{% url 'coordinator-export-student-pdf' %}" class="btn btn-xs btn-outline-danger px-2 py-1" style="font-size:11px">
+                  <i class="ti ti-file-description me-1"></i>PDF
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-md-4 col-lg-3">
+          <div class="card border h-100">
+            <div class="card-body text-center py-3">
+              <i class="ti ti-books ti-lg text-warning mb-2 d-block"></i>
+              <div class="fw-medium small mb-2">Subject Report</div>
+              <div class="d-flex gap-1 justify-content-center">
+                <a href="{% url 'coordinator-export-subject-excel' %}" class="btn btn-xs btn-outline-success px-2 py-1" style="font-size:11px">
+                  <i class="ti ti-file-spreadsheet me-1"></i>Excel
+                </a>
+                <a href="{% url 'coordinator-export-subject-pdf' %}" class="btn btn-xs btn-outline-danger px-2 py-1" style="font-size:11px">
+                  <i class="ti ti-file-description me-1"></i>PDF
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── NEW: Action Report ── -->
+        <div class="col-6 col-md-4 col-lg-3">
+          <div class="card border border-primary h-100">
+            <div class="card-body text-center py-3">
+              <i class="ti ti-checklist ti-lg text-primary mb-2 d-block"></i>
+              <div class="fw-medium small mb-2">Weekly Action Report</div>
+              <div class="d-flex gap-1 justify-content-center">
+                <a href="{% url 'coordinator-export-action-excel' %}" class="btn btn-xs btn-outline-success px-2 py-1" style="font-size:11px">
+                  <i class="ti ti-file-spreadsheet me-1"></i>Excel
+                </a>
+                <button class="btn btn-xs btn-outline-secondary px-2 py-1" style="font-size:11px"
+                        onclick="previewActionReport()">
+                  <i class="ti ti-eye me-1"></i>Preview
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── NEW: Escalation PDF for Principal ── -->
+        <div class="col-6 col-md-4 col-lg-3">
+          <div class="card border border-danger h-100">
+            <div class="card-body text-center py-3">
+              <i class="ti ti-urgent ti-lg text-danger mb-2 d-block"></i>
+              <div class="fw-medium small mb-2">Escalation Report <span class="badge bg-label-danger" style="font-size:9px">For Principal</span></div>
+              <div class="d-flex gap-1 justify-content-center">
+                <a href="{% url 'coordinator-export-escalation-pdf' %}" class="btn btn-xs btn-outline-danger px-2 py-1" style="font-size:11px">
+                  <i class="ti ti-file-description me-1"></i>PDF
+                </a>
+                <button class="btn btn-xs btn-outline-secondary px-2 py-1" style="font-size:11px"
+                        onclick="previewEscalations()">
+                  <i class="ti ti-eye me-1"></i>Preview
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tabs for inline report preview ── -->
+  <ul class="nav nav-tabs mb-3" id="reportTabs">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabClass"    onclick="loadClassReport()">Classes</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTeacher"  onclick="loadTeacherReport()">Teachers</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabStudent"  onclick="loadStudentReport()">Students</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabHomework" onclick="loadHWReport()">Homework</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTest"     onclick="loadTestReport()">Tests</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabSubject"  onclick="loadSubjectReport()">Subjects</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabActions"  onclick="loadActionReport()">Actions</button></li><!-- NEW -->
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabEscalate" onclick="loadEscalationReport()">Escalations</button></li><!-- NEW -->
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabDevice"   onclick="loadDeviceReport()">Devices</button></li>
+  </ul>
+
+  <div class="tab-content">
+
+    <!-- Class Report -->
+    <div class="tab-pane fade show active" id="tabClass">
+      <div class="card"><div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Class</th><th>Students</th><th>Avg Score</th><th>Weak</th><th>Homework</th><th>Tests</th><th>Status</th></tr>
+            </thead>
+            <tbody id="classReportBody"><tr><td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- Teacher Report -->
+    <div class="tab-pane fade" id="tabTeacher">
+      <div class="card"><div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Name</th><th>Email</th><th>Homework</th><th>Tests</th><th>Last Active</th></tr>
+            </thead>
+            <tbody id="teacherReportBody"><tr><td colspan="5" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- Student Report -->
+    <div class="tab-pane fade" id="tabStudent">
+      <div class="card"><div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Name</th><th>Class</th><th>Avg Score</th><th>Study Hours</th><th>Last Active</th><th>Risk</th></tr>
+            </thead>
+            <tbody id="studentReportBody"><tr><td colspan="6" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- Homework Report -->
+    <div class="tab-pane fade" id="tabHomework">
+      <div class="card"><div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Class</th><th>Given</th><th>Submitted</th><th>Pending</th><th>Submit %</th><th>Status</th></tr>
+            </thead>
+            <tbody id="hwReportBody"><tr><td colspan="6" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- Test Report -->
+    <div class="tab-pane fade" id="tabTest">
+      <div class="card"><div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Title</th><th>Subject</th><th>Total</th><th>Attempted</th><th>Avg Score</th><th>Retest</th><th>Date</th></tr>
+            </thead>
+            <tbody id="testReportBody"><tr><td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- Subject Report (NEW) -->
+    <div class="tab-pane fade" id="tabSubject">
+      <div class="card"><div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Subject</th><th>Avg Score</th><th>Weak Students</th><th>Tests</th><th>Status</th></tr>
+            </thead>
+            <tbody id="subjectReportBody"><tr><td colspan="5" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── NEW: Weekly Action Report ── -->
+    <div class="tab-pane fade" id="tabActions">
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="row g-3" id="actionSummaryCards">
+            <div class="col-6 col-md-3 text-center"><h4 class="mb-0 text-primary" id="act-total">—</h4><small class="text-muted">Total This Week</small></div>
+            <div class="col-6 col-md-3 text-center"><h4 class="mb-0 text-success" id="act-resolved">—</h4><small class="text-muted">Resolved</small></div>
+            <div class="col-6 col-md-3 text-center"><h4 class="mb-0 text-warning" id="act-pending">—</h4><small class="text-muted">Pending</small></div>
+            <div class="col-6 col-md-3 text-center"><h4 class="mb-0 text-danger" id="act-escalated">—</h4><small class="text-muted">Escalated</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="card"><div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Title</th><th>Priority</th><th>Status</th><th>Teacher</th><th>Due Date</th><th>Remarks</th><th>Created</th></tr>
+            </thead>
+            <tbody id="actionReportBody"><tr><td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── NEW: Escalation Report for Principal ── -->
+    <div class="tab-pane fade" id="tabEscalate">
+      <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+        <i class="ti ti-info-circle"></i>
+        This report is intended for sharing with the Principal.
+        <a href="{% url 'coordinator-export-escalation-pdf' %}" class="btn btn-sm btn-danger ms-auto">
+          <i class="ti ti-file-description me-1"></i>Download PDF for Principal
+        </a>
+      </div>
+      <div class="card"><div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Title</th><th>Priority</th><th>Status</th><th>Student</th><th>Teacher</th><th>Created</th><th>Resolved</th></tr>
+            </thead>
+            <tbody id="escalationReportBody"><tr><td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- Device Report -->
+    <div class="tab-pane fade" id="tabDevice">
+      <div class="card"><div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Student</th><th>Class</th><th>Last Active</th><th>Days Inactive</th><th>Status</th></tr>
+            </thead>
+            <tbody id="deviceReportBody"><tr><td colspan="5" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>
+
+  </div><!-- tab-content -->
+</div>
+
+<script>
+const loaded = {};
+const statusBadge = (s, map) => {
+  const cls = map[s] || 'bg-label-secondary';
+  return `<span class="badge ${cls}">${s}</span>`;
+};
+
+async function api(url) {
+  const r = await fetch(url);
+  return r.json();
+}
+
+function noData(cols) {
+  return `<tr><td colspan="${cols}" class="text-center py-3 text-muted">No data available</td></tr>`;
+}
+
+// ── Class Report ──────────────────────────────────────────────────────────────
+async function loadClassReport() {
+  if (loaded.class) return; loaded.class = true;
+  const d = await api("{% url 'coordinator-report-class' %}");
+  const sMap = { Excellent:'bg-success', Good:'bg-primary', Average:'bg-warning', Weak:'bg-orange', Critical:'bg-danger' };
+  document.getElementById('classReportBody').innerHTML = (d.report||[]).length
+    ? d.report.map(r=>`<tr>
+        <td><strong>${r.class}</strong></td><td>${r.total_students}</td>
+        <td><span class="${r.avg_score<40?'text-danger':r.avg_score<60?'text-warning':'text-success'} fw-medium">${r.avg_score}%</span></td>
+        <td>${r.weak_students}</td><td>${r.homework}</td><td>${r.tests}</td>
+        <td><span class="badge ${sMap[r.status]||'bg-secondary'}">${r.status}</span></td>
+      </tr>`).join('')
+    : noData(7);
+}
+
+// ── Teacher Report ────────────────────────────────────────────────────────────
+async function loadTeacherReport() {
+  if (loaded.teacher) return; loaded.teacher = true;
+  const d = await api("{% url 'coordinator-report-teacher' %}");
+  document.getElementById('teacherReportBody').innerHTML = (d.report||[]).length
+    ? d.report.map(r=>`<tr>
+        <td><strong>${r.name}</strong></td><td><a href="mailto:${r.email}">${r.email}</a></td>
+        <td>${r.homework}</td><td>${r.tests}</td><td>${r.last_active}</td>
+      </tr>`).join('')
+    : noData(5);
+}
+
+// ── Student Report ────────────────────────────────────────────────────────────
+async function loadStudentReport() {
+  if (loaded.student) return; loaded.student = true;
+  const d = await api("{% url 'coordinator-report-student' %}");
+  const rMap = { 'High Risk':'bg-danger','Needs Attention':'bg-warning text-dark','Stable':'bg-success' };
+  document.getElementById('studentReportBody').innerHTML = (d.report||[]).length
+    ? d.report.map(r=>`<tr>
+        <td><strong>${r.name}</strong></td><td>${r.class}</td>
+        <td><span class="${r.avg_score<40?'text-danger':r.avg_score<60?'text-warning':'text-success'}">${r.avg_score}%</span></td>
+        <td>${r.study_hours} hrs</td><td>${r.last_active}</td>
+        <td><span class="badge ${rMap[r.risk]||'bg-secondary'}">${r.risk}</span></td>
+      </tr>`).join('')
+    : noData(6);
+}
+
+// ── Homework Report ───────────────────────────────────────────────────────────
+async function loadHWReport() {
+  if (loaded.hw) return; loaded.hw = true;
+  const d = await api("{% url 'coordinator-report-homework' %}");
+  const sMap = { Good:'bg-success', Average:'bg-warning text-dark', Bad:'bg-danger' };
+  document.getElementById('hwReportBody').innerHTML = (d.report||[]).length
+    ? d.report.map(r=>`<tr>
+        <td><strong>${r.class}</strong></td><td>${r.given}</td><td>${r.submitted}</td>
+        <td>${r.pending > 0 ? `<span class="text-danger">${r.pending}</span>` : '0'}</td>
+        <td>
+          <div class="d-flex align-items-center gap-1">
+            <div class="progress flex-grow-1" style="height:5px;min-width:60px">
+              <div class="progress-bar ${r.pct>75?'bg-success':r.pct>50?'bg-warning':'bg-danger'}" style="width:${r.pct}%"></div>
+            </div>
+            <small>${r.pct}%</small>
+          </div>
+        </td>
+        <td><span class="badge ${sMap[r.status]||'bg-secondary'}">${r.status}</span></td>
+      </tr>`).join('')
+    : noData(6);
+}
+
+// ── Test Report ───────────────────────────────────────────────────────────────
+async function loadTestReport() {
+  if (loaded.test) return; loaded.test = true;
+  const d = await api("{% url 'coordinator-report-test' %}");
+  document.getElementById('testReportBody').innerHTML = (d.report||[]).length
+    ? d.report.map(r=>`<tr>
+        <td><strong>${r.title}</strong></td><td>${r.subject}</td>
+        <td>${r.total_students}</td><td>${r.attempted}</td>
+        <td><span class="${r.avg_score<40?'text-danger':r.avg_score<60?'text-warning':'text-success'} fw-medium">${r.avg_score}%</span></td>
+        <td>${r.retest_needed ? '<span class="badge bg-danger">Yes</span>' : '<span class="badge bg-success">No</span>'}</td>
+        <td>${r.date}</td>
+      </tr>`).join('')
+    : noData(7);
+}
+
+// ── Subject Report (NEW) ──────────────────────────────────────────────────────
+async function loadSubjectReport() {
+  if (loaded.subject) return; loaded.subject = true;
+  const d = await api("{% url 'coordinator-report-subject' %}");
+  const sMap = { Excellent:'bg-success', Good:'bg-primary', Average:'bg-warning text-dark', Weak:'bg-orange', Critical:'bg-danger' };
+  document.getElementById('subjectReportBody').innerHTML = (d.report||[]).length
+    ? d.report.map(r=>`<tr>
+        <td><strong>${r.subject}</strong></td>
+        <td><span class="${r.avg_score<40?'text-danger':r.avg_score<60?'text-warning':'text-success'} fw-medium">${r.avg_score}%</span></td>
+        <td>${r.weak_students}</td><td>${r.tests_count}</td>
+        <td><span class="badge ${sMap[r.status]||'bg-secondary'}">${r.status}</span></td>
+      </tr>`).join('')
+    : noData(5);
+}
+
+// ── Action Report (NEW) ───────────────────────────────────────────────────────
+async function loadActionReport() {
+  if (loaded.action) return; loaded.action = true;
+  const d = await api("{% url 'coordinator-report-actions' %}");
+  const s = d.summary || {};
+  document.getElementById('act-total').textContent    = s.total    || 0;
+  document.getElementById('act-resolved').textContent = s.resolved || 0;
+  document.getElementById('act-pending').textContent  = s.pending  || 0;
+  document.getElementById('act-escalated').textContent= s.escalated|| 0;
+
+  const pMap = { High:'bg-danger', Medium:'bg-warning text-dark', Low:'bg-secondary' };
+  const stMap = { Resolved:'bg-success', Pending:'bg-warning text-dark', New:'bg-primary', 'Escalated to Principal':'bg-danger' };
+  document.getElementById('actionReportBody').innerHTML = (d.report||[]).length
+    ? d.report.map(r=>`<tr>
+        <td><strong>${r.title}</strong></td>
+        <td><span class="badge ${pMap[r.priority]||'bg-secondary'}">${r.priority}</span></td>
+        <td><span class="badge ${stMap[r.status]||'bg-secondary'}">${r.status}</span></td>
+        <td>${r.teacher}</td>
+        <td>${r.due_date}</td>
+        <td class="text-muted small">${r.remarks || '—'}</td>
+        <td>${r.created_at}</td>
+      </tr>`).join('')
+    : noData(7);
+}
+
+// ── Escalation Report (NEW) ───────────────────────────────────────────────────
+async function loadEscalationReport() {
+  if (loaded.escalation) return; loaded.escalation = true;
+  const d = await api("{% url 'coordinator-escalation-api' %}");
+  const pMap = { High:'bg-danger', Medium:'bg-warning text-dark', Low:'bg-secondary' };
+  const stMap = { Open:'bg-primary', Resolved:'bg-success', 'In Progress':'bg-warning text-dark' };
+  document.getElementById('escalationReportBody').innerHTML = (d.escalations||[]).length
+    ? d.escalations.map(e=>`<tr>
+        <td><strong>${e.title}</strong></td>
+        <td><span class="badge ${pMap[e.priority]||'bg-secondary'}">${e.priority}</span></td>
+        <td><span class="badge ${stMap[e.status]||'bg-secondary'}">${e.status}</span></td>
+        <td>${e.student}</td>
+        <td>${e.teacher}</td>
+        <td>${e.created_at}</td>
+        <td>${e.resolved_at !== '-' ? `<span class="text-success">${e.resolved_at}</span>` : '<span class="text-muted">Open</span>'}</td>
+      </tr>`).join('')
+    : noData(7);
+}
+
+// ── Device Report ─────────────────────────────────────────────────────────────
+async function loadDeviceReport() {
+  if (loaded.device) return; loaded.device = true;
+  const d = await api("{% url 'coordinator-report-device' %}");
+  document.getElementById('deviceReportBody').innerHTML = (d.report||[]).length
+    ? d.report.map(r=>`<tr>
+        <td>${r.student}</td><td>${r.class}</td><td>${r.last_active}</td>
+        <td>${r.days_inactive !== '-' && r.days_inactive >= 3 ? `<span class="text-danger">${r.days_inactive}d</span>` : r.days_inactive}</td>
+        <td><span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}">${r.status}</span></td>
+      </tr>`).join('')
+    : noData(5);
+}
+
+// Shortcut functions for modal preview buttons
+function previewActionReport()   { document.querySelector('[data-bs-target="#tabActions"]').click(); loadActionReport(); }
+function previewEscalations()    { document.querySelector('[data-bs-target="#tabEscalate"]').click(); loadEscalationReport(); }
+
+// Load first tab on open
+loadClassReport();
+</script>
+{% endblock %}
