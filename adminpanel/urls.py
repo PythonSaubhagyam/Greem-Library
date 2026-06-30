@@ -85,7 +85,7 @@ urlpatterns = [
     # path("customer/dashboard/", CustomerDashboardView.as_view(), name="customer-dashboard"),
     # path("coordinator/dashboard/", CoordinatorDashboardView.as_view(), name="coordinator-dashboard"),
 
-    path("customers/",DashboardsView.as_view(template_name="Customer_list.html"),name='customers'),
+    path("customers-dash/",DashboardsView.as_view(template_name="Customer_list.html"),name='customers'),
     path("customers/add/",DashboardsView.as_view(template_name="customer_add_update.html"),name='customers-add-update'),
     path("customers/edit/<int:id>/",DashboardsView.as_view(template_name="customer_add_update.html"),name='customers-add-update'),
     path("customers/detail/<int:id>/",DashboardsView.as_view(template_name="customer_detail.html"),name='customers-view'),

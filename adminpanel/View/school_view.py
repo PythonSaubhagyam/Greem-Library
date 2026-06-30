@@ -794,23 +794,27 @@ class ActionRequiredAPI(APIView):
 
             # FIX: use assigned_to M2M field
             homeworks = HomeworkModel.objects.filter(
-                assigned_to__in=cls_students
+                students__in=cls_students
             ).distinct()
 
             for hw in homeworks:
-                assigned  = hw.assigned_to.count()   # FIX: assigned_to not students
+
+                assigned = hw.students.count()
+
                 submitted = HomeworkSubmissionModel.objects.filter(
                     homework=hw,
                     student__in=cls_students,
                     submitted_at__isnull=False
                 ).count()
+
                 pending = assigned - submitted
+
                 if assigned > 0 and (pending / assigned) > 0.5:
                     actions.append({
-                        "priority":    "Medium",
-                        "issue":       f"Class {_cls_name(cls)} — '{hw.title}' {round((pending/assigned)*100)}% pending",
+                        "priority": "Medium",
+                        "issue": f"Class {_cls_name(cls)} — '{hw.title}' {round((pending / assigned) * 100)}% pending",
                         "responsible": "Class Teacher + Coordinator",
-                        "action":      "Send reminders and follow up with students",
+                        "action": "Send reminders and follow up with students",
                     })
 
         # M2: Class avg below 50
