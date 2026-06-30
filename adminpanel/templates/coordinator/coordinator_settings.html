@@ -1,0 +1,218 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <div class="row">
+    <!-- Notification Settings -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header"><h5 class="mb-0"><i class="bx bx-bell me-2 text-primary"></i>Notification Settings</h5></div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+            <div>
+              <p class="mb-0 fw-semibold">Weak Student Alerts</p>
+              <small class="text-muted">Notify when student score drops below 40%</small>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="notif-weak" checked>
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+            <div>
+              <p class="mb-0 fw-semibold">Teacher Neglect Alerts</p>
+              <small class="text-muted">Notify when teacher has no activity for 7+ days</small>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="notif-neglect" checked>
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+            <div>
+              <p class="mb-0 fw-semibold">Homework Pending Alerts</p>
+              <small class="text-muted">Notify when homework completion is below 50%</small>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="notif-hw" checked>
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="mb-0 fw-semibold">Inactive Student Alerts</p>
+              <small class="text-muted">Notify when student is inactive for 3+ days</small>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="notif-inactive" checked>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Settings -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100">
+        <div class="card-header"><h5 class="mb-0"><i class="bx bx-layout me-2 text-success"></i>Dashboard Settings</h5></div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Default Dashboard View</label>
+            <select class="form-select" id="default-view">
+              <option value="overview">Overview</option>
+              <option value="classes">Classes</option>
+              <option value="students">Students</option>
+              <option value="teachers">Teachers</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Rows per Table Page</label>
+            <select class="form-select" id="rows-per-page">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Date Format</label>
+            <select class="form-select" id="date-format">
+              <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+            </select>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="mb-0 fw-semibold">Show Weak Student Warning</p>
+              <small class="text-muted">Show red banner on dashboard for weak students</small>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="show-weak-banner" checked>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change Password -->
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header"><h5 class="mb-0"><i class="bx bx-lock me-2 text-warning"></i>Change Password</h5></div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Current Password</label>
+            <input type="password" class="form-control" id="current-password">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">New Password</label>
+            <input type="password" class="form-control" id="new-password">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" class="form-control" id="confirm-password">
+          </div>
+          <div id="pw-msg" class="alert d-none"></div>
+          <button class="btn btn-primary" onclick="changePassword()">
+            <i class="bx bx-lock-open me-1"></i> Update Password
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save Settings -->
+    <div class="col-12">
+      <div class="d-flex justify-content-end gap-2">
+        <button class="btn btn-secondary" onclick="resetSettings()">Reset to Default</button>
+        <button class="btn btn-primary" onclick="saveSettings()">
+          <i class="bx bx-save me-1"></i> Save Settings
+        </button>
+      </div>
+      <div id="settings-msg" class="text-success text-end mt-2 d-none">Settings saved!</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+// Load saved settings from localStorage
+function loadSettings() {
+  const saved = JSON.parse(localStorage.getItem('coordinator_settings') || '{}');
+  if (saved.default_view)      document.getElementById('default-view').value     = saved.default_view;
+  if (saved.rows_per_page)     document.getElementById('rows-per-page').value    = saved.rows_per_page;
+  if (saved.date_format)       document.getElementById('date-format').value      = saved.date_format;
+  if (saved.notif_weak   != null) document.getElementById('notif-weak').checked    = saved.notif_weak;
+  if (saved.notif_neglect!= null) document.getElementById('notif-neglect').checked = saved.notif_neglect;
+  if (saved.notif_hw     != null) document.getElementById('notif-hw').checked      = saved.notif_hw;
+  if (saved.notif_inactive!=null) document.getElementById('notif-inactive').checked= saved.notif_inactive;
+  if (saved.show_weak_banner!=null) document.getElementById('show-weak-banner').checked = saved.show_weak_banner;
+}
+
+function saveSettings() {
+  const settings = {
+    default_view:      document.getElementById('default-view').value,
+    rows_per_page:     document.getElementById('rows-per-page').value,
+    date_format:       document.getElementById('date-format').value,
+    notif_weak:        document.getElementById('notif-weak').checked,
+    notif_neglect:     document.getElementById('notif-neglect').checked,
+    notif_hw:          document.getElementById('notif-hw').checked,
+    notif_inactive:    document.getElementById('notif-inactive').checked,
+    show_weak_banner:  document.getElementById('show-weak-banner').checked,
+  };
+  localStorage.setItem('coordinator_settings', JSON.stringify(settings));
+  const msg = document.getElementById('settings-msg');
+  msg.classList.remove('d-none');
+  setTimeout(() => msg.classList.add('d-none'), 3000);
+}
+
+function resetSettings() {
+  localStorage.removeItem('coordinator_settings');
+  location.reload();
+}
+
+function changePassword() {
+  const cur  = document.getElementById('current-password').value;
+  const nw   = document.getElementById('new-password').value;
+  const conf = document.getElementById('confirm-password').value;
+  const msg  = document.getElementById('pw-msg');
+
+  if (!cur || !nw || !conf) {
+    msg.className = 'alert alert-warning';
+    msg.textContent = 'Please fill all fields.';
+    msg.classList.remove('d-none');
+    return;
+  }
+  if (nw !== conf) {
+    msg.className = 'alert alert-danger';
+    msg.textContent = 'New passwords do not match.';
+    msg.classList.remove('d-none');
+    return;
+  }
+
+  fetch('/coordinator/api/change-password/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ current_password: cur, new_password: nw })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      msg.className = 'alert alert-success';
+      msg.textContent = 'Password changed successfully!';
+    } else {
+      msg.className = 'alert alert-danger';
+      msg.textContent = data.error || 'Failed to change password.';
+    }
+    msg.classList.remove('d-none');
+  });
+}
+
+function getCookie(name) {
+  const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+  return v ? v[2] : null;
+}
+
+loadSettings();
+</script>
+{% endblock %}

@@ -21,15 +21,16 @@ class CoordinatorsView(DashboardsView):
 
         # ✅ FIX: Get coordinators by role name = 'Coordinator'
         # and same firm/school as the logged-in customer (principal)
-        firm = getattr(user, 'firm_name', None)
+        # firm = getattr(user, 'firm_name', None)
 
         coordinators_qs = UserModel.objects.filter(
             role__name__iexact='Coordinator'
         )
+        print("Coordinator count:", coordinators_qs.count())
 
-        # ✅ Filter by same school/firm if firm_name exists
-        if firm:
-            coordinators_qs = coordinators_qs.filter(firm_name__iexact=firm)
+        # # ✅ Filter by same school/firm if firm_name exists
+        # if firm:
+        #     coordinators_qs = coordinators_qs.filter(firm_name__iexact=firm)
 
         coordinators_data = []
 

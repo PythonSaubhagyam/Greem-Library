@@ -1,0 +1,70 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}Class Performance Comparison{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Class-wise Health &amp; Performance Metrics</h5>
+    </div>
+    <div class="card-body">
+      <div id="loadingMsg" class="text-center py-4 text-muted">
+        <i class="bx bx-loader-alt bx-spin me-1"></i> Loading comparison data...
+      </div>
+      <div class="table-responsive d-none" id="tableWrapper">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Class Name</th>
+              <th>Students</th>
+              <th>Avg Test Score</th>
+              <th>Weak Students</th>
+              <th>Weak %</th>
+              <th>HW Completion %</th>
+              <th>Class Health Score</th>
+            </tr>
+          </thead>
+          <tbody id="classComparisonList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    fetch('/customer/api/classes/comparison/')
+      .then(r => r.json())
+      .then(data => {
+          document.getElementById('loadingMsg').classList.add('d-none');
+          document.getElementById('tableWrapper').classList.remove('d-none');
+          const tbody = document.getElementById('classComparisonList');
+          tbody.innerHTML = '';
+          if(data.results && data.results.length > 0){
+              data.results.forEach(cls => {
+                  const healthColor = cls.health_score >= 75 ? 'success'
+                                    : cls.health_score >= 50 ? 'warning' : 'danger';
+                  tbody.insertAdjacentHTML('beforeend', `
+                    <tr>
+                      <td><strong>${cls.class_name}</strong></td>
+                      <td>${cls.student_count}</td>
+                      <td>${cls.avg_score}%</td>
+                      <td>${cls.weak_students_count}</td>
+                      <td><span class="badge bg-label-danger">${cls.weak_students_pct}%</span></td>
+                      <td>${cls.homework_completion_pct}%</td>
+                      <td><span class="badge bg-${healthColor}">${cls.health_score}/100</span></td>
+                    </tr>
+                  `);
+              });
+          } else {
+              tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No class data available</td></tr>';
+          }
+      })
+      .catch(err => {
+          document.getElementById('loadingMsg').textContent = 'Error loading data. Please try again.';
+      });
+});
+</script>
+{% endblock %}

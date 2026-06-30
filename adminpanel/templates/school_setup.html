@@ -1,0 +1,160 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}School Setup{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <div class="row">
+    <!-- School Profile Form -->
+    <div class="col-md-8 mb-4">
+      <div class="card">
+        <div class="card-header d-flex align-items-center">
+          <i class="bx bx-buildings me-2 text-primary"></i>
+          <h5 class="mb-0">School Profile Details</h5>
+        </div>
+        <div class="card-body">
+          <div id="setupMsg" class="alert d-none mb-3"></div>
+          <form id="schoolSetupForm">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">School Name</label>
+                <input type="text" id="schoolName" class="form-control" placeholder="Enter school name" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Principal Name</label>
+                <input type="text" id="principalName" class="form-control" placeholder="Principal name" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Board Affiliation</label>
+                <select id="board" class="form-select">
+                  <option value="GSEB">GSEB (Gujarat State Board)</option>
+                  <option value="CBSE">CBSE</option>
+                  <option value="ICSE">ICSE</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Medium of Instruction</label>
+                <select id="medium" class="form-select">
+                  <option value="English">English</option>
+                  <option value="Gujarati">Gujarati</option>
+                  <option value="Hindi">Hindi</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Principal Email</label>
+                <input type="email" id="principalEmail" class="form-control" placeholder="principal@school.com" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Principal Phone</label>
+                <input type="text" id="principalPhone" class="form-control" placeholder="Mobile Number" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Total Tablets Allocated</label>
+                <input type="number" id="totalTablets" class="form-control" value="0">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Working Days (Academic Year)</label>
+                <input type="number" id="workingDays" class="form-control" value="220">
+              </div>
+            </div>
+            <div class="mt-4">
+              <button type="submit" class="btn btn-primary">
+                <i class="bx bx-save me-1"></i> Save Configuration
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Setup Checklist -->
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h5 class="mb-0">Setup Checklist</h5>
+        </div>
+        <div class="card-body py-4">
+          <ul class="list-unstyled">
+            <li class="mb-3 d-flex align-items-center">
+              <i class="bx bx-check-circle text-success me-2 fs-4"></i> School Profile Configured
+            </li>
+            <li class="mb-3 d-flex align-items-center">
+              <i class="bx bx-check-circle text-success me-2 fs-4"></i> Principal Account Active
+            </li>
+            <li class="mb-3 d-flex align-items-center">
+              <i class="bx bx-radio-circle text-muted me-2 fs-4"></i> Class Hierarchy Mapped
+            </li>
+            <li class="mb-3 d-flex align-items-center">
+              <i class="bx bx-radio-circle text-muted me-2 fs-4"></i> Device Inventory Imported
+            </li>
+          </ul>
+          <hr>
+          <a href="{% url 'customer-onboarding-upload' %}" class="btn btn-outline-primary w-100 mt-2">
+            <i class="bx bx-upload me-1"></i> Go to Onboarding Upload
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const csrfToken = '{{ csrf_token }}';
+
+document.addEventListener('DOMContentLoaded', function(){
+    // Fetch existing school settings
+    fetch('/customer/api/school-setup/')
+      .then(r => r.json())
+      .then(data => {
+          if(data.school_name){
+              document.getElementById('schoolName').value = data.school_name || '';
+              document.getElementById('principalName').value = data.principal_name || '';
+              document.getElementById('board').value = data.board || 'GSEB';
+              document.getElementById('medium').value = data.medium || 'English';
+              document.getElementById('principalEmail').value = data.principal_email || '';
+              document.getElementById('principalPhone').value = data.principal_phone || '';
+              document.getElementById('totalTablets').value = data.total_tablets_given || 0;
+              document.getElementById('workingDays').value = data.working_days || 220;
+          }
+      }).catch(err => console.log('No existing profile found.'));
+});
+
+document.getElementById('schoolSetupForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const data = {
+        school_name: document.getElementById('schoolName').value,
+        principal_name: document.getElementById('principalName').value,
+        board: document.getElementById('board').value,
+        medium: document.getElementById('medium').value,
+        principal_email: document.getElementById('principalEmail').value,
+        principal_phone: document.getElementById('principalPhone').value,
+        total_tablets_given: parseInt(document.getElementById('totalTablets').value),
+        working_days: parseInt(document.getElementById('workingDays').value)
+    };
+
+    fetch('/customer/api/school-setup/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(res => {
+        const msg = document.getElementById('setupMsg');
+        msg.className = "alert alert-success";
+        msg.textContent = res.message || 'Saved successfully!';
+        msg.classList.remove('d-none');
+    })
+    .catch(err => {
+        const msg = document.getElementById('setupMsg');
+        msg.className = "alert alert-danger";
+        msg.textContent = 'Error saving. Please try again.';
+        msg.classList.remove('d-none');
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}Onboarding Upload{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+
+  <div class="row">
+    <!-- Upload Excel Card -->
+    <div class="col-md-7 mb-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bx bx-upload me-2 text-primary"></i>Bulk Import via Excel</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">Upload an Excel file (.xlsx / .xls) to bulk import <strong>Students</strong>, <strong>Teachers</strong>, or <strong>Device inventory</strong>.</p>
+
+          <div id="uploadMsg" class="alert d-none mb-3"></div>
+
+          <form id="uploadForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label">Import Type</label>
+              <select id="importType" name="import_type" class="form-select" required>
+                <option value="" disabled selected>-- Select type --</option>
+                <option value="students">Students</option>
+                <option value="teachers">Teachers</option>
+                <option value="devices">Device Inventory</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Excel File</label>
+              <input type="file" id="excelFile" name="file" class="form-control" accept=".xlsx,.xls" required>
+            </div>
+            <button type="submit" id="uploadBtn" class="btn btn-primary">
+              <i class="bx bx-cloud-upload me-1"></i> Upload &amp; Process
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructions Card -->
+    <div class="col-md-5 mb-4">
+      <div class="card h-100">
+        <div class="card-header border-bottom">
+          <h5 class="mb-0">Instructions &amp; Format</h5>
+        </div>
+        <div class="card-body">
+          <p class="fw-semibold">For <em>Students</em> Excel:</p>
+          <ul class="small text-muted">
+            <li>Column A: <code>student_name</code></li>
+            <li>Column B: <code>student_id</code></li>
+            <li>Column C: <code>class_name</code></li>
+            <li>Column D: <code>roll_number</code></li>
+          </ul>
+          <p class="fw-semibold mt-2">For <em>Teachers</em> Excel:</p>
+          <ul class="small text-muted">
+            <li>Column A: <code>teacher_name</code></li>
+            <li>Column B: <code>subject</code></li>
+            <li>Column C: <code>class_name</code></li>
+          </ul>
+          <p class="fw-semibold mt-2">For <em>Devices</em> Excel:</p>
+          <ul class="small text-muted">
+            <li>Column A: <code>device_id</code></li>
+            <li>Column B: <code>assigned_class</code></li>
+            <li>Column C: <code>serial_number</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const csrfToken = '{{ csrf_token }}';
+
+document.getElementById('uploadForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bx bx-loader-alt bx-spin me-1"></i> Processing...';
+
+    const formData = new FormData(this);
+
+    fetch('/customer/api/onboarding/excel-import/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(res => {
+        const msg = document.getElementById('uploadMsg');
+        msg.classList.remove('d-none', 'alert-danger', 'alert-success');
+        if(res.status === 'success'){
+            msg.className = 'alert alert-success';
+            msg.textContent = `✅ ${res.message} (${res.imported_count} records imported)`;
+        } else {
+            msg.className = 'alert alert-danger';
+            msg.textContent = `❌ Error: ${res.message}`;
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bx bx-cloud-upload me-1"></i> Upload &amp; Process';
+    })
+    .catch(err => {
+        const msg = document.getElementById('uploadMsg');
+        msg.className = 'alert alert-danger';
+        msg.textContent = 'Upload failed. Check server logs.';
+        msg.classList.remove('d-none');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bx bx-cloud-upload me-1"></i> Upload &amp; Process';
+    });
+});
+</script>
+{% endblock %}

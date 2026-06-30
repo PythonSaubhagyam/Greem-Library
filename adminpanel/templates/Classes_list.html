@@ -128,8 +128,8 @@ function renderRows(data) {
         <td>${c.student_count || 0}</td>
         <td>
           <div class="d-flex gap-2 align-items-center">
-            <a href="/administrator/classes/edit/${c.id}/" class="text-warning" title="Edit"><i class="bx bx-edit-alt fs-4"></i></a>
-            <a href="#" onclick="deactivate(${c.id})" class="text-danger" title="Deactivate"><i class="bx bx-trash-alt fs-4"></i></a>
+            <a href="/administrator/classes/edit/${c.id}/" class="btn btn-sm btn-icon btn-label-warning me-1" title="Edit"><i class="bx bx-edit"></i></a>
+            <a href="#" onclick="deactivate(${c.id})" class="btn btn-sm btn-icon btn-label-danger" title="Deactivate"><i class="bx bx-trash"></i></a>
           </div>
         </td>
       </tr>

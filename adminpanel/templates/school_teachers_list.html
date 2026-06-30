@@ -1,0 +1,206 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %} Teachers {% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5 class="mb-0" id="pageTitle">Teachers <span id="datacount"></span></h5>
+    <div class="d-flex align-items-center flex-wrap gap-2">
+      <div class="input-group input-group-sm" style="width: 220px;">
+        <span class="input-group-text bg-white border-end-0"><i class="bx bx-search text-muted"></i></span>
+        <input type="text" id="searchCompany" class="form-control border-start-0" placeholder="Search...">
+      </div>
+      <button class="btn btn-sm btn-outline-secondary" id="resetFilters">
+        <i class="bx bx-refresh me-1"></i> Reset Filter
+      </button>
+      <button class="btn btn-sm btn-primary d-flex align-items-center" id="addCompanyBtn">
+        <i class="bx bx-plus me-1"></i><span>Add Teacher</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Sr no.</th><th>Full Name</th><th>Classes</th><th>Subjects</th>
+                <th>Coordinator</th><th>Tests</th><th>Homework</th>
+                <th>Last Active</th><th width="100px">Action</th>
+            </tr>
+        </thead>
+        <tbody id="companies-container"></tbody>
+      </table>
+      <div id="companies-loader" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <label for="rowsPerPage" class="small mb-0">Rows per page:</label>
+        <select id="rowsPerPage" class="form-select form-select-sm" style="width: auto;">
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <small id="pagination-info" class="text-muted"></small>
+        <ul id="pagination" class="pagination pagination-sm mb-0"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const container = document.getElementById("companies-container");
+    const loader = document.getElementById("companies-loader");
+    const searchInput = document.getElementById("searchCompany");
+    const rowsPerPageSelect = document.getElementById("rowsPerPage");
+
+    function fetchTeachers(query = "", page = 1) {
+        loader.style.display = "block";
+        container.innerHTML = "";
+
+        const params = new URLSearchParams({
+            q: query,
+            user: 'teachers',
+            page: page,
+            row_per_page: rowsPerPageSelect.value,
+            principal_id: "{{ request.user.id }}",
+        });
+
+        // CRITICAL: scoped endpoint, NOT /administrator/users-list/
+        fetch(`{% url 'customer-users-list-api' %}?${params.toString()}`)
+            .then(res => res.json())
+            .then(data => {
+                loader.style.display = "none";
+                const teachers = data.results || [];
+                document.getElementById("datacount").innerText = `(${data.count})`;
+
+                if (!teachers.length) {
+                    container.innerHTML = `<tr><td colspan="9" class="text-center text-muted">No teachers found for this school.</td></tr>`;
+                    document.getElementById("pagination").innerHTML = "";
+                    document.getElementById("pagination-info").textContent = "";
+                    return;
+                }
+
+                teachers.forEach((t, i) => {
+                    const classesBadges = (t.classes || []).length
+                        ? t.classes.map(c => `<span class="badge bg-label-primary me-1">${c}</span>`).join('')
+                        : '<span class="text-muted small">-</span>';
+
+                    const subjectsText = (t.subjects || []).length ? t.subjects.join(', ') : '-';
+
+                    const activeBadge = t.is_active_today
+                        ? '<span class="badge bg-success">Active Today</span>'
+                        : '';
+
+                    container.insertAdjacentHTML("beforeend", `
+                    <tr>
+                        <td>${(page - 1) * parseInt(rowsPerPageSelect.value) + i + 1}</td>
+                        <td>
+                        <a href="/customer/dashboard/teachers/${t.id}/" class="fw-semibold text-decoration-none">
+                            ${t.full_name || '-'}
+                        </a>
+                        <div class="text-muted small">${t.email || '-'}</div>
+                        </td>
+                        <td>${classesBadges}</td>
+                        <td><small>${subjectsText}</small></td>
+                        <td>${t.coordinator || '-'}</td>
+                        <td class="text-center">${t.tests_count ?? 0}</td>
+                        <td class="text-center">${t.homework_count ?? 0}</td>
+                        <td>
+                        <small>${t.last_active || 'Never'}</small><br>
+                        ${activeBadge}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center align-items-center gap-1">
+                                <a href="/customer/dashboard/teachers/edit/${t.id}/"
+                                class="btn btn-sm btn-icon btn-label-warning me-1"
+                                title="Edit">
+                                    <i class="bx bx-edit"></i>
+                                </a>
+
+                                <a href="javascript:void(0);"
+                                onclick="deleteTeacher(${t.id})"
+                                class="btn btn-sm btn-icon btn-label-danger"
+                                title="Delete">
+                                    <i class="bx bx-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>`);
+                });
+                renderPagination(data);
+            })
+            .catch(err => {
+                loader.style.display = "none";
+                console.error("Error loading teachers:", err);
+            });
+    }
+
+    function renderPagination(data) {
+        const pagination = document.getElementById("pagination");
+        const info = document.getElementById("pagination-info");
+        pagination.innerHTML = "";
+        info.textContent = `Showing page ${data.current_page} of ${data.total_pages} (${data.count} Teachers)`;
+
+        const prevDisabled = data.previous === null ? "disabled" : "";
+        pagination.insertAdjacentHTML("beforeend",
+            `<li class="page-item ${prevDisabled}"><a class="page-link" href="#" data-page="${data.current_page - 1}">Previous</a></li>`);
+
+        for (let i = 1; i <= data.total_pages; i++) {
+            const active = i === data.current_page ? "active" : "";
+            pagination.insertAdjacentHTML("beforeend",
+                `<li class="page-item ${active}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`);
+        }
+
+        const nextDisabled = data.next === null ? "disabled" : "";
+        pagination.insertAdjacentHTML("beforeend",
+            `<li class="page-item ${nextDisabled}"><a class="page-link" href="#" data-page="${data.current_page + 1}">Next</a></li>`);
+
+        pagination.querySelectorAll(".page-link").forEach(btn => {
+            btn.addEventListener("click", e => {
+                e.preventDefault();
+                const page = parseInt(btn.dataset.page);
+                if (!isNaN(page) && page >= 1 && page <= data.total_pages) {
+                    fetchTeachers(searchInput.value, page);
+                }
+            });
+        });
+    }
+
+    document.getElementById("resetFilters").addEventListener("click", () => {
+        searchInput.value = "";
+        fetchTeachers();
+    });
+
+    rowsPerPageSelect.addEventListener("change", () => fetchTeachers(searchInput.value, 1));
+
+    let timeout = null;
+    searchInput.addEventListener("input", function () {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fetchTeachers(this.value), 400);
+    });
+
+    document.getElementById("addCompanyBtn").onclick = () => {
+        window.location.href = `/customer/dashboard/teachers/add/`;
+    };
+
+    fetchTeachers();
+});
+
+function deleteTeacher(id) {
+    if (!confirm("Delete this teacher?")) return;
+    fetch(`{% url 'customer-users-list-api' %}?id=${id}`, {
+        method: "DELETE",
+        headers: { "X-CSRFToken": document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '' }
+    }).then(() => location.reload());
+}
+</script>
+{% endblock %}

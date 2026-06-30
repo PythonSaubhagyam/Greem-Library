@@ -50,22 +50,12 @@ class SchoolStudentsAPIView(APIView):
 
         # ── 3. If customer → restrict to their school's students IMMEDIATELY ──
         if is_customer:
-            # Try filtering by customer field on StudentModel directly
-            # Adjust the field name below to match your actual model:
-            #   Option A: student has a direct FK to customer user
-            #       students = students.filter(customer__id=req_user.id)
-            #   Option B: student's customer_name matches req_user.firm_name
-            #       students = students.filter(customer_name__iexact=req_user.firm_name)
-            #   Option C: student's parent is linked to this customer
-            #       students = students.filter(parent__customer__id=req_user.id)
-
-            # ✅ Using firm_name match (most common pattern based on your serializer output)
-            firm = getattr(req_user, 'firm_name', None)
-            if firm:
-                students = students.filter(customer_name__iexact=firm).distinct()
-            else:
-                # Fallback: only show students where this customer is the parent
-                students = students.filter(parent__id=req_user.id).distinct()
+            # Students are linked to their school via the parent M2M where role='Customer'
+            # This is the canonical query — same as PrincipalFlowView.get_principal_scope()
+            students = students.filter(
+                parent__id=req_user.id,
+                parent__role__type='Customer'
+            ).distinct()
 
         # ── 4. Apply optional filters (only within the already-restricted QS) ─
         student_id_num = to_int(student_id)

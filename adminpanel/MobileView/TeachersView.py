@@ -13,6 +13,9 @@ from django.utils import timezone
 from django.db.models import Avg, F, FloatField, Count
 from django.utils.timezone import localtime
 from tablet_app.serializers import *
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 #  HELPER FUNCTIONS FOR STATUS & LAST ACTIVITY
 def get_student_status(student):
@@ -4326,3 +4329,248 @@ class NotificationPreferenceView(APIView):
             'preferences':     NotificationPreferenceSerializer(pref).data,
         }, status=status.HTTP_200_OK)
  
+
+class TeacherUploadPDFAPI(APIView):
+    """
+    POST /api/teachers/classrooms/upload-pdf/
+    Teacher uploads a PDF and it becomes visible to all students in assigned classes.
+
+    Form Data:
+    - pdf_file     : (file) PDF file
+    - title        : (str) PDF title
+    - class_ids    : (str) comma-separated class IDs e.g. "1,2,3"
+    - group_name   : (str, optional) group name to tag this PDF
+    """
+    parser_classes = [MultiPartParser, FormParser]
+    # def post(self, request):
+    #     # Logged-in user
+    #     user = request.user
+
+    #     # Allow only Teacher role
+    #     if not user.role or user.role.type != "Teacher":
+    #         return Response(
+    #             {"error": "Only teachers can upload PDFs."},
+    #             status=403
+    #         )
+
+    #     pdf_file = request.FILES.get("pdf_file")
+
+    #     if not pdf_file:
+    #         return Response(
+    #             {"error": "pdf_file is required"},
+    #             status=400
+    #         )
+
+    #     # Get all students
+    #     students = StudentModel.objects.all()
+
+    #     if not students.exists():
+    #         return Response(
+    #             {"error": "No students found"},
+    #             status=404
+    #         )
+
+    #     # Create PDF
+    #     pdf = pdfLibraryModel.objects.create(
+    #         title=pdf_file.name,
+    #         pdf_file=pdf_file,
+    #         total_pages=0,
+    #         is_custom=True,
+    #         created_at=timezone.now(),
+    #         updated_at=timezone.now(),
+    #     )
+
+    #     # Add PDF to every student
+    #     for student in students:
+    #         student.library.add(pdf)
+
+    #     return Response({
+    #         "success": True,
+    #         "message": "PDF uploaded successfully.",
+    #         "uploaded_by": user.email,
+    #         "pdf_id": pdf.id,
+    #         "title": pdf.title,
+    #         "file_url": request.build_absolute_uri(pdf.pdf_file.url),
+    #         "total_students": students.count(),
+    #     }, status=201)
+    def post(self, request):
+
+        teacher_id = request.data.get("teacher_id")
+        pdf_file = request.FILES.get("pdf_file")
+
+        if not teacher_id:
+            return Response(
+                {"error": "teacher_id is required"},
+                status=400
+            )
+
+        if not pdf_file:
+            return Response(
+                {"error": "pdf_file is required"},
+                status=400
+            )
+
+        # Verify teacher
+        try:
+            teacher = UserModel.objects.get(
+                id=teacher_id,
+                role__type="Teacher",
+                is_active=True
+            )
+        except UserModel.DoesNotExist:
+            return Response(
+                {"error": "Teacher not found"},
+                status=404
+            )
+
+        # Get all students
+        students = StudentModel.objects.all()
+
+        if not students.exists():
+            return Response(
+                {"error": "No students found"},
+                status=404
+            )
+
+        # Create PDF
+        pdf = pdfLibraryModel.objects.create(
+            title=pdf_file.name,
+            pdf_file=pdf_file,
+            total_pages=0,
+            is_custom=True,
+            created_at=timezone.now(),
+            updated_at=timezone.now(),
+        )
+
+        # Assign PDF to all students
+        for student in students:
+            student.library.add(pdf)
+
+        return Response({
+            "success": True,
+            "teacher_id": teacher.id,
+            "teacher_name": f"{teacher.first_name} {teacher.last_name}",
+            "pdf_id": pdf.id,
+            "title": pdf.title,
+            "file_url": request.build_absolute_uri(pdf.pdf_file.url),
+            "total_students": students.count(),
+        }, status=201)
+    
+    def get(self, request):
+        """
+        GET /api/teachers/classrooms/upload-pdf/?teacher_id=5
+        List all PDFs uploaded by this teacher's students' classes.
+        """
+        teacher_id = request.query_params.get('teacher_id', request.user.id)
+
+        try:
+            ta = TeacherAssignmentModel.objects.get(teacher_id=teacher_id, is_active=True)
+            class_ids = list(ta.assigned_classes.values_list('id', flat=True))
+        except TeacherAssignmentModel.DoesNotExist:
+            class_ids = []
+
+        students = StudentModel.objects.filter(student_class_id__in=class_ids)
+        pdfs = pdfLibraryModel.objects.filter(
+            student__in=students,
+            is_custom=True
+        ).distinct().order_by('-created_at')
+
+        data = []
+        for pdf in pdfs:
+            data.append({
+                'id':          pdf.id,
+                'title':       pdf.title,
+                'file_url':    request.build_absolute_uri(pdf.pdf_file.url) if pdf.pdf_file else None,
+                'total_pages': pdf.total_pages,
+                'groups':      [g.name for g in pdf.group.all()],
+                'created_at':  pdf.created_at,
+            })
+
+        return Response({'pdfs': data, 'total': len(data)})
+
+
+class TeacherCreateClassAPI(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        teacher = request.user
+
+        # Only teachers can create classes
+        if not teacher.role or teacher.role.type != "Teacher":
+            return Response(
+                {"error": "Only teachers can create classes"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        classname = request.data.get("classname", "").strip()
+        subject = request.data.get("subject", "").strip()
+        room = request.data.get("room", "").strip()
+
+        if not classname:
+            return Response(
+                {"error": "classname is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not subject:
+            return Response(
+                {"error": "subject is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        classroom = ClassModel.objects.create(
+            teacher=teacher,
+            classname=classname,
+            subject=subject,
+            room=room if room else None
+        )
+
+        return Response({
+            "success": True,
+            "message": "Class created successfully",
+            "data": {
+                "id": classroom.id,
+                "classname": classroom.classname,
+                "subject": classroom.subject,
+                "room": classroom.room,
+                "created_by": teacher.first_name + " " + teacher.last_name
+            }
+        }, status=status.HTTP_201_CREATED)
+
+
+class TeacherClassListAPI(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        teacher = request.user
+
+        if not teacher.role or teacher.role.type != "Teacher":
+            return Response(
+                {"error": "Only teachers can view classes"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        classes = ClassModel.objects.filter(
+            is_active=True,
+            teacher=request.user,
+        ).order_by("-created_at")
+
+        data = []
+
+        for classroom in classes:
+            data.append({
+                "id": classroom.id,
+                "classname": classroom.classname,
+                "subject": classroom.subject,
+                "room": classroom.room
+            })
+
+        return Response({
+            "success": True,
+            "total": len(data),
+            "classes": data
+        }, status=status.HTTP_200_OK)

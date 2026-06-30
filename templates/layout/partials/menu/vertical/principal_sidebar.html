@@ -1,115 +1,157 @@
 <li class="menu-header small text-uppercase">
   <span class="menu-header-text">Principal Control</span>
-</li>
-
-<!-- 1. Dashboard -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-dashboard' %}active open{% endif %}">
-  <a href="{% url 'customer-dashboard' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-home-circle"></i>
-    <div class="text-truncate" data-i18n="Dashboard">Dashboard</div>
-  </a>
-</li>
-
-<!-- 3. Students -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-students' %}active open{% endif %}">
-  <a href="{% url 'customer-students' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-group"></i>
-    <div class="text-truncate" data-i18n="Students">Students</div>
-  </a>
-</li>
-
-<!-- 4. Classes -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-classes' %}active open{% endif %}">
-  <a href="{% url 'customer-classes' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-collection"></i>
-    <div class="text-truncate" data-i18n="Classes">Classes</div>
-  </a>
-</li>
-
-<!-- 5. Teachers -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-teachers' %}active open{% endif %}">
-  <a href="{% url 'customer-teachers' %}?type=teacher" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-book-reader"></i>
-    <div class="text-truncate" data-i18n="Teachers">Teachers</div>
-  </a>
-</li>
-
-<!-- 6. Coordinators -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-coordinators' %}active open{% endif %}">
-  <a href="{% url 'customer-coordinators' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-user-check"></i>
-    <div class="text-truncate" data-i18n="Coordinators">Coordinators</div>
-  </a>
-</li>
-
-<!-- 7. Subjects -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-subjects' %}active open{% endif %}">
-  <a href="{% url 'customer-subjects' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-book"></i>
-    <div class="text-truncate" data-i18n="Subjects">Subjects</div>
-  </a>
-</li>
-
-<!-- 8. Tests -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-tests' %}active open{% endif %}">
-  <a href="{% url 'customer-tests' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-task"></i>
-    <div class="text-truncate" data-i18n="Tests">Tests</div>
-  </a>
-</li>
-
-<!-- 9. Homework -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-homework' %}active open{% endif %}">
-  <a href="{% url 'customer-homework' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-pencil"></i>
-    <div class="text-truncate" data-i18n="Homework">Homework</div>
-  </a>
-</li>
-
-<!-- 10. Study Time -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-study-time' %}active open{% endif %}">
-  <a href="{% url 'customer-study-time' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-time-five"></i>
-    <div class="text-truncate" data-i18n="Study Time">Study Time</div>
-  </a>
-</li>
-
-<!-- 11. Weakness Analysis -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-weakness' %}active open{% endif %}">
-  <a href="{% url 'customer-weakness' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-trending-down"></i>
-    <div class="text-truncate" data-i18n="Weakness Analysis">Weakness Analysis</div>
-  </a>
-</li>
-
-<!-- 12. Reports -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-reports' %}active open{% endif %}">
-  <a href="{% url 'customer-reports' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-file"></i>
-    <div class="text-truncate" data-i18n="Reports">Reports</div>
-  </a>
-</li>
-
-<!-- 13. Alerts -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-alerts' %}active open{% endif %}">
-  <a href="{% url 'customer-alerts' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-error"></i>
-    <div class="text-truncate" data-i18n="Alerts">Alerts</div>
-  </a>
-</li>
-
-<!-- 14. Device Management -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-device-mgmt' %}active open{% endif %}">
-  <a href="{% url 'customer-device-mgmt' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-mobile-alt"></i>
-    <div class="text-truncate" data-i18n="Device Management">Device Management</div>
-  </a>
-</li>
-
-<!-- 15. Settings -->
-<li class="menu-item {% if request.resolver_match.url_name == 'customer-settings' %}active open{% endif %}">
-  <a href="{% url 'customer-settings' %}" class="menu-link">
-    <i class="menu-icon tf-icons bx bx-cog"></i>
-    <div class="text-truncate" data-i18n="Settings">Settings</div>
-  </a>
-</li>
+ </li>
+ 
+ <!-- 1. Dashboard -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-dashboard' %}active open{% endif %}">
+   <a href="{% url 'customer-dashboard' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-home-circle"></i>
+     <div class="text-truncate" data-i18n="Dashboard">Dashboard</div>
+   </a>
+ </li>
+ 
+ {% if request.user.role.type == 'Customer' %}
+ <!-- 2. School Setup (NEW) -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-school-setup' %}active open{% endif %}">
+   <a href="{% url 'customer-school-setup' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-buildings"></i>
+     <div class="text-truncate" data-i18n="School Setup">School Setup</div>
+   </a>
+ </li>
+ 
+ <!-- Onboarding Excel Import (NEW) -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-onboarding-upload' %}active open{% endif %}">
+   <a href="{% url 'customer-onboarding-upload' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-upload"></i>
+     <div class="text-truncate" data-i18n="Onboarding Upload">Onboarding Upload</div>
+   </a>
+ </li>
+ {% endif %}
+ 
+ <!-- 3. Students -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-students' %}active open{% endif %}">
+   <a href="{% url 'customer-students' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-group"></i>
+     <div class="text-truncate" data-i18n="Students">Students</div>
+   </a>
+ </li>
+ 
+ <!-- 4. Classes (With Comparison Link) -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-classes' or request.resolver_match.url_name == 'customer-class-comparison' %}active open{% endif %}">
+   <a href="javascript:void(0);" class="menu-link menu-toggle">
+     <i class="menu-icon tf-icons bx bx-collection"></i>
+     <div class="text-truncate" data-i18n="Classes">Classes</div>
+   </a>
+   <ul class="menu-sub">
+     <li class="menu-item {% if request.resolver_match.url_name == 'customer-classes' %}active{% endif %}">
+       <a href="{% url 'customer-classes' %}" class="menu-link">
+         <div>Class List</div>
+       </a>
+     </li>
+     <li class="menu-item {% if request.resolver_match.url_name == 'customer-class-comparison' %}active{% endif %}">
+       <a href="{% url 'customer-class-comparison' %}" class="menu-link">
+         <div>Class Comparison</div>
+       </a>
+     </li>
+   </ul>
+ </li>
+ 
+ <!-- 5. Teachers -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-teachers' %}active open{% endif %}">
+   <a href="{% url 'customer-teachers' %}?type=teacher" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-book-reader"></i>
+     <div class="text-truncate" data-i18n="Teachers">Teachers</div>
+   </a>
+ </li>
+ 
+ <!-- 6. Coordinators -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-coordinators' %}active open{% endif %}">
+   <a href="{% url 'customer-coordinators' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-user-check"></i>
+     <div class="text-truncate" data-i18n="Coordinators">Coordinators</div>
+   </a>
+ </li>
+ 
+ <!-- 7. Subjects -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-subjects' %}active open{% endif %}">
+   <a href="{% url 'customer-subjects' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-book"></i>
+     <div class="text-truncate" data-i18n="Subjects">Subjects</div>
+   </a>
+ </li>
+ 
+ <!-- 8. Tests -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-tests' %}active open{% endif %}">
+   <a href="{% url 'customer-tests' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-task"></i>
+     <div class="text-truncate" data-i18n="Tests">Tests</div>
+   </a>
+ </li>
+ 
+ <!-- 9. Homework -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-homework' %}active open{% endif %}">
+   <a href="{% url 'customer-homework' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-pencil"></i>
+     <div class="text-truncate" data-i18n="Homework">Homework</div>
+   </a>
+ </li>
+ 
+ <!-- 10. Study Time -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-study-time' %}active open{% endif %}">
+   <a href="{% url 'customer-study-time' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-time-five"></i>
+     <div class="text-truncate" data-i18n="Study Time">Study Time</div>
+   </a>
+ </li>
+ 
+ <!-- 11. Weakness Analysis -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-weakness' %}active open{% endif %}">
+   <a href="{% url 'customer-weakness' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-trending-down"></i>
+     <div class="text-truncate" data-i18n="Weakness Analysis">Weakness Analysis</div>
+   </a>
+ </li>
+ 
+ <!-- 12. Reports -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-reports' %}active open{% endif %}">
+   <a href="{% url 'customer-reports' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-file"></i>
+     <div class="text-truncate" data-i18n="Reports">Reports</div>
+   </a>
+ </li>
+ 
+ <!-- 13. Alerts & Action Required -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-alerts' or request.resolver_match.url_name == 'customer-action-required' %}active open{% endif %}">
+   <a href="javascript:void(0);" class="menu-link menu-toggle">
+     <i class="menu-icon tf-icons bx bx-error"></i>
+     <div class="text-truncate" data-i18n="Alerts">Alerts</div>
+   </a>
+   <ul class="menu-sub">
+     <li class="menu-item {% if request.resolver_match.url_name == 'customer-alerts' %}active{% endif %}">
+       <a href="{% url 'customer-alerts' %}" class="menu-link">
+         <div>Critical Alerts</div>
+       </a>
+     </li>
+     <li class="menu-item {% if request.resolver_match.url_name == 'customer-action-required' %}active{% endif %}">
+       <a href="{% url 'customer-action-required' %}" class="menu-link">
+         <div>Actions Required</div>
+       </a>
+     </li>
+   </ul>
+ </li>
+ 
+ <!-- 14. Device Management -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-device-mgmt' %}active open{% endif %}">
+   <a href="{% url 'customer-device-mgmt' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-mobile-alt"></i>
+     <div class="text-truncate" data-i18n="Device Management">Device Management</div>
+   </a>
+ </li>
+ 
+ <!-- 15. Settings -->
+ <li class="menu-item {% if request.resolver_match.url_name == 'customer-settings' %}active open{% endif %}">
+   <a href="{% url 'customer-settings' %}" class="menu-link">
+     <i class="menu-icon tf-icons bx bx-cog"></i>
+     <div class="text-truncate" data-i18n="Settings">Settings</div>
+   </a>
+ </li>

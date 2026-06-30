@@ -1,0 +1,156 @@
+{% extends layout_path %}
+{% load static %}
+
+{% block title %}Student Detail{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="fw-bold py-3 mb-0">
+        <span class="text-muted fw-light">
+          <a href="/coordinator/students/" class="text-muted">Students</a> /
+        </span>
+        <span id="student-name-title">Student Detail</span>
+      </h4>
+    </div>
+  </div>
+
+  <!-- Profile + Risk -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <div class="avatar avatar-xl mx-auto mb-3">
+            <span class="avatar-initial rounded-circle bg-label-primary fs-2">
+              <i class="bx bx-user"></i>
+            </span>
+          </div>
+          <h5 id="s-name">—</h5>
+          <p class="text-muted mb-1" id="s-class">—</p>
+          <span id="s-risk-badge" class="badge bg-secondary">—</span>
+          <p class="mt-2 mb-0"><small class="text-muted">Last Active: <span id="s-last-active">—</span></small></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-9">
+      <div class="row">
+        <div class="col-6 col-md-3 mb-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h3 id="s-avg" class="text-primary">—</h3>
+              <small class="text-muted">Avg Score</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3 mb-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h3 id="s-study">—</h3>
+              <small class="text-muted">Study Time</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3 mb-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h3 id="s-hw" class="text-warning">—</h3>
+              <small class="text-muted">HW Completion</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3 mb-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h3 id="s-tests">—</h3>
+              <small class="text-muted">Tests Attempted</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Trend -->
+      <div class="card">
+        <div class="card-body">
+          <h6 class="mb-1">Score Trend</h6>
+          <p id="s-trend" class="mb-0 text-muted">—</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Remarks -->
+  <div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">Teacher Remarks</h5></div>
+    <div class="card-body" id="remarks-body">
+      <p class="text-muted">No remarks yet.</p>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between">
+      <h5 class="mb-0">Coordinator Actions</h5>
+      <button class="btn btn-sm btn-primary" onclick="openActionModal()">
+        <i class="bx bx-plus me-1"></i>Add Action
+      </button>
+    </div>
+    <div class="card-body">
+      <p class="text-muted">Use the Action Required page to manage follow-ups for this student.</p>
+      <a href="/coordinator/actions/" class="btn btn-outline-primary btn-sm">Go to Actions</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+{{ block.super }}
+<script>
+const STUDENT_ID = parseInt("{{ student_id|default:'0' }}") || 0;
+
+const riskColors = {
+  'Excellent': 'bg-success', 'Stable': 'bg-primary', 'Improving': 'bg-info',
+  'Needs Attention': 'bg-warning', 'High Risk': 'bg-danger',
+  'Falling': 'bg-orange', 'Inactive': 'bg-secondary',
+};
+
+async function loadStudent() {
+  try {
+    const res  = await fetch(`/coordinator/api/students/${STUDENT_ID}/`);
+    const d    = await res.json();
+
+    document.getElementById('student-name-title').textContent = d.name;
+    document.title = `${d.name} - Student Detail`;
+    document.getElementById('s-name').textContent = d.name;
+    document.getElementById('s-class').textContent = d.class;
+    document.getElementById('s-last-active').textContent = d.last_active;
+
+    const badge = document.getElementById('s-risk-badge');
+    badge.textContent = d.risk;
+    badge.className = `badge ${riskColors[d.risk] || 'bg-secondary'}`;
+
+    document.getElementById('s-avg').textContent   = d.avg_score + '%';
+    document.getElementById('s-study').textContent = d.study_time;
+    document.getElementById('s-hw').textContent    = d.homework_pct + '%';
+    document.getElementById('s-tests').textContent = d.tests_attempted;
+
+    const trendIcon = { 'Improving': '📈', 'Falling': '📉', 'Stable': '➡️' };
+    document.getElementById('s-trend').textContent =
+      `${trendIcon[d.trend] || ''} ${d.trend} — based on last 3 vs previous 3 tests`;
+
+    if (d.remarks && d.remarks.length) {
+      document.getElementById('remarks-body').innerHTML = d.remarks.map(r => `
+        <div class="border-bottom pb-2 mb-2">
+          <span class="badge bg-label-secondary me-2">${r.remark_type}</span>
+          <span>${r.remark}</span>
+          <small class="text-muted ms-2">${r.created_at || ''}</small>
+        </div>
+      `).join('');
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+loadStudent();
+</script>
+{% endblock %}

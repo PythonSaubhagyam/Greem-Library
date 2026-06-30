@@ -1,0 +1,150 @@
+{% extends layout_path %}
+{% load static %}
+<style>
+  thead th {
+    text-transform: capitalize;
+  }
+</style>
+{% block title %}Device Usage{% endblock %}
+
+{% block content %}
+
+<div class="row">
+<div class="col-12">
+
+  <!-- Summary Cards -->
+  <div class="row mb-4" id="device-summary">
+    <div class="col-md-4">
+      <div class="card text-center border-0 shadow-sm">
+        <div class="card-body">
+          <h6 class="text-muted">Total Devices</h6>
+          <h3 id="total-devices" class="text-primary">-</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center border-0 shadow-sm">
+        <div class="card-body">
+          <h6 class="text-muted">Active</h6>
+          <h3 id="active-devices" class="text-success">-</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center border-0 shadow-sm">
+        <div class="card-body">
+          <h6 class="text-muted">Inactive</h6>
+          <h3 id="inactive-devices" class="text-danger">-</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="bx bx-tablet text-primary me-2"></i>
+        Device Usage Analytics
+      </h5>
+      <input type="text"
+             id="search-device"
+             class="form-control form-control-sm"
+             placeholder="Search device..."
+             style="width:250px;">
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-capitalize">
+          <tr>
+            <th class="text-capitalize">Sr</th>
+            <th class="text-capitalize">Tablet ID</th>
+            <th class="text-capitalize">Student</th>
+            <th class="text-capitalize">Class</th>
+            <th class="text-capitalize">Last Active</th>
+            <th class="text-capitalize">Study Time Today</th>
+            <th class="text-capitalize">Status</th>
+          </tr>
+        </thead>
+        <tbody id="device-tbody">
+          <tr>
+            <td colspan="7" class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+              Loading devices...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+let allDevices = [];
+
+document.addEventListener('DOMContentLoaded', function(){
+    loadDevices();
+});
+
+function loadDevices(){
+    fetch("{% url 'coordinator-device-stats-api' %}")
+    .then(r => r.json())
+    .then(data => {
+
+        // Summary
+        const s = data.summary || {};
+        document.getElementById('total-devices').textContent   = s.total    || 0;
+        document.getElementById('active-devices').textContent  = s.active   || 0;
+        document.getElementById('inactive-devices').textContent = s.inactive || 0;
+
+        allDevices = data.devices || [];
+        renderDevices(allDevices);
+    })
+    .catch(() => {
+        document.getElementById('device-tbody').innerHTML =
+            `<tr><td colspan="7" class="text-danger text-center py-4">Failed to load devices</td></tr>`;
+    });
+}
+
+function renderDevices(items){
+    const tbody = document.getElementById('device-tbody');
+
+    if(!items.length){
+        tbody.innerHTML =
+            `<tr><td colspan="7" class="text-center py-4">No devices found</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = items.map((d, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td><code>${d.tablet_id}</code></td>
+            <td>${d.student_name}</td>
+            <td>${d.class_name}</td>
+            <td>${d.last_active}</td>
+            <td>${d.study_time}</td>
+            <td>
+                <span class="badge bg-${d.status === 'Active' ? 'success' : 'danger'}">
+                    ${d.status}
+                </span>
+            </td>
+        </tr>
+    `).join('');
+}
+
+document.getElementById('search-device').addEventListener('keyup', function(){
+    const q = this.value.toLowerCase();
+    renderDevices(
+        allDevices.filter(d =>
+            d.student_name.toLowerCase().includes(q) ||
+            d.tablet_id.toLowerCase().includes(q)    ||
+            d.class_name.toLowerCase().includes(q)
+        )
+    );
+});
+</script>
+
+{% endblock %}

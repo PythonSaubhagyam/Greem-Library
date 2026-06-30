@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+#greem_library/urls.py
 from django.contrib import admin
 from django.urls import path,include
 from django.conf import settings
@@ -57,6 +58,8 @@ urlpatterns = [
 
     # Tables urls
     path("", include("apps.tables.urls")),
+    path('coordinator/', include('adminpanel.coordinator_urls')),
+
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

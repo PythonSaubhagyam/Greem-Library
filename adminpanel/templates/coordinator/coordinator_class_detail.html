@@ -1,0 +1,179 @@
+{% extends layout_path %}
+{% load static %}
+
+{% block title %}Class Detail{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="mb-0" id="class-title">
+      <i class="bx bx-chalkboard me-2 text-primary"></i>Class Detail
+    </h5>
+    <a href="{% url 'coordinator-classes' %}" class="btn btn-sm btn-secondary">
+      <i class="bx bx-arrow-back me-1"></i>Back to Classes
+    </a>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4" id="summary-cards">
+    <div class="col-6 col-md-2">
+      <div class="card bg-label-primary text-center p-3">
+        <small class="text-muted">Students</small>
+        <h4 class="mb-0 text-primary" id="s-students">-</h4>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="card bg-label-info text-center p-3">
+        <small class="text-muted">Avg Score</small>
+        <h4 class="mb-0 text-info" id="s-avg">-</h4>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="card bg-label-danger text-center p-3">
+        <small class="text-muted">Weak</small>
+        <h4 class="mb-0 text-danger" id="s-weak">-</h4>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="card bg-label-warning text-center p-3">
+        <small class="text-muted">Homework</small>
+        <h4 class="mb-0 text-warning" id="s-hw">-</h4>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="card bg-label-success text-center p-3">
+        <small class="text-muted">Tests</small>
+        <h4 class="mb-0 text-success" id="s-tests">-</h4>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="card bg-label-secondary text-center p-3">
+        <small class="text-muted">Study Hrs</small>
+        <h4 class="mb-0" id="s-study">-</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- Teachers -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="bx bx-user-voice me-2 text-primary"></i>Teachers</h6>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>Name</th><th>Email</th><th>Mobile</th></tr></thead>
+            <tbody id="teachers-table"><tr><td colspan="3" class="text-center py-3">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weak Students -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="bx bx-error-circle me-2 text-danger"></i>Weak Students</h6>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>Name</th><th>Avg Score</th></tr></thead>
+            <tbody id="weak-table"><tr><td colspan="2" class="text-center py-3">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Homework -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="bx bx-book-content me-2 text-warning"></i>Recent Homework</h6>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>Title</th><th>Due Date</th></tr></thead>
+            <tbody id="hw-table"><tr><td colspan="2" class="text-center py-3">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Tests -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="bx bx-notepad me-2 text-success"></i>Recent Tests</h6>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>Title</th><th>Subject</th><th>Avg</th></tr></thead>
+            <tbody id="test-table"><tr><td colspan="3" class="text-center py-3">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const classId = {{ class_id }};
+
+document.addEventListener('DOMContentLoaded', function(){
+    fetch(`/coordinator/api/classes/${classId}/`)
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('class-title').innerHTML =
+            `<i class="bx bx-chalkboard me-2 text-primary"></i>${data.class_name}`;
+
+        const s = data.summary || {};
+        const sc = { Excellent:'success', Good:'primary', Average:'warning', Weak:'danger', Critical:'danger' };
+
+        document.getElementById('s-students').textContent = s.students   || 0;
+        document.getElementById('s-avg').textContent      = (s.avg_score || 0) + '%';
+        document.getElementById('s-weak').textContent     = s.weak_students || 0;
+        document.getElementById('s-hw').textContent       = s.homework_count || 0;
+        document.getElementById('s-tests').textContent    = s.test_count || 0;
+        document.getElementById('s-study').textContent    = (s.study_hours || 0) + 'h';
+
+        // Status badge in title
+        if(s.status){
+            document.getElementById('class-title').innerHTML +=
+                ` <span class="badge bg-${sc[s.status]||'secondary'} ms-2">${s.status}</span>`;
+        }
+
+        // Teachers
+        const teachers = data.teachers || [];
+        document.getElementById('teachers-table').innerHTML = teachers.length
+            ? teachers.map(t => `<tr><td>${t.name}</td><td><small>${t.email}</small></td><td><small>${t.mobile||'-'}</small></td></tr>`).join('')
+            : '<tr><td colspan="3" class="text-center text-muted py-3">No teachers</td></tr>';
+
+        // Weak students
+        const weak = data.weak_students || [];
+        document.getElementById('weak-table').innerHTML = weak.length
+            ? weak.map(w => `<tr><td>${w.name}</td><td><span class="badge bg-danger">${w.avg_score}%</span></td></tr>`).join('')
+            : '<tr><td colspan="2" class="text-center text-success py-3">No weak students</td></tr>';
+
+        // Recent homework
+        const hws = data.recent_homeworks || [];
+        document.getElementById('hw-table').innerHTML = hws.length
+            ? hws.map(h => `<tr><td>${h.title}</td><td>${h.due_date}</td></tr>`).join('')
+            : '<tr><td colspan="2" class="text-center text-muted py-3">No homework</td></tr>';
+
+        // Recent tests
+        const tests = data.recent_tests || [];
+        document.getElementById('test-table').innerHTML = tests.length
+            ? tests.map(t => `<tr><td>${t.title}</td><td>${t.subject}</td><td>${t.avg_score}%</td></tr>`).join('')
+            : '<tr><td colspan="3" class="text-center text-muted py-3">No tests</td></tr>';
+    })
+    .catch(() => {
+        document.querySelector('.container-xxl').innerHTML +=
+            '<div class="alert alert-danger mt-3">Failed to load class data</div>';
+    });
+});
+</script>
+{% endblock %}

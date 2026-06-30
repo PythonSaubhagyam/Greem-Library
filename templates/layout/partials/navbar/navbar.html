@@ -299,7 +299,6 @@ document.addEventListener("DOMContentLoaded", () => {
            id="offcanvasTop" aria-labelledby="offcanvasTopLabel">
         <div class="offcanvas-header border-bottom py-2 px-3">
           <div class="d-flex align-items-center gap-2">
-            <img src="{% static 'img/logo/logo.jpg' %}" alt="Logo" class="rounded" style="width:32px;height:32px;">
             <h6 id="offcanvasTopLabel" class="mb-0 fw-semibold text-primary">ChatBot Admin</h6>
           </div>
           <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -373,31 +372,60 @@ document.addEventListener("DOMContentLoaded", () => {
       <!-- 👤 User -->
       <li class="nav-item dropdown dropdown-user">
         <a class="nav-link dropdown-toggle hide-arrow p-0" href="#" data-bs-toggle="dropdown">
-          <img src="{% static 'img/logo/logo.jpg' %}" alt="User" class="w-px-40 h-auto rounded-circle">
-        </a>
-        <ul class="dropdown-menu dropdown-menu-end shadow mob-admin-dropdown">
-          <li class="px-3 py-2">
-            <div class="d-flex align-items-center">
-              <img src="{% static 'img/logo/logo.jpg' %}" alt class="w-px-40 h-auto rounded-circle me-3">
-              <div>
-                <h6 class="mb-0">{{ request.user.first_name|default:request.user.email }}</h6>
-                <small class="text-muted">{{ request.user.role.type|default:"User" }}</small>
-              </div>
+        <div style="
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background-color: #696CFF;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          font-size: 16px;
+          cursor: pointer;
+        ">
+          {{ request.user.first_name|first|upper|default:"U" }}
+        </div>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end shadow mob-admin-dropdown">
+        <li class="px-3 py-2">
+          <div class="d-flex align-items-center">
+            <div style="
+              width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              background-color: #696CFF;
+              color: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: bold;
+              font-size: 16px;
+              flex-shrink: 0;
+              margin-right: 12px;
+            ">
+              {{ request.user.first_name|first|upper|default:"U" }}
             </div>
-          </li>
-          <li><div class="dropdown-divider"></div></li>
-          <li>
-            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
-              <i class="bx bx-lock me-2"></i> Change Password
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="{% url 'auth-logout' %}">
-              <i class="bx bx-power-off me-2"></i> Log Out
-            </a>
-          </li>
-        </ul>
-      </li>
+            <div>
+              <h6 class="mb-0">{{ request.user.first_name|default:request.user.email }}</h6>
+              <small class="text-muted">{{ request.user.role.type|default:"User" }}</small>
+            </div>
+          </div>
+        </li>
+        <li><div class="dropdown-divider"></div></li>
+        <li>
+          <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+            <i class="bx bx-lock me-2"></i> Change Password
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{% url 'auth-logout' %}">
+            <i class="bx bx-power-off me-2"></i> Log Out
+          </a>
+        </li>
+      </ul>
+    </li>
     </ul>
   </div>
 </nav>

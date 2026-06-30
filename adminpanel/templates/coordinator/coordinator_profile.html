@@ -1,0 +1,110 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  
+  <div class="row">
+    <!-- Profile Card -->
+    <div class="col-md-4">
+      <div class="card text-center p-4">
+        <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold"
+             style="width:80px;height:80px;font-size:32px;" id="avatar-circle">—</div>
+        <h5 id="profile-name" class="mb-1">—</h5>
+        <p class="text-muted mb-3" id="profile-role">—</p>
+        <div class="row text-center">
+          <div class="col-4">
+            <h6 class="mb-0 text-primary" id="stat-classes">—</h6>
+            <small class="text-muted">Classes</small>
+          </div>
+          <div class="col-4">
+            <h6 class="mb-0 text-success" id="stat-teachers">—</h6>
+            <small class="text-muted">Teachers</small>
+          </div>
+          <div class="col-4">
+            <h6 class="mb-0 text-warning" id="stat-students">—</h6>
+            <small class="text-muted">Students</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Card -->
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header"><h5 class="mb-0">Edit Profile</h5></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">First Name</label>
+              <input type="text" class="form-control" id="edit-first-name">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Last Name</label>
+              <input type="text" class="form-control" id="edit-last-name">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" id="edit-email" disabled>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Mobile</label>
+              <input type="text" class="form-control" id="edit-mobile">
+            </div>
+          </div>
+          <div class="mt-4">
+            <button class="btn btn-primary" onclick="saveProfile()">
+              <i class="bx bx-save me-1"></i> Save Changes
+            </button>
+            <span id="save-msg" class="ms-3 text-success d-none">Saved successfully!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+fetch('/coordinator/api/profile/')
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('avatar-circle').textContent  = (data.first_name || 'U')[0].toUpperCase();
+    document.getElementById('profile-name').textContent   = `${data.first_name} ${data.last_name}`;
+    document.getElementById('profile-role').textContent   = data.role;
+    document.getElementById('stat-classes').textContent   = data.stats.classes;
+    document.getElementById('stat-teachers').textContent  = data.stats.teachers;
+    document.getElementById('stat-students').textContent  = data.stats.students;
+    document.getElementById('edit-first-name').value = data.first_name;
+    document.getElementById('edit-last-name').value  = data.last_name;
+    document.getElementById('edit-email').value      = data.email;
+    document.getElementById('edit-mobile').value     = data.mobile !== '-' ? data.mobile : '';
+  });
+
+function saveProfile() {
+  const body = {
+    first_name: document.getElementById('edit-first-name').value,
+    last_name:  document.getElementById('edit-last-name').value,
+    mobile:     document.getElementById('edit-mobile').value,
+  };
+  fetch('/coordinator/api/profile/', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify(body)
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      const msg = document.getElementById('save-msg');
+      msg.classList.remove('d-none');
+      setTimeout(() => msg.classList.add('d-none'), 3000);
+    }
+  });
+}
+
+function getCookie(name) {
+  const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+  return v ? v[2] : null;
+}
+</script>
+{% endblock %}

@@ -98,7 +98,10 @@ class StudentAnswerModel(models.Model):
     def __str__(self):
         return f"{self.attempt} - {self.question}"
 
-
+class Chapter(models.Model):
+    name = models.CharField(max_length=255)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='chapters')
+    
 class StudySession(models.Model):
     student = models.ForeignKey('user_management.StudentModel', on_delete=models.CASCADE)
 
@@ -118,6 +121,9 @@ class StudySession(models.Model):
     # clicks / scroll / activity signals
 
     is_active = models.BooleanField(default=True)
+    chapter = models.ForeignKey(Chapter, on_delete=models.SET_NULL, null=True, blank=True)
+    pdfs_opened = models.ManyToManyField(pdfLibraryModel, blank=True)
+    offline_usage = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if self.end_time and self.start_time:
@@ -164,3 +170,4 @@ class ReportModel(models.Model):
 
     def __str__(self):
         return f"{self.title}"
+

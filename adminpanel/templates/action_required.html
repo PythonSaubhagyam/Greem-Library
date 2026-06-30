@@ -1,0 +1,69 @@
+{% extends layout_path %}
+{% load static %}
+{% block title %}Actions Required{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  <h4 class="fw-bold py-3 mb-4">
+    <span class="text-muted fw-light">Alerts /</span> Actions Required
+  </h4>
+
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0"><i class="bx bx-error-circle text-warning me-2"></i>Pending Action Items</h5>
+      <span id="actionCount" class="badge bg-danger">...</span>
+    </div>
+    <div class="card-body px-0">
+      <div id="loadingMsg" class="text-center py-4 text-muted">
+        <i class="bx bx-loader-alt bx-spin me-1"></i> Loading action items...
+      </div>
+      <ul class="list-group list-group-flush d-none" id="actionList"></ul>
+      <div id="noActions" class="text-center py-5 text-muted d-none">
+        <i class="bx bx-check-circle fs-1 text-success mb-2"></i>
+        <p>All clear! No pending actions.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    fetch('/customer/api/action-required/list/')
+      .then(r => r.json())
+      .then(data => {
+          document.getElementById('loadingMsg').classList.add('d-none');
+          const items = data.actions || [];
+          document.getElementById('actionCount').textContent = items.length;
+
+          if(items.length === 0){
+              document.getElementById('noActions').classList.remove('d-none');
+              return;
+          }
+
+          const list = document.getElementById('actionList');
+          list.classList.remove('d-none');
+          items.forEach(item => {
+              const priorityColor = item.priority === 'HIGH' ? 'danger'
+                                  : item.priority === 'MEDIUM' ? 'warning' : 'info';
+              list.insertAdjacentHTML('beforeend', `
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                  <div>
+                    <span class="badge bg-${priorityColor} me-2">${item.priority}</span>
+                    <strong>${item.action_type}</strong>
+                    <small class="d-block text-muted mt-1">${item.description}</small>
+                    <small class="text-muted">
+                      ${item.related_entity_type ? item.related_entity_type + ': ' : ''}
+                      ${item.related_entity_name || ''}
+                    </small>
+                  </div>
+                  <span class="badge bg-label-secondary">${item.created_at || ''}</span>
+                </li>
+              `);
+          });
+      })
+      .catch(err => {
+          document.getElementById('loadingMsg').textContent = 'Error loading actions. Please try again.';
+      });
+});
+</script>
+{% endblock %}

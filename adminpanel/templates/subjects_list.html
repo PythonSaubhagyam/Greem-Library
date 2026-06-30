@@ -149,13 +149,13 @@ function loadSubjects(page = 1, search = '') {
           <td>${(page - 1) * 10 + i + 1}</td>
           <td><strong>${s.name}</strong></td>
           <td>
-            <button class="btn btn-sm btn-outline-primary me-1"
+            <button class="btn btn-sm btn-icon btn-label-warning me-1"
                     onclick="openEdit(${s.id}, '${s.name}')">
-              Edit
+              <i class="bx bx-edit"></i>
             </button>
-            <button class="btn btn-sm btn-outline-danger"
+            <button class="btn btn-sm btn-icon btn-label-danger"
                     onclick="openDelete(${s.id}, '${s.name}')">
-              Delete
+              <i class="bx bx-trash"></i>
             </button>
           </td>
         </tr>
