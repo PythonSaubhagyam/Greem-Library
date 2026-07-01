@@ -1356,3 +1356,166 @@ class TeacherAssignClassAPI(APIView):
 
         assignment.save()
         return Response({"success": True})
+
+class SchoolSubjectAPIView(APIView):
+    """
+    GET /customer/api/subjects/
+    Spec §9.1 — Subject-wise performance scoped to this school/principal.
+    Returns: subject name, avg score, weak students, best class,
+             weakest class, responsible teachers, tests count, status.
+    """
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes     = [IsAuthenticated]
+
+    def get(self, request):
+        from tablet_app.models import Subject, TestModel, StudentTestAttemptModel, StudySession
+        from user_management.models import (
+            StudentModel, ClassModel, TeacherAssignmentModel,
+            PrincipalCoordinatorMapping, CoordinatorTeacherMapping
+        )
+        from django.db.models import Avg, Count, Q
+
+        # ── Resolve principal ──────────────────────────────────────────────
+        principal_id = request.GET.get('principal_id') or (
+            request.user.id
+            if request.user.is_authenticated and request.user.role
+            and request.user.role.type == 'Customer'
+            else None
+        )
+
+        # ── Scope: get all students under this principal ───────────────────
+        if principal_id:
+            school_students = StudentModel.objects.filter(
+                parent__id=principal_id,
+                parent__role__type='Customer'
+            ).distinct()
+
+            # Also include students via teacher assignment chain
+            if not school_students.exists():
+                teacher_ids = list(TeacherAssignmentModel.objects.filter(
+                    school_principal_id=principal_id
+                ).values_list('teacher_id', flat=True))
+                class_ids = list(TeacherAssignmentModel.objects.filter(
+                    teacher_id__in=teacher_ids
+                ).values_list('assigned_classes__id', flat=True).distinct())
+                school_students = StudentModel.objects.filter(
+                    student_class_id__in=class_ids
+                ).distinct()
+        else:
+            school_students = StudentModel.objects.all()
+
+        student_ids = list(school_students.values_list('id', flat=True))
+
+        # ── Get all classes under this school ─────────────────────────────
+        class_ids = list(
+            school_students.values_list('student_class_id', flat=True).distinct()
+        )
+        classes = ClassModel.objects.filter(id__in=class_ids)
+
+        # ── Get subjects that have tests for these students ────────────────
+        subject_ids = list(
+            TestModel.objects.filter(
+                student__in=student_ids
+            ).exclude(subject=None)
+            .values_list('subject_id', flat=True)
+            .distinct()
+        )
+
+        subjects = Subject.objects.filter(id__in=subject_ids)
+
+        # ── Optional search filter ─────────────────────────────────────────
+        q = request.GET.get('q', '').strip()
+        if q:
+            subjects = subjects.filter(name__icontains=q)
+
+        data = []
+        for subj in subjects:
+
+            # Overall avg score for this subject across school
+            attempts = StudentTestAttemptModel.objects.filter(
+                test__subject=subj,
+                student_id__in=student_ids
+            )
+            avg_score = attempts.aggregate(avg=Avg('score'))['avg'] or 0
+
+            # Weak students count (avg < 40)
+            weak_students = attempts.values('student_id').annotate(
+                a=Avg('score')
+            ).filter(a__lt=40).count()
+
+            # Total students who attempted this subject
+            total_attempted = attempts.values('student_id').distinct().count()
+
+            # Tests count
+            tests_count = TestModel.objects.filter(
+                subject=subj,
+                student__in=student_ids
+            ).distinct().count()
+
+            # Best and weakest class for this subject
+            class_avgs = []
+            for cls in classes:
+                cls_student_ids = list(
+                    school_students.filter(
+                        student_class=cls
+                    ).values_list('id', flat=True)
+                )
+                if not cls_student_ids:
+                    continue
+                cls_avg = StudentTestAttemptModel.objects.filter(
+                    test__subject=subj,
+                    student_id__in=cls_student_ids
+                ).aggregate(avg=Avg('score'))['avg']
+                if cls_avg is not None:
+                    class_avgs.append({
+                        'class': cls.get_display_name(),
+                        'avg':   round(cls_avg, 1)
+                    })
+
+            best_class    = max(class_avgs, key=lambda x: x['avg'])['class'] if class_avgs else '-'
+            weakest_class = min(class_avgs, key=lambda x: x['avg'])['class'] if class_avgs else '-'
+
+            # Responsible teachers
+            if principal_id:
+                teacher_ids_scope = list(TeacherAssignmentModel.objects.filter(
+                    school_principal_id=principal_id,
+                    assigned_subjects=subj
+                ).values_list('teacher_id', flat=True).distinct())
+            else:
+                teacher_ids_scope = list(TeacherAssignmentModel.objects.filter(
+                    assigned_subjects=subj
+                ).values_list('teacher_id', flat=True).distinct())
+
+            from user_management.models import UserModel
+            teachers = UserModel.objects.filter(id__in=teacher_ids_scope)
+            teacher_names = [f"{t.first_name} {t.last_name}".strip() for t in teachers] or ['-']
+
+            # Status label
+            if avg_score >= 75:   status = 'Excellent'
+            elif avg_score >= 60: status = 'Good'
+            elif avg_score >= 50: status = 'Average'
+            elif avg_score >= 35: status = 'Weak'
+            else:                 status = 'Critical'
+
+            data.append({
+                'id':              subj.id,
+                'subject':         subj.name,
+                'avg_score':       round(avg_score, 1),
+                'weak_students':   weak_students,
+                'total_attempted': total_attempted,
+                'tests_count':     tests_count,
+                'best_class':      best_class,
+                'weakest_class':   weakest_class,
+                'teachers':        teacher_names,
+                'class_breakdown': class_avgs,
+                'status':          status,
+            })
+
+        # Sort by avg score ascending (weakest first — spec §9 says show weak areas)
+        data.sort(key=lambda x: x['avg_score'])
+
+        return Response({
+            'count':    len(data),
+            'subjects': data,
+        })
+    

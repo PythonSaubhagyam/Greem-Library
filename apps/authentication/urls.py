@@ -63,7 +63,7 @@ urlpatterns = [
     path("customer/dashboard/teachers/", CustomerDashboardView.as_view(template_name="school_teachers_list.html"), name="customer-teachers"),
     path("customer/dashboard/teachers/add/", TeacherAddEditView.as_view(), name="customer-teachers-add"),
     path("customer/dashboard/teachers/edit/<int:id>/", TeacherAddEditView.as_view(), name="customer-teachers-edit"),
-    path("customer/dashboard/subjects/", CustomerDashboardView.as_view(template_name="company_detail.html"), name="customer-subjects"),
+    path("customer/dashboard/subjects/", CustomerDashboardView.as_view(template_name="school_subjects_list.html"), name="customer-subjects"),
     path("customer/dashboard/tests/", CustomerDashboardView.as_view(template_name="tests_list.html"), name="customer-tests"),
     path("customer/dashboard/tests/add/", CustomerDashboardView.as_view(template_name="tests_add.html"), name="customer-tests-add"),
     path("customer/dashboard/tests/<int:pk>/", TestDetailView.as_view(), name="customer-test-detail"),
@@ -101,5 +101,6 @@ urlpatterns = [
     path("customer/api/reports/parent-meeting/", ParentMeetingPDFReportAPI.as_view(), name="customer-parent-meeting-report"),
 
     path("customer/api/teachers/assign-class/", TeacherAssignClassAPI.as_view(), name="customer-teacher-assign-class-api"),
+    path("customer/api/subjects/", SchoolSubjectAPIView.as_view(), name="customer-subjects-api"),
 
 ]

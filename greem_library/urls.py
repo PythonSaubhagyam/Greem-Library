@@ -1,3 +1,4 @@
+# greem_library/urls.py
 """
 URL configuration for greem_library project.
 
@@ -23,12 +24,12 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('user/',include('user_management.urls')),
-    path("administrator/", include("adminpanel.urls")),
+    # path("administrator/", include("adminpanel.urls")),
     path('tablet/', include('tablet_app.urls')),
 
     path("", include("apps.dashboards.urls")),
     
-    path("customer/", include("adminpanel.urls")),
+    # path("customer/", include("adminpanel.urls")),
     # layouts urls
     path("admin_panel/", include("apps.layouts.urls")),
 
@@ -59,6 +60,15 @@ urlpatterns = [
     # Tables urls
     path("", include("apps.tables.urls")),
     path('coordinator/', include('adminpanel.coordinator_urls')),
+    path(
+        "administrator/",
+        include(("adminpanel.urls", "adminpanel"), namespace="administrator"),
+    ),
+
+    path(
+        "customer/",
+        include(("adminpanel.urls", "adminpanel"), namespace="customer"),
+    ),
 
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
