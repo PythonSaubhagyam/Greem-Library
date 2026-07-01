@@ -55,26 +55,126 @@
   </div>
 </div>
 
+<!-- ══ Delete Confirm Modal ════════════════════════════════════════════ -->
+<div class="modal fade" id="deleteTeacherModal" tabindex="-1"
+     aria-labelledby="deleteTeacherLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="deleteTeacherLabel">
+          <i class="bx bx-trash me-2"></i>Delete Teacher
+        </h5>
+        <button type="button" class="btn-close"
+                data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">Are you sure you want to delete:</p>
+        <p class="fw-semibold mb-1" id="deleteTeacherName">—</p>
+        <div id="deleteTeacherError"
+             class="alert alert-danger d-none mt-2 mb-0 py-2 small"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm"
+                data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger btn-sm"
+                id="confirmDeleteTeacherBtn" onclick="confirmDeleteTeacher()">
+          <span id="deleteTeacherBtnText">Delete</span>
+          <span id="deleteTeacherSpinner"
+                class="spinner-border spinner-border-sm ms-1 d-none"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+// ── State ─────────────────────────────────────────────────────────────────
+let teacherToDelete = null;
+let deleteTeacherModal = null;
+
+// ── Open modal ────────────────────────────────────────────────────────────
+function deleteTeacher(id, name) {
+    teacherToDelete = id;
+    document.getElementById('deleteTeacherName').textContent = name || 'this teacher';
+    document.getElementById('deleteTeacherError').classList.add('d-none');
+    document.getElementById('deleteTeacherError').textContent = '';
+    document.getElementById('deleteTeacherBtnText').textContent = 'Delete';
+    document.getElementById('deleteTeacherSpinner').classList.add('d-none');
+    document.getElementById('confirmDeleteTeacherBtn').disabled = false;
+    deleteTeacherModal.show();
+}
+
+// ── Confirm delete ────────────────────────────────────────────────────────
+function confirmDeleteTeacher() {
+    if (!teacherToDelete) return;
+
+    const btnText    = document.getElementById('deleteTeacherBtnText');
+    const spinner    = document.getElementById('deleteTeacherSpinner');
+    const errDiv     = document.getElementById('deleteTeacherError');
+    const confirmBtn = document.getElementById('confirmDeleteTeacherBtn');
+
+    btnText.textContent = 'Deleting...';
+    spinner.classList.remove('d-none');
+    confirmBtn.disabled = true;
+    errDiv.classList.add('d-none');
+
+    fetch(`{% url 'customer-users-list-detail-api' id=0 %}`.replace('/0/', `/${teacherToDelete}/`), {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ''
+        }
+    })
+    .then(res => {
+        if (res.ok || res.status === 200) {
+            deleteTeacherModal.hide();
+            teacherToDelete = null;
+            fetchTeachers(searchInput.value);
+        } else {
+            return res.json().then(data => {
+                errDiv.textContent = data.error || 'Failed to delete teacher.';
+                errDiv.classList.remove('d-none');
+                btnText.textContent = 'Delete';
+                spinner.classList.add('d-none');
+                confirmBtn.disabled = false;
+            });
+        }
+    })
+    .catch(() => {
+        errDiv.textContent = 'Network error. Please try again.';
+        errDiv.classList.remove('d-none');
+        btnText.textContent = 'Delete';
+        spinner.classList.add('d-none');
+        confirmBtn.disabled = false;
+    });
+}
+
+// ── Reset modal on close ──────────────────────────────────────────────────
+document.getElementById('deleteTeacherModal').addEventListener('hidden.bs.modal', () => {
+    teacherToDelete = null;
+    document.getElementById('deleteTeacherError').classList.add('d-none');
+});
+
+// ── Table fetch ───────────────────────────────────────────────────────────
+let searchInput;
+
 document.addEventListener("DOMContentLoaded", function () {
-    const container = document.getElementById("companies-container");
-    const loader = document.getElementById("companies-loader");
-    const searchInput = document.getElementById("searchCompany");
+    const container        = document.getElementById("companies-container");
+    const loader           = document.getElementById("companies-loader");
+    searchInput            = document.getElementById("searchCompany");
     const rowsPerPageSelect = document.getElementById("rowsPerPage");
 
     function fetchTeachers(query = "", page = 1) {
         loader.style.display = "block";
-        container.innerHTML = "";
+        container.innerHTML  = "";
 
         const params = new URLSearchParams({
-            q: query,
-            user: 'teachers',
-            page: page,
+            q:            query,
+            user:         'teachers',
+            page:         page,
             row_per_page: rowsPerPageSelect.value,
             principal_id: "{{ request.user.id }}",
         });
 
-        // CRITICAL: scoped endpoint, NOT /administrator/users-list/
         fetch(`{% url 'customer-users-list-api' %}?${params.toString()}`)
             .then(res => res.json())
             .then(data => {
@@ -83,8 +183,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 document.getElementById("datacount").innerText = `(${data.count})`;
 
                 if (!teachers.length) {
-                    container.innerHTML = `<tr><td colspan="9" class="text-center text-muted">No teachers found for this school.</td></tr>`;
-                    document.getElementById("pagination").innerHTML = "";
+                    container.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">No teachers found for this school.</td></tr>`;
+                    document.getElementById("pagination").innerHTML    = "";
                     document.getElementById("pagination-info").textContent = "";
                     return;
                 }
@@ -94,20 +194,26 @@ document.addEventListener("DOMContentLoaded", function () {
                         ? t.classes.map(c => `<span class="badge bg-label-primary me-1">${c}</span>`).join('')
                         : '<span class="text-muted small">-</span>';
 
-                    const subjectsText = (t.subjects || []).length ? t.subjects.join(', ') : '-';
+                    const subjectsText = (t.subjects || []).length
+                        ? t.subjects.join(', ')
+                        : '-';
 
                     const activeBadge = t.is_active_today
                         ? '<span class="badge bg-success">Active Today</span>'
                         : '';
 
+                    // Escape name for safe use in onclick attribute
+                    const safeName = (t.full_name || 'this teacher').replace(/'/g, "\\'");
+
                     container.insertAdjacentHTML("beforeend", `
                     <tr>
                         <td>${(page - 1) * parseInt(rowsPerPageSelect.value) + i + 1}</td>
                         <td>
-                        <a href="/customer/dashboard/teachers/${t.id}/" class="fw-semibold text-decoration-none">
-                            ${t.full_name || '-'}
-                        </a>
-                        <div class="text-muted small">${t.email || '-'}</div>
+                            <a href="/customer/dashboard/teachers/${t.id}/"
+                               class="fw-semibold text-decoration-none">
+                                ${t.full_name || '-'}
+                            </a>
+                            <div class="text-muted small">${t.email || '-'}</div>
                         </td>
                         <td>${classesBadges}</td>
                         <td><small>${subjectsText}</small></td>
@@ -115,23 +221,21 @@ document.addEventListener("DOMContentLoaded", function () {
                         <td class="text-center">${t.tests_count ?? 0}</td>
                         <td class="text-center">${t.homework_count ?? 0}</td>
                         <td>
-                        <small>${t.last_active || 'Never'}</small><br>
-                        ${activeBadge}
+                            <small>${t.last_active || 'Never'}</small><br>
+                            ${activeBadge}
                         </td>
                         <td class="text-center">
                             <div class="d-flex justify-content-center align-items-center gap-1">
                                 <a href="/customer/dashboard/teachers/edit/${t.id}/"
-                                class="btn btn-sm btn-icon btn-label-warning me-1"
-                                title="Edit">
+                                   class="btn btn-sm btn-icon btn-label-warning"
+                                   title="Edit">
                                     <i class="bx bx-edit"></i>
                                 </a>
-
-                                <a href="javascript:void(0);"
-                                onclick="deleteTeacher(${t.id})"
-                                class="btn btn-sm btn-icon btn-label-danger"
-                                title="Delete">
+                                <button onclick="deleteTeacher(${t.id}, '${safeName}')"
+                                        class="btn btn-sm btn-icon btn-label-danger"
+                                        title="Delete">
                                     <i class="bx bx-trash"></i>
-                                </a>
+                                </button>
                             </div>
                         </td>
                     </tr>`);
@@ -144,25 +248,35 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
+    window.fetchTeachers = fetchTeachers; // expose for confirmDeleteTeacher()
+    deleteTeacherModal = new bootstrap.Modal(
+        document.getElementById('deleteTeacherModal')
+    );
     function renderPagination(data) {
         const pagination = document.getElementById("pagination");
-        const info = document.getElementById("pagination-info");
+        const info       = document.getElementById("pagination-info");
         pagination.innerHTML = "";
         info.textContent = `Showing page ${data.current_page} of ${data.total_pages} (${data.count} Teachers)`;
 
         const prevDisabled = data.previous === null ? "disabled" : "";
         pagination.insertAdjacentHTML("beforeend",
-            `<li class="page-item ${prevDisabled}"><a class="page-link" href="#" data-page="${data.current_page - 1}">Previous</a></li>`);
+            `<li class="page-item ${prevDisabled}">
+               <a class="page-link" href="#" data-page="${data.current_page - 1}">Previous</a>
+             </li>`);
 
         for (let i = 1; i <= data.total_pages; i++) {
             const active = i === data.current_page ? "active" : "";
             pagination.insertAdjacentHTML("beforeend",
-                `<li class="page-item ${active}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`);
+                `<li class="page-item ${active}">
+                   <a class="page-link" href="#" data-page="${i}">${i}</a>
+                 </li>`);
         }
 
         const nextDisabled = data.next === null ? "disabled" : "";
         pagination.insertAdjacentHTML("beforeend",
-            `<li class="page-item ${nextDisabled}"><a class="page-link" href="#" data-page="${data.current_page + 1}">Next</a></li>`);
+            `<li class="page-item ${nextDisabled}">
+               <a class="page-link" href="#" data-page="${data.current_page + 1}">Next</a>
+             </li>`);
 
         pagination.querySelectorAll(".page-link").forEach(btn => {
             btn.addEventListener("click", e => {
@@ -194,13 +308,5 @@ document.addEventListener("DOMContentLoaded", function () {
 
     fetchTeachers();
 });
-
-function deleteTeacher(id) {
-    if (!confirm("Delete this teacher?")) return;
-    fetch(`{% url 'customer-users-list-api' %}?id=${id}`, {
-        method: "DELETE",
-        headers: { "X-CSRFToken": document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '' }
-    }).then(() => location.reload());
-}
 </script>
 {% endblock %}

@@ -78,9 +78,13 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
         # If this view is explicitly serving the customer dashboard template
         # and the user is a Customer, return the adminpanel namespaced dashboard.
         # Do NOT override other templates (eg. add/edit pages) for Customer users.
+       
+            
         if user_role == 'Customer' and (self.template_name is None or self.template_name == 'customer_dashboard.html'):
             return ["adminpanel/customer_dashboard.html"]
         return [self.template_name]
+    
+        
 
     # Predefined function
     def get_context_data(self, **kwargs):
@@ -88,7 +92,12 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
 
         #  Define template FIRST
         template = self.template_name
-        
+        namespace = self.request.resolver_match.namespace
+
+        if namespace:
+            companies_url = reverse(f"{namespace}:companies")
+        else:
+            companies_url = reverse("administrator:companies")
         import re
         match = re.search(r'/companies/detail/(\d+)/', self.request.path)
         company_id = self.request.GET.get('company')
@@ -179,19 +188,19 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
         # Map templates to breadcrumbs
         route_map = {
             "companies_list.html": (company_label, None),
-            "company_detail.html": (company_label, reverse('companies'), "Company Detail"),
+            "company_detail.html": (company_label, companies_url, "Company Detail"),
             # "company_detail_table.html": ("Companies", reverse('companies'), reverse('company-detail', args=[company_id]),"In-Detail"),
-            "add_company.html": (company_label, reverse('companies'), add_edit_label),
+            "add_company.html": (company_label, companies_url, add_edit_label),
             "Students_list.html": ("Students Management", None),
-            "students_add_update.html": ("Students Management", reverse('students'), add_edit_label),
-            "student_details.html":("Students Management", reverse('students'),student_name),
+            "students_add_update.html": ("Students Management", companies_url, add_edit_label),
+            "student_details.html":("Students Management",companies_url,student_name),
             "Employees_list.html": ("Employees Management", None),
-            "employees_add_update.html": ("Employees Management", reverse('employees'), add_edit_label),
+            "employees_add_update.html": ("Employees Management", companies_url, add_edit_label),
             "Customer_list.html": ("Customers Management", None),
-            "customer_add_update.html": ("Customers Management", reverse('customers'), add_edit_label),
+            "customer_add_update.html": ("Customers Management", companies_url, add_edit_label),
             "Devices_list.html": ("Devices Management", None),
-            "customer_device_add_update.html": ("Devices Management", reverse('devices'), add_edit_label),
-            "customer_detail.html": ("Customers Management", reverse('customers'), customer_name),
+            "customer_device_add_update.html": ("Devices Management", companies_url, add_edit_label),
+            "customer_detail.html": ("Customers Management", companies_url, customer_name),
             "school_setup.html":("School Setup",None),
             "class_comparison.html":("Class Comparison",None),
             "onboarding_upload.html":("Onboarding",None),
@@ -199,19 +208,20 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             "alerts.html":("Alert",None),
             "Classes_list.html":("Class",None),
             "homework_reports.html":("Homework",None),
-            "homework_add.html":("Homework", reverse('homework-add')),
+            "homework_add.html":("Homework",companies_url),
             "tests_list.html":("Test",None),
             "school_teachers_list.html":("Teacher",None),
             "school_teacher_add.html": ("Teacher",reverse("customer-teachers"),add_edit_label),
+            "school_subjects_list.html":("Subjects",None),
 
             # "leads_details.html": ("Lead Management", None),
             # "lead_add.html": ("Lead Management", reverse('lead-management'), "Add Tablet Lead"),
             # "lead_detail.html": ("Lead Management", reverse('lead-management'), "Lead Detail"),
             "leads_details.html": ("Lead Management", None),
-            "lead_add.html": ("Lead Management", reverse("lead-management"), add_edit_label),
+            "lead_add.html": ("Lead Management", companies_url, add_edit_label),
 
-            "lead_followup_details.html": ("Lead Management", reverse("lead-management"), "Follow-Ups"),
-            "lead_followup_add.html": ("Lead Management", reverse("lead-management"), "Add Follow-Up" ),
+            "lead_followup_details.html": ("Lead Management",companies_url, "Follow-Ups"),
+            "lead_followup_add.html": ("Lead Management", companies_url, "Add Follow-Up" ),
             "subjects_list.html": ("Subjects", None),
             "study_time.html": ("Study Time", None),
             "weakness_analysis.html": ("Weakness Analysis", None),
@@ -347,8 +357,9 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
         if company_id:
             route_map["company_details_table.html"] = (
                 "Companies",
-                reverse('companies'), "Company Detail",
-                reverse('company-detail', args=[company_id]),
+                companies_url,
+                "Company Detail",
+                reverse(f"{namespace}:company-detail", args=[company_id]),
                 detail_name.title()
             )
 

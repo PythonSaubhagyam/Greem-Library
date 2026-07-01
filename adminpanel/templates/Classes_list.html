@@ -72,25 +72,111 @@
   </div>
 </div>
 
+<!-- ── Delete Confirmation Modal ── -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center px-4 pb-0">
+        <h5 class="fw-bold mb-1">Deactivate Class?</h5>
+        <p class="text-muted small mb-0">
+          Are you sure you want to deactivate
+          <strong id="deleteClassName"></strong>?
+          <br>This action will hide it from all lists.
+        </p>
+      </div>
+      <div class="modal-footer border-0 justify-content-center gap-2 pt-3">
+        <button type="button" class="btn btn-outline-secondary px-4"
+                data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
+          <i class="bx bx-trash me-1"></i>Deactivate
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block page_js %}
 <script>
-const container = document.getElementById("classes-container");
-const loader = document.getElementById("classes-loader");
-const search = document.getElementById("searchClass");
-const rowsSelect = document.getElementById("rowsPerPage");
-const pagination = document.getElementById("pagination");
+const container     = document.getElementById("classes-container");
+const loader        = document.getElementById("classes-loader");
+const search        = document.getElementById("searchClass");
+const rowsSelect    = document.getElementById("rowsPerPage");
+const pagination    = document.getElementById("pagination");
 const paginationInfo = document.getElementById("pagination-info");
 
-let currentPage = 1;
+let currentPage     = 1;
+let classToDelete   = null;   // stores { id, label } of class pending delete
 
+// ── Bootstrap modal instance ──────────────────────────────────────────────
+const deleteModalEl = document.getElementById('deleteModal');
+const deleteModal   = new bootstrap.Modal(deleteModalEl);
+
+// ── Confirm button click ──────────────────────────────────────────────────
+document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+  if (!classToDelete) return;
+
+  this.disabled = true;
+  this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deactivating...';
+
+  fetch(`/administrator/classes-api/${classToDelete.id}/`, {
+    method: 'DELETE',
+    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+  })
+    .then(res => {
+      deleteModal.hide();
+      this.disabled = false;
+      this.innerHTML = '<i class="bx bx-trash me-1"></i>Deactivate';
+      classToDelete = null;
+
+      if (res.ok) {
+        fetchClasses(currentPage);
+      } else {
+        alert('Failed to deactivate. Please try again.');
+      }
+    })
+    .catch(() => {
+      deleteModal.hide();
+      this.disabled = false;
+      this.innerHTML = '<i class="bx bx-trash me-1"></i>Deactivate';
+      alert('Network error. Please try again.');
+    });
+});
+
+// ── Reset modal state when closed ────────────────────────────────────────
+deleteModalEl.addEventListener('hidden.bs.modal', function () {
+  classToDelete = null;
+  document.getElementById('deleteClassName').textContent = '';
+  const btn = document.getElementById('confirmDeleteBtn');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bx bx-trash me-1"></i>Deactivate';
+});
+
+// ── Open modal with class info ────────────────────────────────────────────
+function deactivate(id, label) {
+  classToDelete = { id, label };
+  document.getElementById('deleteClassName').textContent = label;
+  deleteModal.show();
+}
+
+// ── CSRF helper ───────────────────────────────────────────────────────────
+function getCookie(name) {
+  const val = `; ${document.cookie}`;
+  const parts = val.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+// ── Data fetching ─────────────────────────────────────────────────────────
 function fetchClasses(page = 1) {
-  const q = search.value;
+  const q    = search.value;
   const rows = rowsSelect.value;
 
   loader.style.display = "block";
-  container.innerHTML = "";
+  container.innerHTML  = "";
 
   fetch(`/administrator/classes-api/?q=${encodeURIComponent(q)}&page=${page}&row_per_page=${rows}`)
     .then(res => res.json())
@@ -98,20 +184,18 @@ function fetchClasses(page = 1) {
       loader.style.display = "none";
       currentPage = res.current_page;
 
+      const countEl = document.getElementById("datacount");
+      if (countEl) countEl.innerText = `(${res.count})`;
+
       if (!res.results.length) {
-        container.innerHTML = `<tr><td colspan="6" class="text-center">No classes found</td></tr>`;
-        pagination.innerHTML = "";
+        container.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No classes found</td></tr>`;
+        pagination.innerHTML    = "";
         paginationInfo.innerHTML = "";
         return;
       }
 
       renderRows(res.results);
       renderPagination(res);
-
-      const countEl = document.getElementById("datacount");
-      if (countEl) {
-        countEl.innerText = `(${res.count})`;
-      }
     });
 }
 
@@ -119,17 +203,28 @@ function renderRows(data) {
   container.innerHTML = "";
 
   data.forEach((c, i) => {
+    // Build a human-readable label for the modal
+    const label = `Class ${c.standard}${c.section ? c.section : ''} (${c.academic_year || '-'})`;
+
     container.insertAdjacentHTML("beforeend", `
       <tr>
-        <td>${(currentPage - 1) * rowsSelect.value + i + 1}</td>
-        <td>${c.standard}</td>
+        <td>${(currentPage - 1) * parseInt(rowsSelect.value) + i + 1}</td>
+        <td><strong>${c.standard}</strong></td>
         <td>${c.section || '-'}</td>
         <td>${c.academic_year || '-'}</td>
-        <td>${c.student_count || 0}</td>
+        <td><span class="badge bg-label-info">${c.student_count || 0} students</span></td>
         <td>
           <div class="d-flex gap-2 align-items-center">
-            <a href="/administrator/classes/edit/${c.id}/" class="btn btn-sm btn-icon btn-label-warning me-1" title="Edit"><i class="bx bx-edit"></i></a>
-            <a href="#" onclick="deactivate(${c.id})" class="btn btn-sm btn-icon btn-label-danger" title="Deactivate"><i class="bx bx-trash"></i></a>
+            <a href="/administrator/classes/edit/${c.id}/"
+               class="btn btn-sm btn-icon btn-label-warning"
+               title="Edit">
+              <i class="bx bx-edit"></i>
+            </a>
+            <button onclick="deactivate(${c.id}, '${label}')"
+                    class="btn btn-sm btn-icon btn-label-danger"
+                    title="Deactivate">
+              <i class="bx bx-trash"></i>
+            </button>
           </div>
         </td>
       </tr>
@@ -142,18 +237,27 @@ function renderPagination(data) {
   paginationInfo.textContent = `Showing page ${data.current_page} of ${data.total_pages} (${data.count} Classes)`;
 
   const prevDisabled = data.previous === null ? "disabled" : "";
-  pagination.insertAdjacentHTML("beforeend", `<li class="page-item ${prevDisabled}"><a class="page-link" href="#" data-page="${data.current_page - 1}">Previous</a></li>`);
+  pagination.insertAdjacentHTML("beforeend",
+    `<li class="page-item ${prevDisabled}">
+       <a class="page-link" href="#" data-page="${data.current_page - 1}">Previous</a>
+     </li>`);
 
   for (let i = 1; i <= data.total_pages; i++) {
     const active = i === data.current_page ? "active" : "";
-    pagination.insertAdjacentHTML("beforeend", `<li class="page-item ${active}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`);
+    pagination.insertAdjacentHTML("beforeend",
+      `<li class="page-item ${active}">
+         <a class="page-link" href="#" data-page="${i}">${i}</a>
+       </li>`);
   }
 
   const nextDisabled = data.next === null ? "disabled" : "";
-  pagination.insertAdjacentHTML("beforeend", `<li class="page-item ${nextDisabled}"><a class="page-link" href="#" data-page="${data.current_page + 1}">Next</a></li>`);
+  pagination.insertAdjacentHTML("beforeend",
+    `<li class="page-item ${nextDisabled}">
+       <a class="page-link" href="#" data-page="${data.current_page + 1}">Next</a>
+     </li>`);
 
-  pagination.querySelectorAll(".page-link").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
+  pagination.querySelectorAll(".page-link").forEach(btn => {
+    btn.addEventListener("click", e => {
       e.preventDefault();
       const page = parseInt(btn.dataset.page);
       if (!isNaN(page) && page >= 1 && page <= data.total_pages) {
@@ -163,16 +267,9 @@ function renderPagination(data) {
   });
 }
 
-function deactivate(id) {
-  if (!confirm('Deactivate this class?')) return;
-  fetch(`/administrator/classes-api/${id}/`, { method: 'DELETE' })
-    .then(() => fetchClasses(currentPage));
-}
-
 search.addEventListener('input', () => fetchClasses(1));
 rowsSelect.addEventListener('change', () => fetchClasses(1));
 
 fetchClasses();
 </script>
-
 {% endblock %}

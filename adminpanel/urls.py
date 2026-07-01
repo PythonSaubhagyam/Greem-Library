@@ -39,7 +39,7 @@ class SidebarPermissionsAPI(_APIView):
     def get(self, request):
         return _Response([])
 
-
+app_name = "adminpanel"
 urlpatterns = [
     # Principal Flow APIs
     path('principal-flow/', PrincipalFlowAPI.as_view(), name='principal-flow'),
