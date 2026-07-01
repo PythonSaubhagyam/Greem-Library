@@ -92,38 +92,49 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     console.log("Access Token:", localStorage.getItem("access_token"));
-    fetch("{% url 'change-password' %}", {
+      fetch("{% url 'change-password' %}", {
       method: "POST",
+      credentials: "same-origin",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCookie("csrftoken"),
       },
       body: JSON.stringify({
-        current_password: current,
-        new_password1: new1,
-        new_password2: new2,
+          current_password: current,
+          new_password1: new1,
+          new_password2: new2,
       }),
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        showToast("Success", "Password changed successfully", "success");
-        form.reset();
-        setTimeout(() => {
-          const modal = bootstrap.Modal.getInstance(document.getElementById('changePasswordModal'));
-          modal.hide();
-        }, 1500);
-      } else {
-        let errorMessage = data.error || "An error occurred.";
-        showToast("Error", errorMessage, "danger");      
-      }
-    })
-    .catch(err => {
-      showToast("Error", "Something went wrong.", "danger");
-      console.error(err);
-    });
-  });
+  })
+  .then(async res => {
+      console.log("Status:", res.status);
 
+      const data = await res.json();
+      console.log(data);
+
+      return data;   // <-- VERY IMPORTANT
+  })
+  .then(data => {
+      if (data.success) {
+          showToast("Success", data.message, "success");
+          form.reset();
+
+          setTimeout(() => {
+              const modal = bootstrap.Modal.getInstance(
+                  document.getElementById("changePasswordModal")
+              );
+              modal.hide();
+          }, 1500);
+
+      } else {
+          showToast("Error", data.error || "Something went wrong.", "danger");
+      }
+  })
+  .catch(err => {
+      console.error(err);
+      showToast("Error", "Something went wrong.", "danger");
+  });
+  });
+  
   function showToast(title, message, status = "primary") {
     const toast = document.getElementById("alert-box");
     const toastTitle = document.getElementById("toast-title");
