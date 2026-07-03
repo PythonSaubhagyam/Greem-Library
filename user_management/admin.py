@@ -8,7 +8,7 @@ from .models import *
 
 class UserAdmin(BaseUserAdmin, ImportExportModelAdmin):
     model = UserModel
-    list_display = ("id","mobile_no","email", "first_name", "last_name", "role", "is_active", "is_staff")
+    list_display = ("id","mobile_no","email", "first_name", "last_name", "role", "is_active", "is_staff","profile_image")
     list_filter = ("is_active", "is_staff", "is_superuser", "role")
     search_fields = ("email", "first_name", "last_name", "mobile_no")
     ordering = ("-id",)
@@ -272,3 +272,10 @@ class CoordinatorActionModelAdmin(admin.ModelAdmin):
     search_fields = ("coordinator__email","issue","responsible")
     list_filter = ("priority","status","due_date","created_at")
     raw_id_fields = ("coordinator",)
+
+@admin.register(DeviceQRCodeModel)
+class DeviceQRCodeModelAdmin(admin.ModelAdmin):
+    list_display = ("id", "device", "qr_data", "is_used", "created_at")
+    search_fields = ("device__imei_number",)
+    list_filter = ("created_at",)
+    raw_id_fields = ("device",)

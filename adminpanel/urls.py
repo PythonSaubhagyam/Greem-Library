@@ -240,6 +240,12 @@ urlpatterns = [
     path('teachers/classrooms/upload-pdf/', TeacherUploadPDFAPI.as_view(), name='teacher-upload-pdf'),
     path('teachers/create-class/', TeacherCreateClassAPI.as_view(), name='teacher-create-class'),
     path("teachers/class-list/",TeacherClassListAPI.as_view(),name="teacher-class-list",),
+    path('teachers/profile/update/', ProfileUpdateView.as_view(), name='profile-update'),
+    path('teacher/students/add/', AddStudentView.as_view(), name='add-student'),
+    path('teacher/classes/<int:class_id>/students/', ClassStudentListView.as_view(), name='class-students'),
+    path("teacher/scan-qr/",TeacherScanQRAPIView.as_view(),name="teacher-scan-qr"),
+    path("device/status/",DeviceStatusAPIView.as_view(),name="device-status"),
+
 
     # Parent APIs - New 
     path("analytics/learning-habit-score/<int:pk>/",LearningHabitScoreAPI.as_view(),name="learning-habit-score"),

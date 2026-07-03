@@ -14,8 +14,10 @@ from django.db.models import Avg, F, FloatField, Count
 from django.utils.timezone import localtime
 from tablet_app.serializers import *
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication,SessionAuthentication
+from rest_framework.permissions import IsAuthenticated,AllowAny
+from user_management.Serializers.UserSerializer import *
+from adminpanel.Serializer.MobileSerializer import *
 
 #  HELPER FUNCTIONS FOR STATUS & LAST ACTIVITY
 def get_student_status(student):
@@ -4574,3 +4576,231 @@ class TeacherClassListAPI(APIView):
             "total": len(data),
             "classes": data
         }, status=status.HTTP_200_OK)
+
+class ProfileUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def put(self, request):
+        user = request.user
+
+        serializer = ProfileUpdateSerializer(user, data=request.data, partial=True)
+
+        try:
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    'status': True,
+                    'data': ProfileSerializer(user).data,
+                    'message': 'Profile updated successfully'
+                }, status=status.HTTP_200_OK)
+            return Response({'status': False, 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({'error': "Something went wrong", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class AddStudentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+
+        if not user.role or user.role.type != 'Teacher':
+            return Response({'status': False, 'message': 'Only teachers can add students'},
+                             status=status.HTTP_403_FORBIDDEN)
+
+        serializer = AddStudentSerializer(data=request.data, context={'request': request})
+
+        try:
+            if serializer.is_valid():
+                student = serializer.save()
+                return Response({
+                    'status': True,
+                    'message': 'Student added successfully',
+                    'data': StudentListSerializer(student).data
+                }, status=status.HTTP_201_CREATED)
+            return Response({'status': False, 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({'error': "Something went wrong", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ClassStudentListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, class_id):
+        user = request.user
+        class_obj = ClassModel.objects.filter(id=class_id).first()
+        if not class_obj:
+            return Response({'status': False, 'message': 'Class not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        is_owner = class_obj.teacher_id == user.id
+        # is_assigned = TeacherAssignmentModel.objects.filter(
+        #     teacher=user, assigned_classes=class_obj, is_active=True
+        # ).exists()
+        # if not (is_owner or is_assigned):
+        #     return Response({'status': False, 'message': 'You are not assigned to this class'},
+        #                      status=status.HTTP_403_FORBIDDEN)
+
+        students = StudentModel.objects.filter(student_class=class_obj)
+        serializer = StudentListSerializer(students, many=True)
+        return Response({'status': True,
+                        'total_students': students.count(),
+                        'data': serializer.data})
+
+class TeacherScanQRAPIView(APIView):
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        teacher_id = request.data.get("teacherId")
+        qr_data = request.data.get("qr_data")
+
+        if not teacher_id:
+            return Response({
+                "success": False,
+                "message": "teacherId is required."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not qr_data:
+            return Response({
+                "success": False,
+                "message": "qrData is required."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate Teacher
+        try:
+            teacher = UserModel.objects.get(id=teacher_id)
+        except UserModel.DoesNotExist:
+            return Response({
+                "success": False,
+                "message": "Teacher not found."
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Validate QR
+        try:
+            qr_obj = DeviceQRCodeModel.objects.select_related("device").get(
+                qr_data=qr_data
+            )
+        except DeviceQRCodeModel.DoesNotExist:
+            return Response({
+                "success": False,
+                "message": "Invalid QR Code."
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Already scanned
+        if qr_obj.is_used:
+            return Response({
+                "success": False,
+                "message": "QR has already been scanned."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Find student using device
+        # student = StudentModel.objects.filter(
+        #     device_id=qr_obj.device
+        # ).first()
+
+        # if not student:
+        #     return Response({
+        #         "success": False,
+        #         "message": "No student found for this device."
+        #     }, status=status.HTTP_404_NOT_FOUND)
+
+        # Mark QR as used
+        qr_obj.is_used = True
+        qr_obj.save()
+
+        return Response({
+            "success": True,
+            "message": "QR scanned successfully.",
+            "teacher": {
+                "id": teacher.id,
+                "name": f"{teacher.first_name} {teacher.last_name}"
+            },
+            # "student": {
+            #     "id": student.id,
+            #     "name": student.student_name,
+            #     "email": student.email
+            # },
+            "device": {
+                "unique_number": qr_obj.device.imei_number
+            }
+        }, status=status.HTTP_200_OK)
+
+class DeviceStatusAPIView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+
+        unique_number = request.GET.get("unique_number")
+
+        if not unique_number:
+            return Response({
+                "success": False,
+                "message": "unique_number is required."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check device
+        try:
+            device = DeviceModel.objects.get(imei_number=unique_number)
+        except DeviceModel.DoesNotExist:
+            return Response({
+                "success": True,
+                "status": "pending"
+            }, status=status.HTTP_200_OK)
+
+        # Get latest unused QR
+        qr = DeviceQRCodeModel.objects.filter(
+            device=device,
+            is_used=False
+        ).order_by("-created_at").first()
+
+        if qr:
+            return Response({
+                "success": True,
+                "status": "registered",
+                "token": qr.qr_data
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "success": True,
+            "status": "pending"
+        }, status=status.HTTP_200_OK)
+    # def get(self, request):
+
+    #     unique_number = request.GET.get("unique_number")
+
+    #     if not unique_number:
+    #         return Response({
+    #             "success": False,
+    #             "message": "unique_number is required."
+    #         }, status=status.HTTP_400_BAD_REQUEST)
+
+    #     # Find device
+    #     try:
+    #         device = DeviceModel.objects.select_related("user").get(
+    #             imei_number=unique_number
+    #         )
+    #     except DeviceModel.DoesNotExist:
+    #         return Response({
+    #             "success": True,
+    #             "status": "pending"
+    #         }, status=status.HTTP_200_OK)
+
+    #     # Device exists but no user linked
+    #     # if not device.user:
+    #     #     return Response({
+    #     #         "success": True,
+    #     #         "status": "pending"
+    #     #     }, status=status.HTTP_200_OK)
+
+    #     # Get authentication token
+    #     token, created = Token.objects.get_or_create(user=device.user)
+
+    #     return Response({
+    #         "success": True,
+    #         "status": "registered",
+    #         "token": token.key
+    #     }, status=status.HTTP_200_OK)
