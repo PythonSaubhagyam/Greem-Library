@@ -173,7 +173,7 @@ class UserModel(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = 'users'
 
 class DeviceModel(models.Model):
-    user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
+    user = models.ForeignKey(UserModel, on_delete=models.CASCADE,null=True,blank=True)
     imei_number = models.CharField(max_length=255,null=True,blank=True)
     is_active = models.BooleanField(default=True)
     tablet_id = models.CharField(max_length=50, null=True, blank=True)
@@ -1006,3 +1006,19 @@ class SchoolProfileModel(models.Model):
     exam_test_structure = models.JSONField(blank=True, null=True)
     academic_year = models.CharField(max_length=20, default='2024-25')
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class DeviceQRCodeModel(models.Model):
+    device = models.ForeignKey(DeviceModel, on_delete=models.CASCADE, related_name='qr_codes')
+    qr_data = models.CharField(max_length=255, unique=True)
+    is_used = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.device.imei_number} - {self.qr_data} - Used: {self.is_used}"
+
+    class Meta:
+        verbose_name = "Device QR Code"
+        verbose_name_plural = "Device QR Codes"
+

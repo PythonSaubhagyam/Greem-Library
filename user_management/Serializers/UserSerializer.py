@@ -27,3 +27,23 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserModel
         fields = ['id','first_name','last_name','email','mobile_no','role','address']
+
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(source='profile_image', required=False, allow_null=True)
+
+    class Meta:
+        model = UserModel
+        fields = ['first_name', 'last_name', 'email', 'mobile_no', 'image']
+        extra_kwargs = {
+            'first_name': {'required': False},
+            'last_name': {'required': False},
+            'email': {'required': False},
+            'mobile_no': {'required': False},
+        }
+
+    def validate_email(self, value):
+        user = self.instance
+        if UserModel.objects.filter(email=value).exclude(id=user.id).exists():
+            raise serializers.ValidationError("Email already exists")
+        return value

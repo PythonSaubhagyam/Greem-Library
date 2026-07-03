@@ -73,9 +73,18 @@ class DeviceMiniSerializer(serializers.ModelSerializer):
         return "Active" if obj.is_active else "In Active"
 
 
-    def get_customer_name(self, obj):   
-        return f"{obj.user.first_name} {obj.user.last_name}"
+    # def get_customer_name(self, obj):   
+    #     return f"{obj.user.first_name} {obj.user.last_name} {if '({obj.user.email})' if obj.user.email else ''}"
+    def get_customer_name(self, obj):
+        if not obj.user:
+            return "-"
 
+        full_name = f"{obj.user.first_name} {obj.user.last_name}".strip()
+
+        if obj.user.email:
+            return f"{full_name}"
+
+        return full_name or "-"
     class Meta:
         model = DeviceModel
         fields = [
