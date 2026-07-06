@@ -16,6 +16,7 @@
   <div class="card">
     <div class="card-body">
       <form id="testForm">
+        {% csrf_token %}
         <div class="mb-3">
           <label class="form-label">Title <span class="text-danger">*</span></label>
           <input type="text" id="title" class="form-control" required />
@@ -74,6 +75,28 @@
 
 {% block page_js %}
 <script>
+const csrftoken = getCookie('csrftoken');
+function getCookie(name) {
+    let cookieValue = null;
+
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(
+                    cookie.substring(name.length + 1)
+                );
+                break;
+            }
+        }
+    }
+
+    return cookieValue;
+}
+
 // Load subjects on page load
 function loadSubjects(){
   fetch('/administrator/subjects-api/')
@@ -112,7 +135,10 @@ document.getElementById('testForm').addEventListener('submit', function(e){
 
   fetch('/administrator/tests-api/', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json' ,
+      'X-CSRFToken': csrftoken
+    },
     credentials: 'same-origin',
     body: JSON.stringify(payload)
   }).then(r=>r.json()).then(res=>{

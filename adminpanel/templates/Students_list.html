@@ -161,7 +161,7 @@ function renderRows(data) {
       <tr>
         <td>${(currentPage - 1) * rowsSelect.value + i + 1}</td>
         <td>${s.student_name}</td>
-        <td>${s.device_imei_number}</td>
+        <td>${s.device_imei_number || '-'}</td>
         <td>${s.email || '-'}</td>
         <td>${s.student_class || '-'}</td>
         <td>${s.parent_name || '-'}</td>

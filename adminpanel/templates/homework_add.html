@@ -16,6 +16,7 @@
   <div class="card">
     <div class="card-body">
       <form id="homeworkForm">
+         {% csrf_token %}
         <div class="mb-3">
           <label class="form-label">Title</label>
           <input type="text" id="title" class="form-control" required />
@@ -39,6 +40,28 @@
 
 {% block page_js %}
 <script>
+function getCookie(name) {
+    let cookieValue = null;
+
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(
+                    cookie.substring(name.length + 1)
+                );
+                break;
+            }
+        }
+    }
+
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
 document.getElementById('homeworkForm').addEventListener('submit', function(e){
   e.preventDefault();
   const payload = {
@@ -50,7 +73,8 @@ document.getElementById('homeworkForm').addEventListener('submit', function(e){
   fetch('/administrator/homework/', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrftoken
     },
     credentials: 'same-origin',
     body: JSON.stringify(payload)
