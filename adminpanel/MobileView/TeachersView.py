@@ -4691,25 +4691,35 @@ class TeacherScanQRAPIView(APIView):
 
         # Already scanned
         if qr_obj.is_used:
+            existing_student = StudentModel.objects.filter(device_id=qr_obj.device).first()
             return Response({
-                "success": False,
-                "message": "QR has already been scanned."
-            }, status=status.HTTP_400_BAD_REQUEST)
-
+                "success": True,
+                "message": "QR has already been scanned.",
+                "teacher": {
+                    "id": teacher.id,
+                    "name": f"{teacher.first_name} {teacher.last_name}"
+                },
+                "student": {
+                    "id": existing_student.id,
+                    "name": existing_student.student_name,
+                    "email": existing_student.email
+                } if existing_student else None,
+                "device": {
+                    "unique_number": qr_obj.device.imei_number
+                }
+            }, status=status.HTTP_200_OK)
+        
         # Find student using device
-        # student = StudentModel.objects.filter(
-        #     device_id=qr_obj.device
-        # ).first()
-
-        # if not student:
-        #     return Response({
-        #         "success": False,
-        #         "message": "No student found for this device."
-        #     }, status=status.HTTP_404_NOT_FOUND)
+        student = StudentModel.objects.filter(
+           device_id__isnull=True
+        ).first()
 
         # Mark QR as used
         qr_obj.is_used = True
         qr_obj.save()
+
+        student.device_id = qr_obj.device
+        student.save()
 
         return Response({
             "success": True,
@@ -4718,11 +4728,11 @@ class TeacherScanQRAPIView(APIView):
                 "id": teacher.id,
                 "name": f"{teacher.first_name} {teacher.last_name}"
             },
-            # "student": {
-            #     "id": student.id,
-            #     "name": student.student_name,
-            #     "email": student.email
-            # },
+            "student": {
+                "id": student.id,
+                "name": student.student_name,
+                "email": student.email
+            },
             "device": {
                 "unique_number": qr_obj.device.imei_number
             }
@@ -4732,42 +4742,6 @@ class DeviceStatusAPIView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
 
-    def get(self, request):
-
-        unique_number = request.GET.get("unique_number")
-
-        if not unique_number:
-            return Response({
-                "success": False,
-                "message": "unique_number is required."
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Check device
-        try:
-            device = DeviceModel.objects.get(imei_number=unique_number)
-        except DeviceModel.DoesNotExist:
-            return Response({
-                "success": True,
-                "status": "pending"
-            }, status=status.HTTP_200_OK)
-
-        # Get latest unused QR
-        qr = DeviceQRCodeModel.objects.filter(
-            device=device,
-            is_used=False
-        ).order_by("-created_at").first()
-
-        if qr:
-            return Response({
-                "success": True,
-                "status": "registered",
-                "token": qr.qr_data
-            }, status=status.HTTP_200_OK)
-
-        return Response({
-            "success": True,
-            "status": "pending"
-        }, status=status.HTTP_200_OK)
     # def get(self, request):
 
     #     unique_number = request.GET.get("unique_number")
@@ -4778,29 +4752,58 @@ class DeviceStatusAPIView(APIView):
     #             "message": "unique_number is required."
     #         }, status=status.HTTP_400_BAD_REQUEST)
 
-    #     # Find device
+    #     # Check device
     #     try:
-    #         device = DeviceModel.objects.select_related("user").get(
-    #             imei_number=unique_number
-    #         )
+    #         device = DeviceModel.objects.get(imei_number=unique_number)
     #     except DeviceModel.DoesNotExist:
     #         return Response({
     #             "success": True,
     #             "status": "pending"
     #         }, status=status.HTTP_200_OK)
 
-    #     # Device exists but no user linked
-    #     # if not device.user:
-    #     #     return Response({
-    #     #         "success": True,
-    #     #         "status": "pending"
-    #     #     }, status=status.HTTP_200_OK)
+    #     # Get latest unused QR
+    #     qr = DeviceQRCodeModel.objects.filter(
+    #         device=device,
+    #         is_used=False
+    #     ).order_by("-created_at").first()
 
-    #     # Get authentication token
-    #     token, created = Token.objects.get_or_create(user=device.user)
+    #     if qr:
+    #         return Response({
+    #             "success": True,
+    #             "status": "registered",
+    #             "token": qr.qr_data
+    #         }, status=status.HTTP_200_OK)
 
     #     return Response({
     #         "success": True,
-    #         "status": "registered",
-    #         "token": token.key
+    #         "status": "pending"
     #     }, status=status.HTTP_200_OK)
+    
+    def get(self, request):
+        unique_number = request.GET.get("unique_number")
+        if not unique_number:
+            return Response({
+                "success": False,
+                "message": "unique_number is required."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            device = DeviceModel.objects.get(imei_number=unique_number)
+        except DeviceModel.DoesNotExist:
+            return Response({"success": True, "status": "pending"}, status=status.HTTP_200_OK)
+
+        # A USED qr means the teacher completed the scan -> registered
+        qr = DeviceQRCodeModel.objects.filter(
+            device=device,
+            is_used=True
+        ).order_by("-created_at").first()
+
+        if qr:
+            return Response({
+                "success": True,
+                "status": "registered",
+                "token": qr.qr_data,
+                "unique_number": device.imei_number,
+            }, status=status.HTTP_200_OK)
+
+        return Response({"success": True, "status": "pending"}, status=status.HTTP_200_OK)
