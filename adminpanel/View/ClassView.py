@@ -51,11 +51,18 @@ def _scope_classes_to_principal(principal_id):
         ).values_list('student_class_id', flat=True).distinct()
     )
 
+    owner_classes = ClassModel.objects.filter(
+        school_principal_id=principal_id,
+        is_active=True
+    )
+
     if class_ids_via_students:
-        return ClassModel.objects.filter(
+        student_classes = ClassModel.objects.filter(
             id__in=class_ids_via_students,
-            is_active=True   # FIX: only show active classes
+            is_active=True
         )
+    else:
+        student_classes = ClassModel.objects.none()
 
     # Path 2: classes via TeacherAssignmentModel.school_principal
     class_ids_via_teachers = list(
@@ -65,13 +72,14 @@ def _scope_classes_to_principal(principal_id):
     )
 
     if class_ids_via_teachers:
-        return ClassModel.objects.filter(
+        teacher_classes = ClassModel.objects.filter(
             id__in=class_ids_via_teachers,
             is_active=True
         )
+    else:
+        teacher_classes = ClassModel.objects.none()
 
-    # No scope found
-    return ClassModel.objects.none()
+    return (student_classes | teacher_classes | owner_classes).distinct()
 
 
 class ClassAPIView(APIView):
@@ -138,6 +146,14 @@ class ClassAPIView(APIView):
 
         serializer = ClassSerializer(data=request.data)
         if serializer.is_valid():
+            school_principal = None
+            if (
+                request.user.is_authenticated and
+                getattr(request.user, 'role', None) and
+                request.user.role.type == 'Customer'
+            ):
+                school_principal = request.user
+
             obj = ClassModel.objects.create(
                 standard=serializer.validated_data.get('standard'),
                 section=serializer.validated_data.get('section'),
@@ -145,6 +161,7 @@ class ClassAPIView(APIView):
                 classname=serializer.validated_data.get('classname', ''),
                 subject=serializer.validated_data.get('subject', ''),
                 is_active=True,
+                school_principal=school_principal,
             )
             return Response(ClassSerializer(obj).data, status=201)
 

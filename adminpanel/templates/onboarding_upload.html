@@ -23,10 +23,11 @@
             <div class="mb-3">
               <label class="form-label">Import Type</label>
               <select id="importType" name="import_type" class="form-select" required>
-                <option value="" disabled selected>-- Select type --</option>
-                <option value="students">Students</option>
-                <option value="teachers">Teachers</option>
-                <option value="devices">Device Inventory</option>
+                  <option value="" disabled selected>-- Select type --</option>
+                  <option value="student">Students</option>
+                  <option value="teacher">Teachers</option>
+                  <option value="coordinator">Coordinators</option>
+                  <option value="device">Device Inventory</option>
               </select>
             </div>
             <div class="mb-3">
@@ -50,17 +51,17 @@
         <div class="card-body">
           <p class="fw-semibold">For <em>Students</em> Excel:</p>
           <ul class="small text-muted">
-            <li>Column A: <code>student_name</code></li>
-            <li>Column B: <code>student_id</code></li>
-            <li>Column C: <code>class_name</code></li>
-            <li>Column D: <code>roll_number</code></li>
+            <li>Column: <code>Student Name</code></li>
+            <li>Column: <code>Standard</code> (e.g. 10)</li>
+            <li>Column: <code>Section</code> (e.g. A)</li>
+            <li>Column: <code>Email</code> (optional)</li>
           </ul>
           <p class="fw-semibold mt-2">For <em>Teachers</em> Excel:</p>
-          <ul class="small text-muted">
-            <li>Column A: <code>teacher_name</code></li>
-            <li>Column B: <code>subject</code></li>
-            <li>Column C: <code>class_name</code></li>
-          </ul>
+            <ul class="small text-muted">
+              <li>Column: <code>Teacher Name</code></li>
+              <li>Column: <code>Email</code></li>
+              <li>Column: <code>Phone</code> (optional)</li>
+            </ul>
           <p class="fw-semibold mt-2">For <em>Devices</em> Excel:</p>
           <ul class="small text-muted">
             <li>Column A: <code>device_id</code></li>
@@ -93,12 +94,12 @@ document.getElementById('uploadForm').addEventListener('submit', function(e){
     .then(res => {
         const msg = document.getElementById('uploadMsg');
         msg.classList.remove('d-none', 'alert-danger', 'alert-success');
-        if(res.status === 'success'){
+        if (res.count !== undefined) {
             msg.className = 'alert alert-success';
-            msg.textContent = `✅ ${res.message} (${res.imported_count} records imported)`;
+            msg.textContent = `✅ ${res.message}`;
         } else {
             msg.className = 'alert alert-danger';
-            msg.textContent = `❌ Error: ${res.message}`;
+            msg.textContent = `❌ Error: ${res.error}`;
         }
         btn.disabled = false;
         btn.innerHTML = '<i class="bx bx-cloud-upload me-1"></i> Upload &amp; Process';

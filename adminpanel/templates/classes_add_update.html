@@ -10,6 +10,7 @@
   </div>
   <div class="card-body">
     <form id="classForm">
+      {% csrf_token %}
       <div class="mb-3">
         <label class="form-label">Standard</label>
         <input type="number" name="standard" id="standard" class="form-control" min="1" max="12" required>
@@ -24,7 +25,7 @@
       </div>
 
       <button class="btn btn-primary" id="saveBtn">Save</button>
-      <a href="/administrator/classes/" class="btn btn-secondary">Back</a>
+      <a id="backBtn" class="btn btn-secondary">Back</a>
     </form>
   </div>
 </div>
@@ -33,9 +34,17 @@
 
 {% block page_js %}
 <script>
+
+function getCsrf() {
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+}
 const form = document.getElementById('classForm');
 const saveBtn = document.getElementById('saveBtn');
+const backBtn = document.getElementById('backBtn');
 
+const uiPathPrefix = window.location.pathname.startsWith('/customer/dashboard') ? '/customer/dashboard' : '/administrator';
+const redirectTo = `${uiPathPrefix}/classes/`;
 const urlParams = new URLSearchParams(window.location.search);
 const editId = window.location.pathname.split('/').filter(Boolean).pop();
 
@@ -66,7 +75,7 @@ form.addEventListener('submit', (e) => {
 
   fetch(url, {
     method: method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json',"X-CSRFToken": getCsrf()},
     body: JSON.stringify(payload)
   })
     .then(res => {
@@ -74,7 +83,7 @@ form.addEventListener('submit', (e) => {
       return res.json();
     })
     .then(() => {
-      window.location.href = '/administrator/classes/';
+      window.location.href = redirectTo;
     })
     .catch(async (err) => {
       let msg = 'Save failed';
@@ -82,6 +91,11 @@ form.addEventListener('submit', (e) => {
       alert(msg);
       saveBtn.disabled = false;
     });
+});
+
+backBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  window.location.href = redirectTo;
 });
 </script>
 

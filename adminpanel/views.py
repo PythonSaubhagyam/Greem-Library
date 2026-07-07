@@ -185,6 +185,12 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
                 add_edit_label = "Add Teacher"
             elif "/teachers/edit/" in self.request.path.lower():
                 add_edit_label = "Edit Teacher"
+
+        if template == "classes_add_update.html":
+            if "add" in self.request.path.lower():
+                add_edit_label = "Add Class"
+            elif "edit" in self.request.path.lower():
+                add_edit_label = "Edit Class"
         # Map templates to breadcrumbs
         route_map = {
             "companies_list.html": (company_label, None),
@@ -207,6 +213,7 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
             "action_required.html":("Actions",None),
             "alerts.html":("Alert",None),
             "Classes_list.html":("Class",None),
+            "classes_add_update.html":("Class",companies_url,add_edit_label),
             "homework_reports.html":("Homework",None),
             "homework_add.html":("Homework",companies_url),
             "tests_list.html":("Test",None),
@@ -402,7 +409,7 @@ class DashboardsView(LoginRequiredMixin, TemplateView):
 class CustomerDashboardView(DashboardsView):
     template_name = "customer_dashboard.html"
 
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         context = self.get_context_data()
         context.update({
             "layout_path": TemplateHelper.set_layout("layout_vertical.html", context),
