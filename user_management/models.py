@@ -213,6 +213,14 @@ class ClassModel(models.Model):
         blank=True,
         limit_choices_to={"role__type": "Teacher"}
     )
+    school_principal = models.ForeignKey(
+        UserModel,
+        on_delete=models.CASCADE,
+        related_name="owned_school_classes",
+        null=True,
+        blank=True,
+        limit_choices_to={"role__type": "Customer"}
+    )
     classname = models.CharField(max_length=100)
 
     subject = models.CharField(max_length=100)

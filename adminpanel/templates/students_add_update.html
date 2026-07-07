@@ -22,7 +22,7 @@
 
   <div class="card-body">
     <form id="studentForm">
-
+          {% csrf_token %}
       <div class="row g-3">
         <div class="col-md-6">
           <label class="form-label">Device IMEI</label>
@@ -110,6 +110,11 @@
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
 <script>
+function getCsrf() {
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
 function showToast(title, message, status = "primary") {
     const toast = document.getElementById("alert-box");
     const toastTitle = document.getElementById("toast-title");
@@ -275,9 +280,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const method = editStudentId ? "PATCH" : "POST";
 
     fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+        method: method,
+        credentials: "same-origin",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCsrf()
+        },
+        body: JSON.stringify(payload)
     })
     .then(res => res.json())
     .then(data => {

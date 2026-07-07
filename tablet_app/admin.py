@@ -13,7 +13,7 @@ class pdfGroupAdmin(admin.ModelAdmin):
 
 @admin.register(pdfLibraryModel)
 class pdfLibraryAdmin(admin.ModelAdmin):
-    list_display = ('title', 'pdf_file', 'total_pages', 'is_custom', 'is_favorite', 'student', 'created_at', 'updated_at')
+    list_display = ('id','title', 'pdf_file', 'total_pages', 'is_custom', 'is_favorite', 'student', 'created_at', 'updated_at')
     search_fields = ('title', 'pdf_file', 'created_at', 'updated_at')
     ordering = ("-id",)
     filter_horizontal = ("group",)

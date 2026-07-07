@@ -152,7 +152,13 @@ class OnboardingExcelImportAPI(APIView):
             count = 0
 
             with transaction.atomic():
-                if import_type == 'student':
+                if import_type in ['student', 'students']:
+                    required_cols = {'Student Name', 'Standard', 'Section'}
+                    missing = required_cols - set(df.columns)
+                    if missing:
+                        return Response({
+                            "error": f"Missing column(s) in Excel: {', '.join(sorted(missing))}"
+                        }, status=400)
                     for _, row in df.iterrows():
                         class_obj, _ = ClassModel.objects.get_or_create(
                             standard=int(row['Standard']),
@@ -166,7 +172,7 @@ class OnboardingExcelImportAPI(APIView):
                         )
                         count += 1
 
-                elif import_type == 'teacher':
+                elif import_type in ['teacher', 'teachers']:
                     teacher_role, _ = RoleModel.objects.get_or_create(
                         type='Teacher', defaults={'name': 'Teacher'}
                     )
@@ -182,7 +188,7 @@ class OnboardingExcelImportAPI(APIView):
                         )
                         count += 1
 
-                elif import_type == 'coordinator':
+                elif import_type in ['coordinator', 'coordinators']:
                     coord_role, _ = RoleModel.objects.get_or_create(
                         type='Coordinator', defaults={'name': 'Coordinator'}
                     )
@@ -198,7 +204,7 @@ class OnboardingExcelImportAPI(APIView):
                         )
                         count += 1
 
-                elif import_type == 'device':
+                elif import_type in ['device', 'devices']:
                     for _, row in df.iterrows():
                         DeviceModel.objects.get_or_create(
                             imei_number=str(row['IMEI Number']).strip(),
