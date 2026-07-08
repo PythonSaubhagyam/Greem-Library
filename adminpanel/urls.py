@@ -34,6 +34,7 @@ from rest_framework.response import Response as _Response
 from django.urls import path
 from adminpanel.View import coordinator_views as cv
 from adminpanel.views import *
+from adminpanel.MobileView.StudentView import *
 
 class SidebarPermissionsAPI(_APIView):
     def get(self, request):
@@ -69,6 +70,9 @@ urlpatterns = [
     path('cities/',CitiesAPI.as_view(),name='cities'),
     path('cities/<int:id>/',CitiesAPI.as_view(),name='cities'),
  
+    #student api
+    path("student/upload-pdf/",StudentUploadPDFAPIView.as_view(),name="student-upload-pdf"),
+    
     path("students/",DashboardsView.as_view(template_name="Students_list.html"),name="students"),
     path("students/detail/<int:id>/",DashboardsView.as_view(template_name="student_details.html"),name="student-details"),
     path("students-api/",StudentsAPIView.as_view(),name="students-api"),
