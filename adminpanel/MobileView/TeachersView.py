@@ -111,7 +111,7 @@ class TeacherDashboardAPI(APIView):
             assigned_classes = ClassModel.objects.filter(students__in=students).distinct()
             assigned_subjects = Subject.objects.filter(testmodel__created_by=teacher).distinct()
 
-        # 📂 MY BATCHES - For tuition scenario (prominently displayed first)
+        #  MY BATCHES - For tuition scenario (prominently displayed first)
         try:
             from user_management.models import BatchModel
             batches = BatchModel.objects.filter(teacher=teacher, is_active=True)
@@ -141,7 +141,7 @@ class TeacherDashboardAPI(APIView):
         except ImportError:
             batches_data = []
 
-        # 🏫 MY CLASSES - Build classes data with student counts and subjects
+        #  MY CLASSES - Build classes data with student counts and subjects
         classes_data = []
         for class_obj in assigned_classes:
             class_students = class_obj.students.all()
@@ -213,9 +213,9 @@ class TeacherDashboardAPI(APIView):
                     'admin': 'Admin / Principal'
                 }.get(teacher_role, 'Teacher')
             },
-            # 📂 My Batches - Tuition scenario (displayed first in sidebar)
+            # My Batches - Tuition scenario (displayed first in sidebar)
             'my_batches': batches_data,
-            # 🏫 My Classes
+            #  My Classes
             'my_classes': classes_data,
             # Subject list for filtering
             'my_subjects': [{'id': s.id, 'name': s.name} for s in assigned_subjects],
@@ -244,7 +244,7 @@ class ClassSelectionAPI(APIView):
     """
     Class Selection System - Step 2 in teacher flow
     
-    📊 TEACHER DASHBOARD FLOW (as per teacher.docx):
+     TEACHER DASHBOARD FLOW (as per teacher.docx):
     Step 1 → Select Class ✓ (from Dashboard)
     Step 2 → Select Subject (THIS API - shows subjects for selected class)
     Step 3 → View Analytics
@@ -255,7 +255,7 @@ class ClassSelectionAPI(APIView):
     - Batches within this class
     - Class-level quick stats
     
-    🔐 Subject-Based Access Control:
+     Subject-Based Access Control:
     - Math teacher sees only Math tests, Math analytics
     - Science teacher sees only Science
     - Class teacher sees all subjects for their class
@@ -296,7 +296,7 @@ class ClassSelectionAPI(APIView):
                 
                 class_students = class_obj.students.all()
                 
-                # 🔐 Subject-Based Access Control
+                #  Subject-Based Access Control
                 # Class teacher sees all subjects, Subject teacher sees only their subjects
                 if teacher_role == 'class_teacher' and homeroom_class and homeroom_class.id == class_obj.id:
                     # Class teachers get ALL subjects for their homeroom class
@@ -411,7 +411,7 @@ class EnhancedClassOverviewAPI(APIView):
     # """
     # Enhanced Class Overview Page - Step 3 in teacher flow (FINAL STEP)
     
-    # 📊 TEACHER DASHBOARD FLOW (as per teacher.docx):
+    #  TEACHER DASHBOARD FLOW (as per teacher.docx):
     # Step 1 → Select Class ✓
     # Step 2 → Select Subject ✓
     # Step 3 → View Analytics (THIS API)
@@ -476,7 +476,7 @@ class EnhancedClassOverviewAPI(APIView):
     #     if not students.exists():
     #         return Response({'error': 'No students found for this class'}, status=404)
 
-    #     # 🔐 SUBJECT-BASED ACCESS CONTROL
+    #     #  SUBJECT-BASED ACCESS CONTROL
     #     # Validate that teacher can access requested subject
     #     if subject_id:
     #         try:
@@ -4332,163 +4332,366 @@ class NotificationPreferenceView(APIView):
         }, status=status.HTTP_200_OK)
  
 
+# class TeacherUploadPDFAPI(APIView):
+#     """
+#     POST /api/teachers/classrooms/upload-pdf/
+#     Teacher uploads a PDF and it becomes visible to all students in assigned classes.
+
+#     Form Data:
+#     - pdf_file     : (file) PDF file
+#     - title        : (str) PDF title
+#     - class_ids    : (str) comma-separated class IDs e.g. "1,2,3"
+#     - group_name   : (str, optional) group name to tag this PDF
+#     """
+#     parser_classes = [MultiPartParser, FormParser]
+#     # def post(self, request):
+#     #     # Logged-in user
+#     #     user = request.user
+
+#     #     # Allow only Teacher role
+#     #     if not user.role or user.role.type != "Teacher":
+#     #         return Response(
+#     #             {"error": "Only teachers can upload PDFs."},
+#     #             status=403
+#     #         )
+
+#     #     pdf_file = request.FILES.get("pdf_file")
+
+#     #     if not pdf_file:
+#     #         return Response(
+#     #             {"error": "pdf_file is required"},
+#     #             status=400
+#     #         )
+
+#     #     # Get all students
+#     #     students = StudentModel.objects.all()
+
+#     #     if not students.exists():
+#     #         return Response(
+#     #             {"error": "No students found"},
+#     #             status=404
+#     #         )
+
+#     #     # Create PDF
+#     #     pdf = pdfLibraryModel.objects.create(
+#     #         title=pdf_file.name,
+#     #         pdf_file=pdf_file,
+#     #         total_pages=0,
+#     #         is_custom=True,
+#     #         created_at=timezone.now(),
+#     #         updated_at=timezone.now(),
+#     #     )
+
+#     #     # Add PDF to every student
+#     #     for student in students:
+#     #         student.library.add(pdf)
+
+#     #     return Response({
+#     #         "success": True,
+#     #         "message": "PDF uploaded successfully.",
+#     #         "uploaded_by": user.email,
+#     #         "pdf_id": pdf.id,
+#     #         "title": pdf.title,
+#     #         "file_url": request.build_absolute_uri(pdf.pdf_file.url),
+#     #         "total_students": students.count(),
+#     #     }, status=201)
+#     def post(self, request):
+
+#         teacher_id = request.data.get("teacher_id")
+#         pdf_file = request.FILES.get("pdf_file")
+
+#         if not teacher_id:
+#             return Response(
+#                 {"error": "teacher_id is required"},
+#                 status=400
+#             )
+
+#         if not pdf_file:
+#             return Response(
+#                 {"error": "pdf_file is required"},
+#                 status=400
+#             )
+
+#         # Verify teacher
+#         try:
+#             teacher = UserModel.objects.get(
+#                 id=teacher_id,
+#                 role__type="Teacher",
+#                 is_active=True
+#             )
+#         except UserModel.DoesNotExist:
+#             return Response(
+#                 {"error": "Teacher not found"},
+#                 status=404
+#             )
+
+#         # Get all students
+#         students = StudentModel.objects.all()
+
+#         if not students.exists():
+#             return Response(
+#                 {"error": "No students found"},
+#                 status=404
+#             )
+
+#         # Create PDF
+#         pdf = pdfLibraryModel.objects.create(
+#             title=pdf_file.name,
+#             pdf_file=pdf_file,
+#             total_pages=0,
+#             is_custom=True,
+#             created_at=timezone.now(),
+#             updated_at=timezone.now(),
+#         )
+
+#         # Assign PDF to all students
+#         for student in students:
+#             student.library.add(pdf)
+
+#         return Response({
+#             "success": True,
+#             "teacher_id": teacher.id,
+#             "teacher_name": f"{teacher.first_name} {teacher.last_name}",
+#             "pdf_id": pdf.id,
+#             "title": pdf.title,
+#             "file_url": request.build_absolute_uri(pdf.pdf_file.url),
+#             "total_students": students.count(),
+#         }, status=201)
+    
 class TeacherUploadPDFAPI(APIView):
     """
     POST /api/teachers/classrooms/upload-pdf/
-    Teacher uploads a PDF and it becomes visible to all students in assigned classes.
+    Teacher uploads a PDF. Recipients are determined by whichever of
+    'teacher_id' / 'unique_number' are provided (at least one required,
+    both allowed together — recipients are the union of both, deduplicated).
 
     Form Data:
-    - pdf_file     : (file) PDF file
-    - title        : (str) PDF title
-    - class_ids    : (str) comma-separated class IDs e.g. "1,2,3"
-    - group_name   : (str, optional) group name to tag this PDF
+    - pdf_file      : (file) PDF file                      [required]
+    - title         : (str)  PDF title                     [optional]
+    - teacher_id    : (str)  uploads to all students in     [optional*]
+                      this teacher's assigned classes
+    - unique_number : (str)  uploads to the single student  [optional*]
+                      linked to this device (IMEI)
+
+    * At least one of teacher_id / unique_number is required.
+      If both are given, the PDF goes to the union of both audiences.
     """
+    authentication_classes = []
+    permission_classes = []
     parser_classes = [MultiPartParser, FormParser]
-    # def post(self, request):
-    #     # Logged-in user
-    #     user = request.user
 
-    #     # Allow only Teacher role
-    #     if not user.role or user.role.type != "Teacher":
-    #         return Response(
-    #             {"error": "Only teachers can upload PDFs."},
-    #             status=403
-    #         )
-
-    #     pdf_file = request.FILES.get("pdf_file")
-
-    #     if not pdf_file:
-    #         return Response(
-    #             {"error": "pdf_file is required"},
-    #             status=400
-    #         )
-
-    #     # Get all students
-    #     students = StudentModel.objects.all()
-
-    #     if not students.exists():
-    #         return Response(
-    #             {"error": "No students found"},
-    #             status=404
-    #         )
-
-    #     # Create PDF
-    #     pdf = pdfLibraryModel.objects.create(
-    #         title=pdf_file.name,
-    #         pdf_file=pdf_file,
-    #         total_pages=0,
-    #         is_custom=True,
-    #         created_at=timezone.now(),
-    #         updated_at=timezone.now(),
-    #     )
-
-    #     # Add PDF to every student
-    #     for student in students:
-    #         student.library.add(pdf)
-
-    #     return Response({
-    #         "success": True,
-    #         "message": "PDF uploaded successfully.",
-    #         "uploaded_by": user.email,
-    #         "pdf_id": pdf.id,
-    #         "title": pdf.title,
-    #         "file_url": request.build_absolute_uri(pdf.pdf_file.url),
-    #         "total_students": students.count(),
-    #     }, status=201)
     def post(self, request):
-
-        teacher_id = request.data.get("teacher_id")
-        pdf_file = request.FILES.get("pdf_file")
-
-        if not teacher_id:
-            return Response(
-                {"error": "teacher_id is required"},
-                status=400
-            )
+        teacher_id    = request.data.get("teacher_id")
+        unique_number = request.data.get("unique_number")
+        pdf_file      = request.FILES.get("pdf_file")
 
         if not pdf_file:
-            return Response(
-                {"error": "pdf_file is required"},
-                status=400
+            return Response({"error": "pdf_file is required"}, status=400)
+
+        if not teacher_id and not unique_number:
+            return Response({
+                "error": "Provide at least one of 'teacher_id' or 'unique_number'."
+            }, status=400)
+
+        title = request.data.get("title") or pdf_file.name
+        students = []
+        uploader_info = {}
+
+        # ─── unique_number path: single student via device ───
+        if unique_number:
+            try:
+                device = DeviceModel.objects.get(imei_number=unique_number)
+            except DeviceModel.DoesNotExist:
+                return Response({"error": "Device not found for this unique_number."}, status=404)
+
+            student = StudentModel.objects.filter(device_id=device).first()
+
+            if student:
+                students.append(student)
+                uploader_info["unique_number"] = unique_number
+            else:
+                uploader_info["unique_number"] = unique_number
+                uploader_info["device_status"] = "No student registered to this device"
+
+        # ─── teacher_id path: all students in teacher's assigned classes ───
+        if teacher_id:
+            try:
+                teacher = UserModel.objects.get(id=teacher_id, role__type="Teacher", is_active=True)
+            except UserModel.DoesNotExist:
+                return Response({"error": "Teacher not found"}, status=404)
+
+            assignment = TeacherAssignmentModel.objects.filter(teacher=teacher).first()
+            if not assignment:
+                return Response({"error": "No class assignment found for this teacher."}, status=404)
+
+            class_ids = list(assignment.assigned_classes.values_list('id', flat=True))
+            teacher_students = list(StudentModel.objects.filter(student_class_id__in=class_ids))
+
+            students.extend(teacher_students)
+            uploader_info["teacher_id"] = teacher.id
+            uploader_info["teacher_name"] = f"{teacher.first_name} {teacher.last_name}"
+
+        # ─── Deduplicate (in case the device's student is also in teacher's class) ───
+        seen = set()
+        unique_students = []
+        for s in students:
+            if s.id not in seen:
+                seen.add(s.id)
+                unique_students.append(s)
+        students = unique_students
+
+        created_ids = []
+
+        if students:
+            # Create one PDF for the first student
+            first_pdf = pdfLibraryModel.objects.create(
+                title=title,
+                pdf_file=pdf_file,
+                total_pages=0,
+                is_custom=True,
+                student=students[0],
+                created_at=timezone.now(),
+                updated_at=timezone.now(),
             )
 
-        # Verify teacher
-        try:
-            teacher = UserModel.objects.get(
-                id=teacher_id,
-                role__type="Teacher",
-                is_active=True
+            created_ids.append(first_pdf.id)
+
+            # Create copies for remaining students
+            for student in students[1:]:
+                dup = pdfLibraryModel.objects.create(
+                    title=title,
+                    pdf_file=first_pdf.pdf_file.name,
+                    total_pages=0,
+                    is_custom=True,
+                    student=student,
+                    created_at=timezone.now(),
+                    updated_at=timezone.now(),
+                )
+                created_ids.append(dup.id)
+
+        else:
+            # No students found, still upload the PDF
+            first_pdf = pdfLibraryModel.objects.create(
+                title=title,
+                pdf_file=pdf_file,
+                total_pages=0,
+                is_custom=True,
+                student=None,
+                created_at=timezone.now(),
+                updated_at=timezone.now(),
             )
-        except UserModel.DoesNotExist:
-            return Response(
-                {"error": "Teacher not found"},
-                status=404
-            )
 
-        # Get all students
-        students = StudentModel.objects.all()
-
-        if not students.exists():
-            return Response(
-                {"error": "No students found"},
-                status=404
-            )
-
-        # Create PDF
-        pdf = pdfLibraryModel.objects.create(
-            title=pdf_file.name,
-            pdf_file=pdf_file,
-            total_pages=0,
-            is_custom=True,
-            created_at=timezone.now(),
-            updated_at=timezone.now(),
-        )
-
-        # Assign PDF to all students
-        for student in students:
-            student.library.add(pdf)
+            created_ids.append(first_pdf.id)
 
         return Response({
             "success": True,
-            "teacher_id": teacher.id,
-            "teacher_name": f"{teacher.first_name} {teacher.last_name}",
-            "pdf_id": pdf.id,
-            "title": pdf.title,
-            "file_url": request.build_absolute_uri(pdf.pdf_file.url),
-            "total_students": students.count(),
+            **uploader_info,
+            "title": title,
+            "file_url": request.build_absolute_uri(first_pdf.pdf_file.url),
+            "total_students": len(students),
+            "pdf_ids": created_ids,
+            "message": "PDF uploaded successfully." if students else "PDF uploaded successfully. No student was assigned."
+
         }, status=201)
     
     def get(self, request):
         """
-        GET /api/teachers/classrooms/upload-pdf/?teacher_id=5
-        List all PDFs uploaded by this teacher's students' classes.
+        GET /api/teachers/classrooms/upload-pdf/?teacher_id=93
+        GET /api/teachers/classrooms/upload-pdf/?unique_number=8789981709872786
+        GET /api/teachers/classrooms/upload-pdf/?teacher_id=93&unique_number=8789981709872786
+
+        Lists PDFs visible to the union of the given teacher_id's students
+        and/or the unique_number's student. At least one is required.
         """
-        teacher_id = request.query_params.get('teacher_id', request.user.id)
+        teacher_id    = request.query_params.get("teacher_id")
+        unique_number = request.query_params.get("unique_number")
 
-        try:
-            ta = TeacherAssignmentModel.objects.get(teacher_id=teacher_id, is_active=True)
-            class_ids = list(ta.assigned_classes.values_list('id', flat=True))
-        except TeacherAssignmentModel.DoesNotExist:
-            class_ids = []
+        if not teacher_id and not unique_number:
+            return Response({
+                "error": "Provide at least one of 'teacher_id' or 'unique_number'."
+            }, status=400)
 
-        students = StudentModel.objects.filter(student_class_id__in=class_ids)
-        pdfs = pdfLibraryModel.objects.filter(
-            student__in=students,
-            is_custom=True
-        ).distinct().order_by('-created_at')
+        students = []
+        scope_info = {}
 
-        data = []
-        for pdf in pdfs:
-            data.append({
-                'id':          pdf.id,
-                'title':       pdf.title,
-                'file_url':    request.build_absolute_uri(pdf.pdf_file.url) if pdf.pdf_file else None,
-                'total_pages': pdf.total_pages,
-                'groups':      [g.name for g in pdf.group.all()],
-                'created_at':  pdf.created_at,
-            })
+        # ─── unique_number path ───
+        if unique_number:
+            try:
+                device = DeviceModel.objects.get(imei_number=unique_number)
+            except DeviceModel.DoesNotExist:
+                return Response({"error": "Device not found for this unique_number."}, status=404)
 
-        return Response({'pdfs': data, 'total': len(data)})
+            student = StudentModel.objects.filter(device_id=device).first()
+
+            scope_info["unique_number"] = unique_number
+
+            if student:
+                students.append(student)
+            else:
+                scope_info["device_status"] = "No student registered to this device"
+
+        # ─── teacher_id path ───
+        if teacher_id:
+            try:
+                teacher = UserModel.objects.get(id=teacher_id, role__type="Teacher", is_active=True)
+            except UserModel.DoesNotExist:
+                return Response({"error": "Teacher not found"}, status=404)
+
+            assignment = TeacherAssignmentModel.objects.filter(teacher=teacher).first()
+            if not assignment:
+                return Response({"error": "No class assignment found for this teacher."}, status=404)
+
+            class_ids = list(assignment.assigned_classes.values_list('id', flat=True))
+            teacher_students = list(StudentModel.objects.filter(student_class_id__in=class_ids))
+
+            students.extend(teacher_students)
+            scope_info["teacher_id"] = teacher.id
+            scope_info["teacher_name"] = f"{teacher.first_name} {teacher.last_name}"
+
+        # ─── Deduplicate students ───
+        seen = set()
+        unique_students = []
+        for s in students:
+            if s.id not in seen:
+                seen.add(s.id)
+                unique_students.append(s)
+        students = unique_students
+
+        if students:
+            student_ids = [s.id for s in students]
+
+            pdfs = pdfLibraryModel.objects.filter(
+                student_id__in=student_ids
+            ).order_by("-created_at")
+
+        else:
+            # No student is linked to this device, so return unassigned PDFs
+            pdfs = pdfLibraryModel.objects.filter(
+                student__isnull=True,
+                is_custom=True
+            ).order_by("-created_at")
+
+        data = [
+            {
+                "id":           pdf.id,
+                "title":        pdf.title,
+                "pdf_url":      request.build_absolute_uri(pdf.pdf_file.url) if pdf.pdf_file else None,
+                "total_pages":  pdf.total_pages,
+                "is_custom":    pdf.is_custom,
+                "is_favorite":  pdf.is_favorite,
+                "student_id":   pdf.student_id,
+                "created_at":   pdf.created_at,
+            }
+            for pdf in pdfs
+        ]
+
+        return Response({
+            "success": True,
+            **scope_info,
+            "total_students": len(students),
+            "count": len(data),
+            "data": data,
+        }, status=200)
 
 
 class TeacherCreateClassAPI(APIView):
