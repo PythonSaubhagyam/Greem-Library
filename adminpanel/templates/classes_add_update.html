@@ -9,23 +9,27 @@
     <h5 id="form-title">Add Class</h5>
   </div>
   <div class="card-body">
-    <form id="classForm">
+    <div id="formAlertContainer"></div>
+    <form id="classForm" novalidate>
       {% csrf_token %}
       <div class="mb-3">
-        <label class="form-label">Standard</label>
+        <label class="form-label">Standard <span class="text-danger">*</span></label>
         <input type="number" name="standard" id="standard" class="form-control" min="1" max="12" required>
+        <div class="invalid-feedback" id="standard-error"></div>
       </div>
       <div class="mb-3">
         <label class="form-label">Section</label>
-        <input type="text" name="section" id="section" class="form-control">
+        <input type="text" name="section" id="section" class="form-control" placeholder="e.g. A, B, C">
+        <div class="invalid-feedback" id="section-error"></div>
       </div>
       <div class="mb-3">
         <label class="form-label">Academic Year</label>
-        <input type="text" name="academic_year" id="academic_year" class="form-control" value="2024-25">
+        <input type="text" name="academic_year" id="academic_year" class="form-control" value="2025-26" placeholder="e.g. 2025-26">
+        <div class="invalid-feedback" id="academic_year-error"></div>
       </div>
 
-      <button class="btn btn-primary" id="saveBtn">Save</button>
-      <a id="backBtn" class="btn btn-secondary">Back</a>
+      <button class="btn btn-primary" id="saveBtn" type="submit">Save</button>
+      <a id="backBtn" class="btn btn-secondary ms-1">Back</a>
     </form>
   </div>
 </div>
@@ -46,11 +50,10 @@ const backBtn = document.getElementById('backBtn');
 const uiPathPrefix = window.location.pathname.startsWith('/customer/dashboard') ? '/customer/dashboard' : '/administrator';
 const redirectTo = `${uiPathPrefix}/classes/`;
 const urlParams = new URLSearchParams(window.location.search);
-const editId = window.location.pathname.split('/').filter(Boolean).pop();
+const editId = window.location.pathname.includes('/edit/') ? window.location.pathname.split('/').filter(Boolean).pop() : null;
 
-if (window.location.pathname.includes('/edit/') && editId) {
+if (editId) {
   document.getElementById('form-title').innerText = 'Edit Class';
-  // load existing
   fetch(`/administrator/classes-api/${editId}/`)
     .then(r => r.json())
     .then(data => {
@@ -60,35 +63,106 @@ if (window.location.pathname.includes('/edit/') && editId) {
     });
 }
 
+function clearFormErrors() {
+  document.getElementById('formAlertContainer').innerHTML = '';
+  ['standard', 'section', 'academic_year'].forEach(id => {
+    const input = document.getElementById(id);
+    const errDiv = document.getElementById(id + '-error');
+    if (input) input.classList.remove('is-invalid');
+    if (errDiv) errDiv.innerText = '';
+  });
+}
+
+function showFormError(errorData) {
+  clearFormErrors();
+  let mainMsg = '';
+
+  if (typeof errorData === 'string') {
+    mainMsg = errorData;
+  } else if (errorData && typeof errorData === 'object') {
+    if (errorData.non_field_errors) {
+      const raw = Array.isArray(errorData.non_field_errors) ? errorData.non_field_errors.join(' ') : String(errorData.non_field_errors);
+      if (raw.toLowerCase().includes('unique set') || raw.toLowerCase().includes('already exists')) {
+        const std = document.getElementById('standard').value;
+        const sec = document.getElementById('section').value || 'Default';
+        const year = document.getElementById('academic_year').value;
+        mainMsg = `A class for Standard <strong>${std}</strong>, Section <strong>${sec}</strong> (${year}) already exists in your school. Please specify a different section or academic year.`;
+        document.getElementById('standard').classList.add('is-invalid');
+        document.getElementById('section').classList.add('is-invalid');
+        document.getElementById('academic_year').classList.add('is-invalid');
+      } else {
+        mainMsg = raw;
+      }
+    } else if (errorData.detail) {
+      mainMsg = errorData.detail;
+    }
+
+    ['standard', 'section', 'academic_year'].forEach(field => {
+      if (errorData[field]) {
+        const input = document.getElementById(field);
+        const errDiv = document.getElementById(field + '-error');
+        const fieldMsgs = Array.isArray(errorData[field]) ? errorData[field].join(' ') : String(errorData[field]);
+        if (input) input.classList.add('is-invalid');
+        if (errDiv) errDiv.innerText = fieldMsgs;
+        if (!mainMsg) {
+          mainMsg = 'Please check the highlighted field errors below.';
+        }
+      }
+    });
+  }
+
+  if (!mainMsg) {
+    mainMsg = 'Validation failed. Please check your form input values.';
+  }
+
+  const alertBox = `
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center mb-4" role="alert">
+      <i class="bx bx-error-circle me-2 fs-4"></i>
+      <div class="flex-grow-1">${mainMsg}</div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  `;
+  document.getElementById('formAlertContainer').innerHTML = alertBox;
+  document.getElementById('formAlertContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 form.addEventListener('submit', (e) => {
   e.preventDefault();
+  clearFormErrors();
   saveBtn.disabled = true;
 
+  const stdVal = document.getElementById('standard').value;
+  if (!stdVal) {
+    showFormError({ standard: ['Standard is required.'] });
+    saveBtn.disabled = false;
+    return;
+  }
+
   const payload = {
-    standard: parseInt(document.getElementById('standard').value),
+    standard: parseInt(stdVal),
     section: document.getElementById('section').value,
     academic_year: document.getElementById('academic_year').value
   };
 
-  const method = (window.location.pathname.includes('/edit/') && editId) ? 'PUT' : 'POST';
-  const url = (method === 'POST') ? '/administrator/classes-api/' : `/administrator/classes-api/${editId}/`;
+  const method = editId ? 'PUT' : 'POST';
+  const url = editId ? `/administrator/classes-api/${editId}/` : '/administrator/classes-api/';
 
   fetch(url, {
     method: method,
-    headers: { 'Content-Type': 'application/json',"X-CSRFToken": getCsrf()},
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
     body: JSON.stringify(payload)
   })
-    .then(res => {
-      if (!res.ok) throw res;
-      return res.json();
-    })
-    .then(() => {
+    .then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        showFormError(data);
+        saveBtn.disabled = false;
+        return;
+      }
       window.location.href = redirectTo;
     })
-    .catch(async (err) => {
-      let msg = 'Save failed';
-      try { const j = await err.json(); msg = JSON.stringify(j); } catch(e){}
-      alert(msg);
+    .catch((err) => {
+      showFormError('Network or server connection error. Please try again.');
       saveBtn.disabled = false;
     });
 });

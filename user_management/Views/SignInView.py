@@ -3,6 +3,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth import authenticate,login
 from rest_framework import status
 from rest_framework.authtoken.models import Token
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from ..models import *
@@ -15,7 +16,9 @@ from django.utils import timezone
 
 
 class SignInView(APIView):
-    
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
     def post(self,request):
         
         try:
@@ -55,6 +58,8 @@ class SignInView(APIView):
 
 
 class QRLoginAPIView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
 
     def post(self, request):
         imei_number = request.data.get('imei_number')

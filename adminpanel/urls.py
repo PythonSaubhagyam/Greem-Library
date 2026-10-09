@@ -47,6 +47,7 @@ urlpatterns = [
     path('principal-flow/coordinator/<int:coordinator_id>/', CoordinatorDetailAPI.as_view(), name='principal-coordinator-detail'),
     path('principal-flow/teacher/<int:teacher_id>/', TeacherDetailAPI.as_view(), name='principal-teacher-detail'),
     path('principal-flow/class/<int:class_id>/', ClassDetailAPI.as_view(), name='principal-class-detail'),
+    path('principal-flow/module/<str:module_name>/', PrincipalModuleAPI.as_view(), name='principal-module-detail'),
 
     path('users-list/', UserAPIView.as_view(), name='companies-list'),
     path('users-list/<int:id>/', UserAPIView.as_view(), name='companies-list'),
@@ -242,12 +243,14 @@ urlpatterns = [
     
     # new api teacher 
     path('teachers/classrooms/upload-pdf/', TeacherUploadPDFAPI.as_view(), name='teacher-upload-pdf'),
+    path("teachers/classrooms/delete-pdf/<int:pdf_id>/",TeacherDeletePDFAPI.as_view(),name="teacher-delete-pdf"),
     path('teachers/create-class/', TeacherCreateClassAPI.as_view(), name='teacher-create-class'),
     path("teachers/class-list/",TeacherClassListAPI.as_view(),name="teacher-class-list",),
     path('teachers/profile/update/', ProfileUpdateView.as_view(), name='profile-update'),
     path('teacher/students/add/', AddStudentView.as_view(), name='add-student'),
     path('teacher/classes/<int:class_id>/students/', ClassStudentListView.as_view(), name='class-students'),
     path("teacher/scan-qr/",TeacherScanQRAPIView.as_view(),name="teacher-scan-qr"),
+    path("teacher/students/list/",TeacherStudentListAPIView.as_view(),name="teacher-student-list"),
     path("device/status/",DeviceStatusAPIView.as_view(),name="device-status"),
 
 

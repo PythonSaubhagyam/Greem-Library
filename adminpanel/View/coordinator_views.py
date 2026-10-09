@@ -213,6 +213,14 @@ class CoordinatorActionUpdateAPI(View):
         except CoordinatorActionModel.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Not found'}, status=404)
 
+    def delete(self, request, pk):
+        try:
+            action = CoordinatorActionModel.objects.get(pk=pk, coordinator=request.user)
+            action.delete()
+            return JsonResponse({'success': True})
+        except CoordinatorActionModel.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Not found'}, status=404)
+
 
 
 @method_decorator(login_required, name='dispatch')
@@ -408,24 +416,56 @@ class CoordinatorTeacherActivityAPI(View):
                 a=Avg('score')
             ).filter(a__lt=40).count()
  
-            # Accountability score (out of 100)
-            score = min(100, (tests_count * 15) + (hw_count * 15) + (10 if avg_score > 60 else 0))
- 
-            # Last active via StudySession created_by or test
+            # Section 10: 6-Factor Teacher Accountability Score (Total: 100)
+            # 1. Classes taken (Weight: 20)
+            classes_taken = HomeworkModel.objects.filter(created_by_id=tid).values('assigned_to').distinct().count()
+            score_classes = min(20, classes_taken * 4)
+
+            # 2. Teaching time (Weight: 20)
+            sessions_duration = StudySession.objects.filter(student_id__in=teacher_students).aggregate(total=Sum('duration'))['total'] or 0
+            teaching_hours = sessions_duration / 3600.0 if sessions_duration else 0
+            score_time = min(20, int(teaching_hours * 2))
+
+            # 3. Tests conducted (Weight: 15)
+            score_tests = min(15, tests_count * 3)
+
+            # 4. Homework given (Weight: 15)
+            score_hw_given = min(15, hw_count * 3)
+
+            # 5. Homework checked (Weight: 15)
+            hw_checked_count = HomeworkSubmissionModel.objects.filter(
+                homework__created_by_id=tid,
+                score__isnull=False
+            ).count() if 'HomeworkSubmissionModel' in globals() else hw_count
+            score_hw_checked = min(15, hw_checked_count * 3)
+
+            # 6. Student improvement (Weight: 15)
+            score_improvement = 15 if avg_score >= 70 else (10 if avg_score >= 50 else (5 if avg_score >= 40 else 0))
+
+            score = min(100, score_classes + score_time + score_tests + score_hw_given + score_hw_checked + score_improvement)
+
             last_test = TestModel.objects.filter(created_by_id=tid).order_by('-created_at').first()
             last_active = last_test.created_at.strftime('%Y-%m-%d') if last_test else 'Never'
- 
+
             data.append({
-                'id':              tid,
-                'name':            f"{teacher.first_name} {teacher.last_name}",
-                'email':           teacher.email,
-                'phone':           teacher.mobile_no or '-',
-                'tests':           tests_count,
-                'homework':        hw_count,
+                'id':                tid,
+                'name':              f"{teacher.first_name} {teacher.last_name}",
+                'email':             teacher.email,
+                'phone':             teacher.mobile_no or '-',
+                'tests':             tests_count,
+                'homework':          hw_count,
                 'avg_student_score': round(avg_score, 1),
-                'weak_students':   weak_under,
-                'last_active':     last_active,
-                'score':           score,
+                'weak_students':     weak_under,
+                'last_active':       last_active,
+                'score':             score,
+                'score_breakdown': {
+                    'classes_taken': score_classes,
+                    'teaching_time': score_time,
+                    'tests_conducted': score_tests,
+                    'homework_given': score_hw_given,
+                    'homework_checked': score_hw_checked,
+                    'student_improvement': score_improvement,
+                },
                 'status': (
                     'Good'    if score > 70 else
                     'Average' if score > 40 else
@@ -3496,3 +3536,162 @@ class CoordinatorSettingsView(DashboardsView):
             return redirect('index')
         context = self.get_context_data()
         return render(request, self.template_name, context)
+
+
+# ==============================================================================
+# PHASE 3 ADVANCED FEATURES (SECTION 24 OF SPECIFICATION)
+# ==============================================================================
+
+@method_decorator(login_required, name='dispatch')
+class CoordinatorAIWeaknessPredictionAPI(View):
+    """
+    Phase 3 Feature 1: AI Weakness & Failure Risk Prediction
+    Analyzes student score trends, test attempts, missing homework, and study time
+    to predict if a student is at high risk of failing the next test.
+    """
+    def get(self, request):
+        _, _, student_ids = get_coordinator_scope(request.user)
+        predictions = []
+        today = timezone.now().date()
+
+        for sid in student_ids:
+            student = StudentModel.objects.filter(id=sid).first()
+            if not student:
+                continue
+
+            attempts = StudentTestAttemptModel.objects.filter(student_id=sid).order_by('-completed_at')
+            scores = list(attempts.values_list('score', flat=True)[:5])
+            avg_score = round(sum(scores) / len(scores), 1) if scores else 0.0
+
+            # Calculate score trend (falling across recent tests)
+            is_falling = False
+            if len(scores) >= 2 and scores[0] < scores[1]:
+                is_falling = True
+
+            # Missing homework count
+            hw_given = HomeworkModel.objects.filter(assigned_to=sid).count()
+            hw_done  = HomeworkSubmissionModel.objects.filter(student_id=sid).count()
+            missing_hw = max(0, hw_given - hw_done)
+
+            # Inactivity days
+            last_session = StudySession.objects.filter(student_id=sid).order_by('-start_time').first()
+            days_inactive = (today - last_session.start_time.date()).days if last_session else 99
+
+            # AI Risk Scoring Algorithm
+            risk_score = 0
+            risk_reasons = []
+
+            if avg_score < 40:
+                risk_score += 40
+                risk_reasons.append(f"Average score is {avg_score}% (below 40%)")
+            elif avg_score < 55:
+                risk_score += 20
+                risk_reasons.append(f"Borderline average score ({avg_score}%)")
+
+            if is_falling:
+                risk_score += 25
+                risk_reasons.append("Score trend is falling across recent tests")
+
+            if missing_hw > 0:
+                risk_score += 20
+                risk_reasons.append(f"{missing_hw} homework assignment(s) unsubmitted")
+
+            if days_inactive >= 3:
+                risk_score += 15
+                risk_reasons.append(f"Inactive on tablet for {days_inactive} days")
+
+            # Determine risk level
+            if risk_score >= 50:
+                risk_level = 'High'
+                prediction = 'High risk of failing next test'
+                rec_action = 'Schedule urgent revision session & issue parent alert'
+            elif risk_score >= 25:
+                risk_level = 'Medium'
+                prediction = 'At risk of falling grades'
+                rec_action = 'Assign targeted chapter practice & monitor homework'
+            else:
+                risk_level = 'Low'
+                prediction = 'On track'
+                rec_action = 'Continue regular monitoring'
+
+            if risk_level in ['High', 'Medium']:
+                predictions.append({
+                    'student_id': sid,
+                    'student_name': student.student_name,
+                    'class_name': str(student.student_class) if student.student_class else '-',
+                    'avg_score': avg_score,
+                    'risk_level': risk_level,
+                    'risk_score': risk_score,
+                    'prediction': prediction,
+                    'reasons': risk_reasons,
+                    'recommended_action': rec_action,
+                })
+
+        # Sort by highest risk score first
+        predictions.sort(key=lambda x: x['risk_score'], reverse=True)
+        return JsonResponse({'predictions': predictions, 'total_at_risk': len(predictions)})
+
+
+@method_decorator(login_required, name='dispatch')
+class CoordinatorSelfActionScoreAPI(View):
+    """
+    Phase 3 Feature 3: Coordinator Self-Action Score & Accountability Index
+    Measures coordinator's own performance: resolution rate, escalation rate, avg resolution time.
+    """
+    def get(self, request):
+        actions = CoordinatorActionModel.objects.filter(coordinator=request.user)
+        total_actions = actions.count()
+        resolved = actions.filter(status='Resolved').count()
+        escalated = actions.filter(status='Escalated to Principal').count()
+        pending = actions.filter(status__in=['New', 'Pending', 'In Progress']).count()
+
+        resolution_rate = round((resolved / total_actions * 100), 1) if total_actions else 100.0
+        escalation_rate = round((escalated / total_actions * 100), 1) if total_actions else 0.0
+
+        score = min(100, int((resolution_rate * 0.7) + (max(0, 100 - escalation_rate * 2) * 0.3)))
+
+        return JsonResponse({
+            'total_actions': total_actions,
+            'resolved': resolved,
+            'escalated': escalated,
+            'pending': pending,
+            'resolution_rate': resolution_rate,
+            'escalation_rate': escalation_rate,
+            'coordinator_score': score,
+            'rating': 'Excellent' if score > 80 else ('Good' if score > 60 else 'Needs Focus')
+        })
+
+@method_decorator(login_required, name='dispatch')
+class CoordinatorParentMeetingReportAPI(View):
+    """
+    Phase 3 Feature 2: Auto Parent Meeting Report Summary
+    Returns a comprehensive student academic summary for parent-teacher meetings.
+    """
+    def get(self, request, student_id):
+        student = StudentModel.objects.filter(id=student_id).first()
+        if not student:
+            return JsonResponse({'error': 'Student not found'}, status=404)
+
+        attempts = StudentTestAttemptModel.objects.filter(student_id=student_id).order_by('-completed_at')
+        scores = list(attempts.values_list('score', flat=True))
+        avg_score = round(sum(scores) / len(scores), 1) if scores else 0.0
+
+        hw_assigned = HomeworkModel.objects.filter(assigned_to=student_id).count()
+        hw_submitted = HomeworkSubmissionModel.objects.filter(student_id=student_id).count()
+
+        remarks = TeacherRemarkModel.objects.filter(student_id=student_id).order_by('-created_at').values('remark', 'remark_type', 'created_at')
+        actions = CoordinatorActionModel.objects.filter(coordinator=request.user).order_by('-created_at').values('issue', 'required_action', 'status')
+
+        return JsonResponse({
+            'student_name': student.student_name,
+            'roll_no': getattr(student, 'roll_number', '-'),
+            'class_name': str(student.student_class) if student.student_class else '-',
+            'average_score': avg_score,
+            'tests_attempted': len(scores),
+            'homework_assigned': hw_assigned,
+            'homework_submitted': hw_submitted,
+            'homework_completion_rate': round((hw_submitted / hw_assigned * 100), 1) if hw_assigned else 100.0,
+            'status_tag': 'Needs Support' if avg_score < 40 else ('Stable' if avg_score < 70 else 'Excellent'),
+            'teacher_remarks': list(remarks[:5]),
+            'action_items': list(actions[:5]),
+        })

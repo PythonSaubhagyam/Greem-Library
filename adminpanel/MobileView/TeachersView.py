@@ -18,6 +18,8 @@ from rest_framework.authentication import TokenAuthentication,SessionAuthenticat
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from user_management.Serializers.UserSerializer import *
 from adminpanel.Serializer.MobileSerializer import *
+from django.http import FileResponse
+import os
 
 #  HELPER FUNCTIONS FOR STATUS & LAST ACTIVITY
 def get_student_status(student):
@@ -4540,56 +4542,28 @@ class TeacherUploadPDFAPI(APIView):
                 unique_students.append(s)
         students = unique_students
 
-        created_ids = []
+        pdf = pdfLibraryModel.objects.create(
+            title=title,
+            pdf_file=pdf_file,
+            total_pages=0,
+            is_custom=True,
+            created_at=timezone.now(),
+            updated_at=timezone.now(),
+        )
 
+        # Assign all students to this one PDF
         if students:
-            # Create one PDF for the first student
-            first_pdf = pdfLibraryModel.objects.create(
-                title=title,
-                pdf_file=pdf_file,
-                total_pages=0,
-                is_custom=True,
-                student=students[0],
-                created_at=timezone.now(),
-                updated_at=timezone.now(),
-            )
+            pdf.students.set(students)
 
-            created_ids.append(first_pdf.id)
-
-            # Create copies for remaining students
-            for student in students[1:]:
-                dup = pdfLibraryModel.objects.create(
-                    title=title,
-                    pdf_file=first_pdf.pdf_file.name,
-                    total_pages=0,
-                    is_custom=True,
-                    student=student,
-                    created_at=timezone.now(),
-                    updated_at=timezone.now(),
-                )
-                created_ids.append(dup.id)
-
-        else:
-            # No students found, still upload the PDF
-            first_pdf = pdfLibraryModel.objects.create(
-                title=title,
-                pdf_file=pdf_file,
-                total_pages=0,
-                is_custom=True,
-                student=None,
-                created_at=timezone.now(),
-                updated_at=timezone.now(),
-            )
-
-            created_ids.append(first_pdf.id)
+        created_ids = [pdf.id]
 
         return Response({
             "success": True,
             **uploader_info,
             "title": title,
-            "file_url": request.build_absolute_uri(first_pdf.pdf_file.url),
+            "file_url": request.build_absolute_uri(pdf.pdf_file.url),
             "total_students": len(students),
-            "pdf_ids": created_ids,
+            "pdf_ids": [pdf.id],
             "message": "PDF uploaded successfully." if students else "PDF uploaded successfully. No student was assigned."
 
         }, status=201)
@@ -4599,16 +4573,51 @@ class TeacherUploadPDFAPI(APIView):
         GET /api/teachers/classrooms/upload-pdf/?teacher_id=93
         GET /api/teachers/classrooms/upload-pdf/?unique_number=8789981709872786
         GET /api/teachers/classrooms/upload-pdf/?teacher_id=93&unique_number=8789981709872786
+        GET /api/teachers/classrooms/upload-pdf/?pdf_id=12&download=1
 
         Lists PDFs visible to the union of the given teacher_id's students
         and/or the unique_number's student. At least one is required.
+        If pdf_id is provided, it returns the specific PDF metadata or, when
+        download=1, the actual PDF file as an attachment.
         """
         teacher_id    = request.query_params.get("teacher_id")
         unique_number = request.query_params.get("unique_number")
+        pdf_id        = request.query_params.get("pdf_id")
+        download      = request.query_params.get("download", "").lower() in {"1", "true", "yes", "y"}
+
+        if pdf_id:
+            try:
+                pdf = pdfLibraryModel.objects.get(id=pdf_id)
+            except pdfLibraryModel.DoesNotExist:
+                return Response({"error": "PDF not found."}, status=404)
+
+            if download:
+                if not pdf.pdf_file:
+                    return Response({"error": "PDF file not found."}, status=404)
+
+                try:
+                    response = FileResponse(pdf.pdf_file.open("rb"), content_type="application/pdf")
+                    response["Content-Disposition"] = f'attachment; filename="{os.path.basename(pdf.pdf_file.name)}"'
+                    return response
+                except FileNotFoundError:
+                    return Response({"error": "PDF file not found on storage."}, status=404)
+
+            return Response({
+                "success": True,
+                "id": pdf.id,
+                "title": pdf.title,
+                "pdf_url": request.build_absolute_uri(pdf.pdf_file.url) if pdf.pdf_file else None,
+                "download_url": request.build_absolute_uri(f"{request.path}?pdf_id={pdf.id}&download=1"),
+                "total_pages": pdf.total_pages,
+                "is_custom": pdf.is_custom,
+                "is_favorite": pdf.is_favorite,
+                "student_ids": list(pdf.students.values_list("id", flat=True)),
+                "created_at": pdf.created_at,
+            }, status=200)
 
         if not teacher_id and not unique_number:
             return Response({
-                "error": "Provide at least one of 'teacher_id' or 'unique_number'."
+                "error": "Provide at least one of 'teacher_id' or 'unique_number', or provide 'pdf_id'."
             }, status=400)
 
         students = []
@@ -4661,13 +4670,13 @@ class TeacherUploadPDFAPI(APIView):
             student_ids = [s.id for s in students]
 
             pdfs = pdfLibraryModel.objects.filter(
-                student_id__in=student_ids
-            ).order_by("-created_at")
+                students__id__in=student_ids
+            ).distinct().order_by("-created_at")
 
         else:
             # No student is linked to this device, so return unassigned PDFs
             pdfs = pdfLibraryModel.objects.filter(
-                student__isnull=True,
+                students__isnull=True,
                 is_custom=True
             ).order_by("-created_at")
 
@@ -4676,10 +4685,11 @@ class TeacherUploadPDFAPI(APIView):
                 "id":           pdf.id,
                 "title":        pdf.title,
                 "pdf_url":      request.build_absolute_uri(pdf.pdf_file.url) if pdf.pdf_file else None,
+                "download_url": request.build_absolute_uri(f"{request.path}?pdf_id={pdf.id}&download=1"),
                 "total_pages":  pdf.total_pages,
                 "is_custom":    pdf.is_custom,
                 "is_favorite":  pdf.is_favorite,
-                "student_id":   pdf.student_id,
+                "student_ids": list(pdf.students.values_list("id", flat=True)),
                 "created_at":   pdf.created_at,
             }
             for pdf in pdfs
@@ -4692,7 +4702,31 @@ class TeacherUploadPDFAPI(APIView):
             "count": len(data),
             "data": data,
         }, status=200)
+    
+class TeacherDeletePDFAPI(APIView):
+    authentication_classes = []
+    permission_classes = []
 
+    def delete(self, request, pdf_id):
+        try:
+            pdf = pdfLibraryModel.objects.get(id=pdf_id)
+        except pdfLibraryModel.DoesNotExist:
+            return Response({
+                "success": False,
+                "error": "PDF not found."
+            }, status=404)
+
+        # Delete physical file if it exists
+        if pdf.pdf_file and os.path.isfile(pdf.pdf_file.path):
+            os.remove(pdf.pdf_file.path)
+
+        # Delete database record
+        pdf.delete()
+
+        return Response({
+            "success": True,
+            "message": "PDF deleted successfully."
+        }, status=200)
 
 class TeacherCreateClassAPI(APIView):
     authentication_classes = [TokenAuthentication]
@@ -4856,9 +4890,22 @@ class TeacherScanQRAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-
+        """
+        POST /api/teachers/scan-qr/
+        Scan QR code to assign device to a student from teacher's assigned classes.
+        
+        Body:
+        {
+            "teacherId": 5,
+            "qr_data": "QR_CODE_DATA",
+            "student_id": 10  (optional - if provided, assign to specific student)
+        }
+        
+        Multiple teachers can scan QR codes for their own students.
+        """
         teacher_id = request.data.get("teacherId")
         qr_data = request.data.get("qr_data")
+        student_id = request.data.get("student_id")  # Optional: specific student
 
         if not teacher_id:
             return Response({
@@ -4874,7 +4921,7 @@ class TeacherScanQRAPIView(APIView):
 
         # Validate Teacher
         try:
-            teacher = UserModel.objects.get(id=teacher_id)
+            teacher = UserModel.objects.get(id=teacher_id, role__type="Teacher", is_active=True)
         except UserModel.DoesNotExist:
             return Response({
                 "success": False,
@@ -4892,12 +4939,29 @@ class TeacherScanQRAPIView(APIView):
                 "message": "Invalid QR Code."
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # Already scanned
-        if qr_obj.is_used:
-            existing_student = StudentModel.objects.filter(device_id=qr_obj.device).first()
+        # Mark QR as used immediately (scan is valid, regardless of student assignment)
+        if not qr_obj.is_used:
+            qr_obj.is_used = True
+            qr_obj.save()
+
+        # Get teacher's assigned classes
+        # Get teacher assignment (may not exist)
+        assignment = TeacherAssignmentModel.objects.filter(
+            teacher=teacher, is_active=True
+        ).first()
+
+        if assignment:
+            assigned_class_ids = list(assignment.assigned_classes.values_list('id', flat=True))
+        else:
+            # Teacher has no assigned classes; allow scan flow without class restriction
+            assigned_class_ids = None
+
+        # Check if device is already assigned
+        existing_student = StudentModel.objects.filter(device_id=qr_obj.device).first()
+        if existing_student:
             return Response({
                 "success": True,
-                "message": "QR has already been scanned.",
+                "message": "Device already assigned to a student.",
                 "teacher": {
                     "id": teacher.id,
                     "name": f"{teacher.first_name} {teacher.last_name}"
@@ -4905,40 +4969,225 @@ class TeacherScanQRAPIView(APIView):
                 "student": {
                     "id": existing_student.id,
                     "name": existing_student.student_name,
-                    "email": existing_student.email
-                } if existing_student else None,
+                    "email": existing_student.email,
+                    "class_id": existing_student.student_class.id if existing_student.student_class else None,
+                    "class_name": existing_student.student_class.classname if existing_student.student_class else None
+                },
                 "device": {
                     "unique_number": qr_obj.device.imei_number
                 }
             }, status=status.HTTP_200_OK)
         
-        # Find student using device
-        student = StudentModel.objects.filter(
-           device_id__isnull=True
-        ).first()
+        # Find student - either specific student or auto-assign when only one student is eligible
+        # If teacher has assigned classes, limit to those; otherwise consider all students
+        if assigned_class_ids:
+            unassigned_students = StudentModel.objects.filter(
+                student_class_id__in=assigned_class_ids,
+                device_id__isnull=True
+            )
+        else:
+            unassigned_students = StudentModel.objects.filter(
+                device_id__isnull=True
+            )
 
-        # Mark QR as used
-        qr_obj.is_used = True
-        qr_obj.save()
+        student = None
+        auto_assign_note = None
 
-        student.device_id = qr_obj.device
-        student.save()
+        if student_id:
+            try:
+                student = unassigned_students.get(id=student_id)
+            except StudentModel.DoesNotExist:
+                return Response({
+                    "success": False,
+                    "message": "Student not found in your assigned classes or already has a device."
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            unassigned_count = unassigned_students.count()
+            if unassigned_count == 0:
+                response_payload = {
+                    "success": True,
+                    "message": "Device scanned successfully, but no students in your classes need a device.",
+                    "teacher": {
+                        "id": teacher.id,
+                        "name": f"{teacher.first_name} {teacher.last_name}"
+                    },
+                    "student": None,
+                    "device": {
+                        "unique_number": qr_obj.device.imei_number
+                    }
+                }
+                return Response(response_payload, status=status.HTTP_200_OK)
 
-        return Response({
+            if unassigned_count == 1:
+                student = unassigned_students.first()
+            else:
+                auto_assign_note = "Multiple students in your assigned classes do not have devices. Provide student_id to assign the device to a specific student."
+
+        if student:
+            # Assign device to student
+            student.device_id = qr_obj.device
+            student.save()
+
+            # Record the scan and assignment
+            try:
+                TeacherDeviceScan.objects.create(
+                    teacher=teacher,
+                    device=qr_obj.device,
+                    qr=qr_obj,
+                    student=student,
+                    is_assigned=True
+                )
+            except Exception:
+                # Don't fail the API if logging the scan fails
+                pass
+
+            response_payload = {
+                "success": True,
+                "message": "Device assigned successfully.",
+                "teacher": {
+                    "id": teacher.id,
+                    "name": f"{teacher.first_name} {teacher.last_name}"
+                },
+                "student": {
+                    "id": student.id,
+                    "name": student.student_name,
+                    "email": student.email,
+                    "class_id": student.student_class.id if student.student_class else None,
+                    "class_name": student.student_class.classname if student.student_class else None
+                },
+                "device": {
+                    "unique_number": qr_obj.device.imei_number
+                }
+            }
+
+            if auto_assign_note:
+                response_payload["note"] = auto_assign_note
+
+            return Response(response_payload, status=status.HTTP_200_OK)
+
+        # No student was assigned yet because multiple students are eligible
+        # Record the scan as a pending scan so the teacher can see it in their list
+        try:
+            TeacherDeviceScan.objects.create(
+                teacher=teacher,
+                device=qr_obj.device,
+                qr=qr_obj,
+                student=None,
+                is_assigned=False
+            )
+        except Exception:
+            # Don't fail the API if logging the scan fails
+            pass
+        response_payload = {
             "success": True,
-            "message": "QR scanned successfully.",
+            "message": "Device scanned successfully. Provide student_id to assign it to a specific student.",
             "teacher": {
                 "id": teacher.id,
                 "name": f"{teacher.first_name} {teacher.last_name}"
             },
-            "student": {
-                "id": student.id,
-                "name": student.student_name,
-                "email": student.email
-            },
+            "student": None,
             "device": {
                 "unique_number": qr_obj.device.imei_number
+            },
+            "note": auto_assign_note
+        }
+        return Response(response_payload, status=status.HTTP_200_OK)
+    
+class TeacherStudentListAPIView(APIView):
+    """
+    GET /api/teachers/students/?teacher_id=5
+    
+    List all students in a teacher's assigned classes with their device assignment status.
+    Shows devices that were recently scanned and assigned via TeacherScanQRAPIView.
+    """
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        teacher_id = request.query_params.get("teacher_id")
+
+        if not teacher_id:
+            return Response({
+                "success": False,
+                "message": "teacher_id is required."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate Teacher
+        try:
+            teacher = UserModel.objects.get(
+                id=teacher_id,
+                role__type="Teacher",
+                is_active=True
+            )
+        except UserModel.DoesNotExist:
+            return Response({
+                "success": False,
+                "message": "Teacher not found."
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Get teacher assignment
+        assignment = TeacherAssignmentModel.objects.filter(teacher=teacher).first()
+
+        if not assignment:
+            # Don't treat this as an error; allow teacher role users without class assignments
+            class_ids = []
+        else:
+            class_ids = assignment.assigned_classes.values_list("id", flat=True)
+
+        # Include any devices this teacher has scanned (pending or assigned)
+        scans = TeacherDeviceScan.objects.filter(teacher=teacher).select_related('device', 'student').order_by('-created_at')
+        scanned_devices = []
+        for s in scans:
+            scanned_devices.append({
+                'scan_id': s.id,
+                'device_id': s.device.id,
+                'device_unique_number': s.device.imei_number,
+                'student_id': s.student.id if s.student else None,
+                'student_name': s.student.student_name if s.student else None,
+                'is_assigned': s.is_assigned,
+                'scanned_at': s.created_at.strftime('%Y-%m-%d %H:%M:%S') if s.created_at else None
+            })
+
+        # Get all students in teacher's assigned classes with device details
+        students = StudentModel.objects.filter(
+            student_class_id__in=class_ids
+        ).select_related("device_id", "student_class").order_by("student_name")
+
+        data = []
+        device_assigned_count = 0
+        no_device_count = 0
+
+        for student in students:
+            student_data = {
+                "student_id": student.id,
+                "student_name": student.student_name,
+                "email": student.email,
+                "class_id": student.student_class.id if student.student_class else None,
+                "class_name": student.student_class.classname if student.student_class else None,
+                "device_assigned": student.device_id is not None,
             }
+            
+            if student.device_id:
+                student_data["device_id"] = student.device_id.id
+                student_data["device_unique_number"] = student.device_id.imei_number
+                device_assigned_count += 1
+            else:
+                student_data["device_unique_number"] = None
+                no_device_count += 1
+            
+            data.append(student_data)
+
+        return Response({
+            "success": True,
+            "teacher": {
+                "id": teacher.id,
+                "name": f"{teacher.first_name} {teacher.last_name}"
+            },
+            "total_students": len(data),
+            "devices_assigned": device_assigned_count,
+            "devices_pending": no_device_count,
+            "students": data,
+            "scanned_devices": scanned_devices
         }, status=status.HTTP_200_OK)
 
 class DeviceStatusAPIView(APIView):
@@ -5005,7 +5254,7 @@ class DeviceStatusAPIView(APIView):
             return Response({
                 "success": True,
                 "status": "registered",
-                "token": qr.qr_data,
+                "qr_data": qr.qr_data,
                 "unique_number": device.imei_number,
             }, status=status.HTTP_200_OK)
 

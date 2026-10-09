@@ -13,10 +13,17 @@ class pdfGroupAdmin(admin.ModelAdmin):
 
 @admin.register(pdfLibraryModel)
 class pdfLibraryAdmin(admin.ModelAdmin):
-    list_display = ('id','title', 'pdf_file', 'total_pages', 'is_custom', 'is_favorite', 'student', 'created_at', 'updated_at')
+    list_display = ('id','title', 'pdf_file', 'total_pages', 'is_custom', 'is_favorite', 'student', 'get_students','created_at', 'updated_at')
     search_fields = ('title', 'pdf_file', 'created_at', 'updated_at')
     ordering = ("-id",)
     filter_horizontal = ("group",)
+
+    def get_students(self, obj):
+        return ", ".join(
+            student.student_name for student in obj.students.all()
+        )
+
+    get_students.short_description = "Students"
 
 
 @admin.register(TestModel)

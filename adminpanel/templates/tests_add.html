@@ -15,6 +15,7 @@
 
   <div class="card">
     <div class="card-body">
+      <div id="formAlertContainer"></div>
       <form id="testForm">
         {% csrf_token %}
         <div class="mb-3">
@@ -65,7 +66,7 @@
           <input type="datetime-local" id="scheduled_date" class="form-control" />
         </div>
         <div class="mb-3">
-          <button type="submit" class="btn btn-primary">Create Test</button>
+          <button type="submit" id="saveBtn" class="btn btn-primary">Create Test</button>
         </div>
       </form>
     </div>
@@ -97,6 +98,17 @@ function getCookie(name) {
     return cookieValue;
 }
 
+function showFormError(msg) {
+  const alertBox = `
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center mb-4" role="alert">
+      <i class="bx bx-error-circle me-2 fs-4"></i>
+      <div class="flex-grow-1">${msg}</div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  `;
+  document.getElementById('formAlertContainer').innerHTML = alertBox;
+}
+
 // Load subjects on page load
 function loadSubjects(){
   fetch('/administrator/subjects-api/')
@@ -121,6 +133,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
 document.getElementById('testForm').addEventListener('submit', function(e){
   e.preventDefault();
+  document.getElementById('formAlertContainer').innerHTML = '';
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+
   const payload = {
     title: document.getElementById('title').value,
     subject: document.getElementById('subject').value || null,
@@ -142,15 +158,21 @@ document.getElementById('testForm').addEventListener('submit', function(e){
     credentials: 'same-origin',
     body: JSON.stringify(payload)
   }).then(r=>r.json()).then(res=>{
+    saveBtn.disabled = false;
     if(res.message){
       const next = new URLSearchParams(window.location.search).get('next');
       window.location.href = next || '/administrator/tests/';
     } else if(res.errors){
-      alert('Error: ' + JSON.stringify(res.errors));
+      let errMsg = typeof res.errors === 'object' ? Object.values(res.errors).flat().join(', ') : res.errors;
+      showFormError(errMsg || 'Failed to create test. Please check your entries.');
     } else {
-      alert('Unexpected response');
+      showFormError('Unexpected response from server.');
     }
-  }).catch(err=>{ alert('Network error'); console.error(err); });
+  }).catch(err=>{
+    saveBtn.disabled = false;
+    showFormError('Network connection error.');
+    console.error(err);
+  });
 });
 </script>
 {% endblock %}

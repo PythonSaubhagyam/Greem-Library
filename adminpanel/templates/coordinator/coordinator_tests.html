@@ -11,8 +11,8 @@
       <h5 class="mb-0">
         <i class="bx bx-notepad me-2 text-primary"></i>Test Analytics
       </h5>
-      <input type="text" id="search-test" class="form-control form-control-sm"
-             placeholder="Search test..." style="width:220px;">
+      <input type="text" id="search-test" class="form-control form-control-sm" placeholder="Search test..."
+        style="width:220px;">
     </div>
 
     <!-- Summary -->
@@ -20,22 +20,26 @@
       <div class="row g-3">
         <div class="col-md-3">
           <div class="card bg-label-primary text-center p-3">
-            <h6>Total Tests</h6><h3 id="total-tests">-</h3>
+            <h6>Total Tests</h6>
+            <h3 id="total-tests">-</h3>
           </div>
         </div>
         <div class="col-md-3">
           <div class="card bg-label-danger text-center p-3">
-            <h6>Retest Needed</h6><h3 id="retest-count">-</h3>
+            <h6>Retest Needed</h6>
+            <h3 id="retest-count">-</h3>
           </div>
         </div>
         <div class="col-md-3">
           <div class="card bg-label-success text-center p-3">
-            <h6>Avg Score</h6><h3 id="avg-score">-</h3>
+            <h6>Avg Score</h6>
+            <h3 id="avg-score">-</h3>
           </div>
         </div>
         <div class="col-md-3">
           <div class="card bg-label-warning text-center p-3">
-            <h6>Total Attempts</h6><h3 id="total-attempts">-</h3>
+            <h6>Total Attempts</h6>
+            <h3 id="total-attempts">-</h3>
           </div>
         </div>
       </div>
@@ -52,25 +56,26 @@
           <select id="f-subject" class="form-select form-select-sm">
             <option value="">All Subjects</option>
           </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <input type="date" id="f-date-from" class="form-control form-control-sm" placeholder="From date">
+        </div>
+        <div class="col-6 col-md-2">
+          <input type="date" id="f-date-to" class="form-control form-control-sm" placeholder="To date">
+        </div>
+        <div class="col-6 col-md-2">
+          <select id="f-retest" class="form-select form-select-sm">
+            <option value="">All Tests</option>
+            <option value="true">Retest Required</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2 d-flex gap-1">
+          <button class="btn btn-outline-secondary btn-sm w-100" onclick="applyFilters()"><i
+              class="bx bx-search"></i></button>
+          <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">Reset</button>
+        </div>
+      </div>
     </div>
-    <div class="col-6 col-md-2">
-      <input type="date" id="f-date-from" class="form-control form-control-sm" placeholder="From date">
-    </div>
-    <div class="col-6 col-md-2">
-      <input type="date" id="f-date-to" class="form-control form-control-sm" placeholder="To date">
-    </div>
-    <div class="col-6 col-md-2">
-      <select id="f-retest" class="form-select form-select-sm">
-        <option value="">All Tests</option>
-        <option value="true">Retest Required</option>
-      </select>
-    </div>
-    <div class="col-6 col-md-2 d-flex gap-1">
-      <button class="btn btn-outline-secondary btn-sm w-100" onclick="applyFilters()"><i class="bx bx-search"></i></button>
-      <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">✕</button>
-    </div>
-  </div>
-</div>
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-light text-capitalize">
@@ -89,7 +94,9 @@
           </tr>
         </thead>
         <tbody id="tests-tbody">
-          <tr><td colspan="11" class="text-center py-4">Loading...</td></tr>
+          <tr>
+            <td colspan="11" class="text-center py-4">Loading...</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -106,7 +113,9 @@
         <button type="button" class="btn-close " data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="test-detail-body">
-        <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -117,94 +126,94 @@
 
 
 <script>
-let allTests = [];
+  let allTests = [];
 
-document.addEventListener('DOMContentLoaded', function(){
+  document.addEventListener('DOMContentLoaded', function () {
     // Populate class dropdown
     fetch("{% url 'coordinator-class-comparison-api' %}")
-        .then(r => r.json())
-        .then(data => {
-            const sel = document.getElementById('f-class');
-            (data.classes || []).forEach(c => {
-                sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-            });
+      .then(r => r.json())
+      .then(data => {
+        const sel = document.getElementById('f-class');
+        (data.classes || []).forEach(c => {
+          sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
         });
+      });
 
     // Populate subject dropdown
     fetch("{% url 'coordinator-subject-api' %}")
-        .then(r => r.json())
-        .then(data => {
-            const sel = document.getElementById('f-subject');
-            (data.subjects || []).forEach(s => {
-                sel.innerHTML += `<option value="${s.id}">${s.subject}</option>`;
-            });
+      .then(r => r.json())
+      .then(data => {
+        const sel = document.getElementById('f-subject');
+        (data.subjects || []).forEach(s => {
+          sel.innerHTML += `<option value="${s.id}">${s.subject}</option>`;
         });
+      });
 
     loadTests();
-});
+  });
 
-function loadTests(params = '') {
+  function loadTests(params = '') {
     document.getElementById('tests-tbody').innerHTML =
-        '<tr><td colspan="11" class="text-center py-4">Loading...</td></tr>';
+      '<tr><td colspan="11" class="text-center py-4">Loading...</td></tr>';
 
     fetch(`{% url 'coordinator-test-filter-api' %}${params}`)
-        .then(r => r.json())
-        .then(data => {
-            allTests = data.tests || [];
+      .then(r => r.json())
+      .then(data => {
+        allTests = data.tests || [];
 
-            document.getElementById('total-tests').textContent    = allTests.length;
-            document.getElementById('retest-count').textContent   = allTests.filter(t => t.retest_needed).length;
-            document.getElementById('total-attempts').textContent = allTests.reduce((s,t) => s + t.attempted, 0);
+        document.getElementById('total-tests').textContent = allTests.length;
+        document.getElementById('retest-count').textContent = allTests.filter(t => t.retest_needed).length;
+        document.getElementById('total-attempts').textContent = allTests.reduce((s, t) => s + t.attempted, 0);
 
-            const avgAll = allTests.length
-                ? Math.round(allTests.reduce((s,t) => s + t.avg_score, 0) / allTests.length * 10) / 10
-                : 0;
-            document.getElementById('avg-score').textContent = avgAll + '%';
+        const avgAll = allTests.length
+          ? Math.round(allTests.reduce((s, t) => s + t.avg_score, 0) / allTests.length * 10) / 10
+          : 0;
+        document.getElementById('avg-score').textContent = avgAll + '%';
 
-            renderTests(allTests);
-        })
-        .catch(() => {
-            document.getElementById('tests-tbody').innerHTML =
-                `<tr><td colspan="11" class="text-center text-danger py-4">Failed to load</td></tr>`;
-        });
-}
+        renderTests(allTests);
+      })
+      .catch(() => {
+        document.getElementById('tests-tbody').innerHTML =
+          `<tr><td colspan="11" class="text-center text-danger py-4">Failed to load</td></tr>`;
+      });
+  }
 
-function applyFilters() {
+  function applyFilters() {
     const params = new URLSearchParams();
-    const classId  = document.getElementById('f-class').value;
-    const subjectId= document.getElementById('f-subject').value;
+    const classId = document.getElementById('f-class').value;
+    const subjectId = document.getElementById('f-subject').value;
     const dateFrom = document.getElementById('f-date-from').value;
-    const dateTo   = document.getElementById('f-date-to').value;
-    const retest   = document.getElementById('f-retest').value;
-    const search   = document.getElementById('search-test').value.trim();
+    const dateTo = document.getElementById('f-date-to').value;
+    const retest = document.getElementById('f-retest').value;
+    const search = document.getElementById('search-test').value.trim();
 
-    if (classId)   params.append('class_id',   classId);
-    if (subjectId) params.append('subject_id',  subjectId);
-    if (dateFrom)  params.append('date_from',   dateFrom);
-    if (dateTo)    params.append('date_to',     dateTo);
-    if (retest)    params.append('retest_required', retest);
-    if (search)    params.append('search',      search);
+    if (classId) params.append('class_id', classId);
+    if (subjectId) params.append('subject_id', subjectId);
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (retest) params.append('retest_required', retest);
+    if (search) params.append('search', search);
 
     loadTests('?' + params.toString());
-}
+  }
 
-function clearFilters() {
-    ['f-class','f-subject','f-date-from','f-date-to','f-retest'].forEach(
-        id => document.getElementById(id).value = ''
+  function clearFilters() {
+    ['f-class', 'f-subject', 'f-date-from', 'f-date-to', 'f-retest'].forEach(
+      id => document.getElementById(id).value = ''
     );
     document.getElementById('search-test').value = '';
     loadTests();
-}
+  }
 
-function renderTests(items){
+  function renderTests(items) {
     const tbody = document.getElementById('tests-tbody');
-    if(!items.length){
-        tbody.innerHTML = `<tr><td colspan="11" class="text-center py-5 text-muted">No tests found</td></tr>`;
-        return;
+    if (!items.length) {
+      tbody.innerHTML = `<tr><td colspan="11" class="text-center py-5 text-muted">No tests found</td></tr>`;
+      return;
     }
     tbody.innerHTML = items.map((t, i) => `
     <tr>
-        <td>${i+1}</td>
+        <td>${i + 1}</td>
         <td><strong>${t.title}</strong></td>
         <td>${t.subject}</td>
         <td>${t.teacher || '-'}</td>
@@ -214,29 +223,29 @@ function renderTests(items){
         <td><span class="badge bg-label-warning">${t.absent}</span></td>
         <td><span class="fw-bold text-${t.avg_score < 40 ? 'danger' : t.avg_score < 60 ? 'warning' : 'success'}">${t.avg_score}%</span></td>
         <td>${t.retest_needed
-            ? '<span class="badge bg-danger">Yes</span>'
-            : '<span class="badge bg-success">No</span>'}</td>
+        ? '<span class="badge bg-danger">Yes</span>'
+        : '<span class="badge bg-success">No</span>'}</td>
         <td class="text-center">
             <button class="btn btn-sm btn-icon btn-label-primary" onclick="viewTest(${t.id})" title="View">
                 <i class="bx bx-show"></i>
             </button>
         </td>
     </tr>`).join('');
-}
+  }
 
-// Search bar wired to applyFilters (uses existing search input)
-document.getElementById('search-test').addEventListener('input', function(){
+  // Search bar wired to applyFilters (uses existing search input)
+  document.getElementById('search-test').addEventListener('input', function () {
     applyFilters();
-});
+  });
 
-function viewTest(id){
+  function viewTest(id) {
     new bootstrap.Modal(document.getElementById('viewTestModal')).show();
     document.getElementById('test-detail-body').innerHTML =
-        '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
+      '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
 
     fetch(`/coordinator/api/test/${id}/`)
-    .then(r => r.json())
-    .then(d => {
+      .then(r => r.json())
+      .then(d => {
         document.getElementById('test-detail-body').innerHTML = `
         <div class="row g-3 mb-4">
             <div class="col-6 col-md-3">
@@ -255,8 +264,8 @@ function viewTest(id){
                 </div>
             </div>
             <div class="col-6 col-md-3">
-                <div class="card bg-label-${d.retest_needed?'danger':'success'} text-center p-3">
-                    <small>Retest</small><h4 class="mb-0">${d.retest_needed?'Yes':'No'}</h4>
+                <div class="card bg-label-${d.retest_needed ? 'danger' : 'success'} text-center p-3">
+                    <small>Retest</small><h4 class="mb-0">${d.retest_needed ? 'Yes' : 'No'}</h4>
                 </div>
             </div>
         </div>
@@ -278,18 +287,18 @@ function viewTest(id){
             <tbody>
                 ${d.attempts.map(a => `<tr>
                     <td>${a.student_name}</td>
-                    <td><span class="badge bg-${a.score<40?'danger':a.score<60?'warning':'success'}">${a.score}%</span></td>
+                    <td><span class="badge bg-${a.score < 40 ? 'danger' : a.score < 60 ? 'warning' : 'success'}">${a.score}%</span></td>
                     <td>${a.completed
-                        ? '<span class="badge bg-success">Yes</span>'
-                        : '<span class="badge bg-warning">No</span>'}</td>
+            ? '<span class="badge bg-success">Yes</span>'
+            : '<span class="badge bg-warning">No</span>'}</td>
                 </tr>`).join('')}
             </tbody>
         </table></div>` : '<p class="text-muted small">No attempts yet</p>'}`;
-    })
-    .catch(() => {
+      })
+      .catch(() => {
         document.getElementById('test-detail-body').innerHTML =
-            '<p class="text-danger text-center py-3">Failed to load test detail</p>';
-    });
-}
+          '<p class="text-danger text-center py-3">Failed to load test detail</p>';
+      });
+  }
 </script>
 {% endblock %}
