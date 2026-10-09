@@ -55,6 +55,11 @@ urlpatterns = [
     path('api/study-time/',              cv.CoordinatorStudyTimeAPI.as_view(),           name='coordinator-study-time-api'),
     path('api/profile/',                 cv.CoordinatorProfileAPI.as_view(),             name='coordinator-profile-api'),
     path('api/change-password/',         cv.CoordinatorChangePasswordAPI.as_view(),      name='coordinator-change-password'),
+    
+    # ── Phase 3 Advanced Feature APIs ─────────────────────────────────────────
+    path('api/ai-prediction/',           cv.CoordinatorAIWeaknessPredictionAPI.as_view(), name='coordinator-ai-prediction-api'),
+    path('api/coordinator-score/',       cv.CoordinatorSelfActionScoreAPI.as_view(),     name='coordinator-self-score-api'),
+    path('api/reports/parent-meeting/<int:student_id>/', cv.CoordinatorParentMeetingReportAPI.as_view(), name='coordinator-parent-meeting-api'),
 
     # ── Student APIs (FIXED: page view + JSON API separated) ──────────────────
     # path('api/students/<int:pk>/',       cv.CoordinatorStudentDetailAPI.as_view(),       name='coordinator-student-detail-api'),

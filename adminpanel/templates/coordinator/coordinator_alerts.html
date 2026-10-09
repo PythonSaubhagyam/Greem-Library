@@ -6,7 +6,7 @@
 
   <div class="d-flex justify-content-end align-items-end mb-4">
     <button class="btn btn-outline-secondary btn-sm" onclick="loadAlerts()">
-      <i class="ti ti-refresh me-1"></i>Refresh
+      <i class="bx bx-refresh me-1"></i>Refresh
     </button>
   </div>
 
@@ -51,8 +51,8 @@
     <div class="card-body py-2">
       <div class="row g-2 align-items-center">
         <div class="col-12 col-md-3">
-          <input type="text" id="f-search" class="form-control form-control-sm"
-                 placeholder="Search message…" oninput="filterAlerts()">
+          <input type="text" id="f-search" class="form-control form-control-sm" placeholder="Search message…"
+            oninput="filterAlerts()">
         </div>
         <div class="col-6 col-md-2">
           <select id="f-priority" class="form-select form-select-sm" onchange="filterAlerts()">
@@ -83,7 +83,7 @@
         </div>
         <div class="col-6 col-md-2">
           <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetFilters()">
-            <i class="ti ti-x me-1"></i>Reset
+            <i class="bx bx-x me-1"></i>Reset
           </button>
         </div>
       </div>
@@ -130,157 +130,183 @@
 </div>
 
 <script>
-// ── BUG FIX: switched from /api/alerts/ to /api/alerts/all/ ──────────────────
-// Old endpoint only had 5 alert types.
-// New endpoint has all 9 types from spec §17:
-//   1. Student Inactive 3+ days
-//   2. Low Score (avg < 40%)
-//   3. Homework Pending > 50%
-//   4. Teacher No Test for 7 days
-//   5. Overdue Coordinator Actions
-//   6. Teacher Inactive 2+ days      ← NEW
-//   7. Class Avg Dropped             ← NEW
-//   8. Tablet Not Synced             ← NEW
-//   9. HW Not Checked by Teacher     ← NEW
-// ─────────────────────────────────────────────────────────────────────────────
+  // ── BUG FIX: switched from /api/alerts/ to /api/alerts/all/ ──────────────────
+  // Old endpoint only had 5 alert types.
+  // New endpoint has all 9 types from spec §17:
+  //   1. Student Inactive 3+ days
+  //   2. Low Score (avg < 40%)
+  //   3. Homework Pending > 50%
+  //   4. Teacher No Test for 7 days
+  //   5. Overdue Coordinator Actions
+  //   6. Teacher Inactive 2+ days      ← NEW
+  //   7. Class Avg Dropped             ← NEW
+  //   8. Tablet Not Synced             ← NEW
+  //   9. HW Not Checked by Teacher     ← NEW
+  // ─────────────────────────────────────────────────────────────────────────────
 
-let allAlerts = [];
+  let allAlerts = [];
 
-const priorityConfig = {
-  High:   { badge: 'bg-danger',             icon: 'ti-alert-circle',    dot: '#dc3545' },
-  Medium: { badge: 'bg-warning text-dark',   icon: 'ti-alert-triangle',  dot: '#ffc107' },
-  Low:    { badge: 'bg-secondary',           icon: 'ti-info-circle',     dot: '#6c757d' },
-};
-
-const typeIcon = {
-  'Student Inactive':  'ti-user-off',
-  'Low Score':         'ti-trending-down',
-  'Homework Pending':  'ti-notebook',
-  'Teacher No Test':   'ti-file-x',
-  'Teacher Inactive':  'ti-user-pause',
-  'Overdue Actions':   'ti-clock-exclamation',
-  'Class Avg Dropped': 'ti-chart-arrows-vertical',
-  'Tablet Not Synced': 'ti-device-tablet-off',
-  'HW Not Checked':    'ti-checkbox',
-};
-
-function prioBadge(p) {
-  const c = priorityConfig[p] || { badge: 'bg-secondary', icon: 'ti-bell' };
-  return `<span class="badge ${c.badge}"><i class="ti ${c.icon} me-1"></i>${p}</span>`;
-}
-
-function statusBadge(s) {
-  const map = {
-    New:      'bg-label-primary',
-    Pending:  'bg-label-warning',
-    Overdue:  'bg-label-danger',
-    Resolved: 'bg-label-success',
+  const priorityConfig = {
+    High: { badge: 'bg-danger', icon: 'ti-alert-circle', dot: '#dc3545' },
+    Medium: { badge: 'bg-warning text-dark', icon: 'ti-alert-triangle', dot: '#ffc107' },
+    Low: { badge: 'bg-secondary', icon: 'ti-info-circle', dot: '#6c757d' },
   };
-  return `<span class="badge ${map[s] || 'bg-label-secondary'}">${s}</span>`;
-}
 
-async function loadAlerts() {
-  document.getElementById('showingCount').textContent = 'Loading…';
-  document.getElementById('alertsBody').innerHTML = `
+  const typeIcon = {
+    'Student Inactive': 'ti-user-off',
+    'Low Score': 'ti-trending-down',
+    'Homework Pending': 'ti-notebook',
+    'Teacher No Test': 'ti-file-x',
+    'Teacher Inactive': 'ti-user-pause',
+    'Overdue Actions': 'ti-clock-exclamation',
+    'Class Avg Dropped': 'ti-chart-arrows-vertical',
+    'Tablet Not Synced': 'ti-device-tablet-off',
+    'HW Not Checked': 'ti-checkbox',
+  };
+
+  function prioBadge(p) {
+    const c = priorityConfig[p] || { badge: 'bg-secondary', icon: 'ti-bell' };
+    return `<span class="badge ${c.badge}"><i class="ti ${c.icon} me-1"></i>${p}</span>`;
+  }
+
+  function statusBadge(s) {
+    const map = {
+      New: 'bg-label-primary',
+      Pending: 'bg-label-warning',
+      Overdue: 'bg-label-danger',
+      Resolved: 'bg-label-success',
+    };
+    return `<span class="badge ${map[s] || 'bg-label-secondary'}">${s}</span>`;
+  }
+
+  function getResolvedAlertKeys() {
+    try {
+      return JSON.parse(localStorage.getItem('coordinator_resolved_alerts') || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function loadAlerts() {
+    document.getElementById('showingCount').textContent = 'Loading…';
+    document.getElementById('alertsBody').innerHTML = `
     <tr><td colspan="8" class="text-center py-5">
       <div class="spinner-border text-primary"></div>
-      <div class="mt-2 text-muted small">Fetching all 9 alert types…</div>
+      <div class="mt-2 text-muted small">Fetching all alert types…</div>
     </td></tr>`;
 
-  // ── KEY FIX: use /api/alerts/all/ not /api/alerts/ ──
-  const res  = await fetch("{% url 'coordinator-alerts-all-api' %}");
-  const data = await res.json();
-  allAlerts  = data.alerts || [];
+    // ── KEY FIX: use /api/alerts/all/ not /api/alerts/ ──
+    const res = await fetch("{% url 'coordinator-alerts-all-api' %}");
+    const data = await res.json();
+    allAlerts = data.alerts || [];
 
-  updateSummary(allAlerts);
-  buildTypeBadges(allAlerts);
-  populateClassFilter(allAlerts);
-  renderAlerts(allAlerts);
-}
+    const resolvedKeys = getResolvedAlertKeys();
+    allAlerts.forEach(a => {
+      const key = `${a.type}_${a.message}`;
+      if (resolvedKeys.includes(key)) {
+        a.status = 'Resolved';
+      }
+    });
 
-function updateSummary(list) {
-  document.getElementById('totalAlerts').textContent = list.length;
-  document.getElementById('highAlerts').textContent  = list.filter(a => a.priority === 'High').length;
-  document.getElementById('medAlerts').textContent   = list.filter(a => a.priority === 'Medium').length;
-  document.getElementById('lowAlerts').textContent   = list.filter(a => a.priority === 'Low').length;
-}
+    updateSummary(allAlerts);
+    buildTypeBadges(allAlerts);
+    populateClassFilter(allAlerts);
+    renderAlerts(allAlerts);
+  }
 
-function buildTypeBadges(list) {
-  const counts = {};
-  list.forEach(a => { counts[a.type] = (counts[a.type] || 0) + 1; });
-  document.getElementById('typeBadges').innerHTML = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([type, cnt]) => `
+  function updateSummary(list) {
+    document.getElementById('totalAlerts').textContent = list.length;
+    document.getElementById('highAlerts').textContent = list.filter(a => a.priority === 'High').length;
+    document.getElementById('medAlerts').textContent = list.filter(a => a.priority === 'Medium').length;
+    document.getElementById('lowAlerts').textContent = list.filter(a => a.priority === 'Low').length;
+  }
+
+  function buildTypeBadges(list) {
+    const counts = {};
+    list.forEach(a => { counts[a.type] = (counts[a.type] || 0) + 1; });
+    document.getElementById('typeBadges').innerHTML = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, cnt]) => `
       <button class="btn btn-sm btn-outline-secondary" onclick="filterByType('${type}')">
         <i class="ti ${typeIcon[type] || 'ti-bell'} me-1"></i>${type}
         <span class="badge bg-secondary ms-1">${cnt}</span>
       </button>
     `).join('');
-}
-
-function populateClassFilter(list) {
-  const classes = [...new Set(list.map(a => a.class).filter(c => c && c !== '-'))].sort();
-  const sel = document.getElementById('f-class');
-  // keep first option
-  while (sel.options.length > 1) sel.remove(1);
-  classes.forEach(c => {
-    const o = document.createElement('option');
-    o.value = c; o.textContent = c;
-    sel.appendChild(o);
-  });
-}
-
-function filterByType(type) {
-  document.getElementById('f-type').value = type;
-  filterAlerts();
-}
-
-function filterAlerts() {
-  const search = document.getElementById('f-search').value.toLowerCase();
-  const prio   = document.getElementById('f-priority').value;
-  const type   = document.getElementById('f-type').value;
-  const cls    = document.getElementById('f-class').value;
-
-  const filtered = allAlerts.filter(a => {
-    if (prio && a.priority !== prio) return false;
-    if (type && a.type !== type) return false;
-    if (cls  && a.class !== cls)  return false;
-    if (search && !a.message.toLowerCase().includes(search) &&
-        !a.responsible.toLowerCase().includes(search) &&
-        !a.type.toLowerCase().includes(search)) return false;
-    return true;
-  });
-
-  renderAlerts(filtered);
-}
-
-function resetFilters() {
-  document.getElementById('f-search').value   = '';
-  document.getElementById('f-priority').value = '';
-  document.getElementById('f-type').value     = '';
-  document.getElementById('f-class').value    = '';
-  renderAlerts(allAlerts);
-}
-
-function renderAlerts(list) {
-  document.getElementById('showingCount').textContent = `${list.length} alert${list.length !== 1 ? 's' : ''}`;
-  const tbody = document.getElementById('alertsBody');
-
-  if (!list.length) {
-    tbody.innerHTML = `
-      <tr><td colspan="8" class="text-center py-5">
-        <i class="ti ti-check-circle ti-lg text-success mb-2 d-block"></i>
-        <span class="text-muted">No alerts match the current filter</span>
-      </td></tr>`;
-    return;
   }
 
-  tbody.innerHTML = list.map((a, i) => `
+  function populateClassFilter(list) {
+    const classes = [...new Set(list.map(a => a.class).filter(c => c && c !== '-'))].sort();
+    const sel = document.getElementById('f-class');
+    // keep first option
+    while (sel.options.length > 1) sel.remove(1);
+    classes.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c;
+      sel.appendChild(o);
+    });
+  }
+
+  function filterByType(type) {
+    document.getElementById('f-type').value = type;
+    filterAlerts();
+  }
+
+  function filterAlerts() {
+    const search = document.getElementById('f-search').value.toLowerCase();
+    const prio = document.getElementById('f-priority').value;
+    const type = document.getElementById('f-type').value;
+    const cls = document.getElementById('f-class').value;
+
+    const filtered = allAlerts.filter(a => {
+      if (prio && a.priority !== prio) return false;
+      if (type && a.type !== type) return false;
+      if (cls && a.class !== cls) return false;
+      if (search && !a.message.toLowerCase().includes(search) &&
+        !a.responsible.toLowerCase().includes(search) &&
+        !a.type.toLowerCase().includes(search)) return false;
+      return true;
+    });
+
+    renderAlerts(filtered);
+  }
+
+  function resetFilters() {
+    document.getElementById('f-search').value = '';
+    document.getElementById('f-priority').value = '';
+    document.getElementById('f-type').value = '';
+    document.getElementById('f-class').value = '';
+    renderAlerts(allAlerts);
+  }
+
+  function renderAlerts(list) {
+    document.getElementById('showingCount').textContent = `${list.length} alert${list.length !== 1 ? 's' : ''}`;
+    const tbody = document.getElementById('alertsBody');
+
+    if (!list.length) {
+      tbody.innerHTML = `
+      <tr><td colspan="8" class="text-center py-5">
+        <i class="bx bx-check-circle fs-1 text-success mb-2 d-block"></i>
+        <span class="text-muted">No alerts match the current filter</span>
+      </td></tr>`;
+      return;
+    }
+
+    const typeIcon = {
+      'Student Score Dropped': 'bx-trending-down',
+      'Student Inactive': 'bx-user-x',
+      'Teacher Inactive': 'bx-user-minus',
+      'Class Average Dropped': 'bx-bar-chart-down',
+      'Homework Pending': 'bx-book-open',
+      'Test Missed': 'bx-calendar-x',
+      'Tablet Inactive': 'bx-devices',
+    };
+
+    tbody.innerHTML = list.map((a, i) => `
     <tr class="${a.priority === 'High' ? 'table-danger bg-opacity-10' : a.priority === 'Medium' ? 'table-warning bg-opacity-10' : ''}">
       <td>${prioBadge(a.priority)}</td>
       <td>
         <span class="d-flex align-items-center gap-1">
-          <i class="ti ${typeIcon[a.type] || 'ti-bell'} text-muted"></i>
+          <i class="bx ${typeIcon[a.type] || 'bx-bell'} text-muted"></i>
           <small>${a.type}</small>
         </span>
       </td>
@@ -289,36 +315,47 @@ function renderAlerts(list) {
       <td><small>${a.responsible}</small></td>
       <td><small class="text-muted">${a.date}</small></td>
       <td>${statusBadge(a.status)}</td>
-      <td>
-        <button class="btn btn-sm btn-outline-primary py-0 px-2 me-1"
-                onclick="createAction(${i})" title="Create action">
-          <i class="ti ti-plus"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-success py-0 px-2"
-                onclick="markResolved(${i})" title="Mark resolved">
-          <i class="ti ti-check"></i>
-        </button>
+      <td class="text-nowrap">
+        ${a.status === 'Resolved' ? `
+          <span class="text-success small fw-semibold"><i class="bx bx-check-double me-1 fs-5"></i>Resolved</span>
+        ` : `
+          <div class="d-inline-flex align-items-center gap-1">
+            <button class="btn btn-sm btn-outline-primary p-1"
+                    onclick="createAction(${i})" title="Convert to Action">
+              <i class="bx bx-plus fs-6"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-success p-1"
+                    onclick="markResolved(${i})" title="Mark Resolved">
+              <i class="bx bx-check fs-6"></i>
+            </button>
+          </div>
+        `}
       </td>
     </tr>
   `).join('');
-}
+  }
 
-function createAction(index) {
-  const a = allAlerts[index];
-  if (!a) return;
-  const msg = encodeURIComponent(`Alert: ${a.type} — ${a.message}`);
-  window.location.href = `{% url 'coordinator-actions' %}?prefill=${msg}`;
-}
+  function createAction(index) {
+    const a = allAlerts[index];
+    if (!a) return;
+    const msg = encodeURIComponent(`Alert: ${a.type} — ${a.message}`);
+    window.location.href = `{% url 'coordinator-actions' %}?prefill=${msg}`;
+  }
 
-function markResolved(index) {
-  const a = allAlerts[index];
-  if (!a) return;
-  // Optimistic UI update
-  a.status = 'Resolved';
-  filterAlerts();
-}
+  function markResolved(index) {
+    const a = allAlerts[index];
+    if (!a) return;
+    a.status = 'Resolved';
+    const key = `${a.type}_${a.message}`;
+    const resolvedKeys = getResolvedAlertKeys();
+    if (!resolvedKeys.includes(key)) {
+      resolvedKeys.push(key);
+      localStorage.setItem('coordinator_resolved_alerts', JSON.stringify(resolvedKeys));
+    }
+    filterAlerts();
+  }
 
-// Load on page open — uses new all-alerts endpoint
-loadAlerts();
+  // Load on page open — uses new all-alerts endpoint
+  loadAlerts();
 </script>
 {% endblock %}

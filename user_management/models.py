@@ -650,7 +650,7 @@ class TeacherRemarkModel(models.Model):
         ('appreciation', 'Appreciation'),
     ]
     
-    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE, related_name='teacher_remarks')
+    student = models.ForeignKey(StudentModel, on_delete=models.CASCADE, null=True, blank=True, related_name='teacher_remarks')
     teacher = models.ForeignKey(UserModel, on_delete=models.SET_NULL, null=True, related_name='given_remarks')
     remark = models.TextField()
     remark_type = models.CharField(choices=REMARK_TYPES, max_length=20, default='general')
@@ -1029,4 +1029,21 @@ class DeviceQRCodeModel(models.Model):
     class Meta:
         verbose_name = "Device QR Code"
         verbose_name_plural = "Device QR Codes"
+
+
+class TeacherDeviceScan(models.Model):
+    """Record of a teacher scanning a device QR before assignment to a student.
+
+    This lets teachers who don't have class assignments see devices they scanned
+    in their mobile list view.
+    """
+    teacher = models.ForeignKey('UserModel', on_delete=models.CASCADE, related_name='scanned_devices')
+    device = models.ForeignKey('DeviceModel', on_delete=models.CASCADE, related_name='teacher_scans')
+    qr = models.ForeignKey('DeviceQRCodeModel', on_delete=models.SET_NULL, null=True, blank=True)
+    student = models.ForeignKey('StudentModel', on_delete=models.SET_NULL, null=True, blank=True)
+    is_assigned = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Scan: {self.teacher} -> {self.device} (assigned: {self.is_assigned})"
 

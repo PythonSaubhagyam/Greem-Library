@@ -103,6 +103,23 @@ let menu, animate;
   // Speech To Text
   window.Helpers.initSpeechToText();
 
+  // Automatically open calendar picker on click/focus for date inputs across the project
+  const openDatePicker = function (e) {
+    const target = e.target;
+    if (target && target.tagName === 'INPUT' && (target.type === 'date' || target.type === 'datetime-local' || target.type === 'month' || target.type === 'time')) {
+      if (typeof target.showPicker === 'function') {
+        try {
+          target.showPicker();
+        } catch (err) {
+          // Ignore error if picker is already visible or disallowed
+        }
+      }
+    }
+  };
+
+  document.addEventListener('click', openDatePicker);
+  document.addEventListener('focusin', openDatePicker);
+
   // Manage menu expanded/collapsed with templateCustomizer & local storage
   //------------------------------------------------------------------
 

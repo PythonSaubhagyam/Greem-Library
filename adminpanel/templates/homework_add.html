@@ -15,22 +15,26 @@
 
   <div class="card">
     <div class="card-body">
+      <div id="formAlertContainer"></div>
       <form id="homeworkForm">
          {% csrf_token %}
         <div class="mb-3">
-          <label class="form-label">Title</label>
+          <label class="form-label">Title <span class="text-danger">*</span></label>
           <input type="text" id="title" class="form-control" required />
+          <div class="invalid-feedback" id="title-error"></div>
         </div>
         <div class="mb-3">
           <label class="form-label">Description</label>
           <textarea id="description" class="form-control" rows="4"></textarea>
+          <div class="invalid-feedback" id="description-error"></div>
         </div>
         <div class="mb-3">
           <label class="form-label">Due date</label>
           <input type="date" id="due_date" class="form-control" />
+          <div class="invalid-feedback" id="due_date-error"></div>
         </div>
         <div class="mb-3">
-          <button type="submit" class="btn btn-primary">Create Homework</button>
+          <button type="submit" id="saveBtn" class="btn btn-primary">Create Homework</button>
         </div>
       </form>
     </div>
@@ -61,9 +65,25 @@ function getCookie(name) {
     return cookieValue;
 }
 
-const csrftoken = getCookie('csrftoken');
+const csrftoken = getCookie('csrftoken') || (document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '');
+
+function showFormError(msg) {
+  const alertBox = `
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center mb-4" role="alert">
+      <i class="bx bx-error-circle me-2 fs-4"></i>
+      <div class="flex-grow-1">${msg}</div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  `;
+  document.getElementById('formAlertContainer').innerHTML = alertBox;
+}
+
 document.getElementById('homeworkForm').addEventListener('submit', function(e){
   e.preventDefault();
+  document.getElementById('formAlertContainer').innerHTML = '';
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+
   const payload = {
     title: document.getElementById('title').value,
     description: document.getElementById('description').value,
@@ -79,8 +99,8 @@ document.getElementById('homeworkForm').addEventListener('submit', function(e){
     credentials: 'same-origin',
     body: JSON.stringify(payload)
   }).then(r=>r.json()).then(res=>{
+       saveBtn.disabled = false;
        if(res.data){
-         // redirect back to appropriate homework listing depending on where the user came from
          const params = new URLSearchParams(window.location.search);
          const next = params.get('next');
          if (next) {
@@ -90,11 +110,16 @@ document.getElementById('homeworkForm').addEventListener('submit', function(e){
          const isCustomer = window.location.pathname.includes('/customer/dashboard');
          window.location.href = isCustomer ? '/customer/dashboard/homework/' : '/administrator/homework/';
     } else if(res.errors){
-      alert('Error: ' + JSON.stringify(res.errors));
+      let errMsg = typeof res.errors === 'object' ? Object.values(res.errors).flat().join(', ') : res.errors;
+      showFormError(errMsg || 'Failed to create homework. Please check your entries.');
     } else {
-      alert('Unexpected response');
+      showFormError('Unexpected response from server.');
     }
-  }).catch(err=>{ alert('Network error'); console.error(err); });
+  }).catch(err=>{
+    saveBtn.disabled = false;
+    showFormError('Network connection error.');
+    console.error(err);
+  });
 });
 </script>
 {% endblock %}

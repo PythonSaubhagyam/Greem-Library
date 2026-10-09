@@ -81,7 +81,8 @@
           </select>
         </div>
         <div class="col-6 col-md-2">
-          <input type="text" id="f-search" class="form-control form-control-sm" placeholder="Search…" oninput="filterActions()">
+          <input type="text" id="f-search" class="form-control form-control-sm" placeholder="Search…"
+            oninput="filterActions()">
         </div>
         <div class="col-6 col-md-2">
           <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetFilters()">
@@ -102,17 +103,17 @@
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
-          <tr>
-            <th>Priority</th>
-            <th>Issue</th>
-            <th>Responsible</th>
-            <th>Required Action</th>
-            <th>Status</th>
-            <th>Due Date</th>
-            <th>Remarks</th>
-            <th>Created</th>
-            <th style="width:80px">Actions</th>
-          </tr>
+            <tr>
+              <th>Priority</th>
+              <th>Issue</th>
+              <th>Responsible</th>
+              <th>Required Action</th>
+              <th>Status</th>
+              <th>Due Date</th>
+              <th>Remarks</th>
+              <th>Created</th>
+              <th style="width:80px">Actions</th>
+            </tr>
           </thead>
           <tbody id="actionBody">
             <tr>
@@ -137,18 +138,20 @@
         </div>
         <div class="modal-body">
           <div class="row g-3">
-          <div class="col-12">
-            <label class="form-label">Issue <span class="text-danger">*</span></label>
-            <input type="text" id="add-issue" class="form-control" placeholder="What is the issue?">
-          </div>
-          <div class="col-12">
-            <label class="form-label">Required Action</label>
-            <textarea id="add-required-action" class="form-control" rows="2" placeholder="What action must be taken?"></textarea>
-          </div>
-          <div class="col-12">
-            <label class="form-label">Responsible Person</label>
-            <input type="text" id="add-responsible" class="form-control" placeholder="e.g. Class Teacher, Coordinator">
-          </div>
+            <div class="col-12">
+              <label class="form-label">Issue <span class="text-danger">*</span></label>
+              <input type="text" id="add-issue" class="form-control" placeholder="What is the issue?">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Required Action</label>
+              <textarea id="add-required-action" class="form-control" rows="2"
+                placeholder="What action must be taken?"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Responsible Person</label>
+              <input type="text" id="add-responsible" class="form-control"
+                placeholder="e.g. Class Teacher, Coordinator">
+            </div>
             <div class="col-md-4">
               <label class="form-label">Priority</label>
               <select id="add-priority" class="form-select">
@@ -227,71 +230,90 @@
         <div class="modal-footer">
           <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           <button class="btn btn-primary" onclick="updateAction()">
-            <i class="ti ti-check me-1"></i>Save
+            <i class="bx bx-check me-1"></i>Save
           </button>
         </div>
       </div>
     </div>
   </div>
+</div>
+<!-- Confirmation Modal for Escalation / Deletion -->
+<div class="modal fade" id="confirmActionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content text-center p-3">
+      <div class="modal-body p-2">
+        <div class="avatar avatar-md bg-label-warning rounded-circle mx-auto mb-3" id="confirmAvatar">
+          <i class="bx bx-error fs-3" id="confirmIcon"></i>
+        </div>
+        <h5 class="mb-2" id="confirmActionTitle">Confirm Action</h5>
+        <p class="text-muted small mb-4" id="confirmActionText">Are you sure you want to proceed?</p>
+        <div class="d-flex justify-content-center gap-2">
+          <button type="button" class="btn btn-label-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger btn-sm px-3" id="confirmActionSubmitBtn">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 </div>
 
 <script>
-let allActions = [];
-const priColor = p => ({ High:'danger', Medium:'warning', Low:'secondary' }[p] || 'secondary');
-const stColor  = s => ({
-  New:'primary', Pending:'warning', Assigned:'info', Discussed:'secondary',
-  'In Progress':'warning', Resolved:'success', 'Escalated to Principal':'danger', Closed:'secondary'
-}[s] || 'secondary');
+  let allActions = [];
+  const priColor = p => ({ High: 'danger', Medium: 'warning', Low: 'secondary' }[p] || 'secondary');
+  const stColor = s => ({
+    New: 'primary', Pending: 'warning', Assigned: 'info', Discussed: 'secondary',
+    'In Progress': 'warning', Resolved: 'success', 'Escalated to Principal': 'danger', Closed: 'secondary'
+  }[s] || 'secondary');
 
-// ── Load actions from CoordinatorActionAssignAPI ──────────────────────────────
-async function loadActions() {
-  document.getElementById('actionCount').textContent = 'Loading…';
-  // Uses CoordinatorActionAssignAPI which returns teacher info
-  const res  = await fetch("{% url 'coordinator-action-assign-api' %}");
-  const data = await res.json();
-  allActions = data.actions || [];
+  // ── Load actions from CoordinatorActionAssignAPI ──────────────────────────────
+  async function loadActions() {
+    document.getElementById('actionCount').textContent = 'Loading…';
+    // Uses CoordinatorActionAssignAPI which returns teacher info
+    const res = await fetch("{% url 'coordinator-action-assign-api' %}");
+    const data = await res.json();
+    allActions = data.actions || [];
 
-  document.getElementById('totalActions').textContent   = allActions.length;
-  document.getElementById('newActions').textContent     = allActions.filter(a => a.status === 'New').length;
-  document.getElementById('pendingActions').textContent = allActions.filter(a => a.status === 'Pending').length;
-  document.getElementById('resolvedActions').textContent= allActions.filter(a => a.status === 'Resolved').length;
+    document.getElementById('totalActions').textContent = allActions.length;
+    document.getElementById('newActions').textContent = allActions.filter(a => a.status === 'New').length;
+    document.getElementById('pendingActions').textContent = allActions.filter(a => a.status === 'Pending').length;
+    document.getElementById('resolvedActions').textContent = allActions.filter(a => a.status === 'Resolved').length;
 
-  filterActions();
-}
+    filterActions();
+  }
 
-function filterActions() {
-  const status = document.getElementById('f-status').value;
-  const prio   = document.getElementById('f-priority').value;
-  const teacher= document.getElementById('f-teacher').value;
-  const search = document.getElementById('f-search').value.toLowerCase();
+  function filterActions() {
+    const status = document.getElementById('f-status').value;
+    const prio = document.getElementById('f-priority').value;
+    const teacher = document.getElementById('f-teacher').value;
+    const search = document.getElementById('f-search').value.toLowerCase();
 
-  const list = allActions.filter(a => {
-    if (status  && a.status !== status) return false;
-    if (prio    && a.priority !== prio) return false;
-    if (teacher && a.teacher !== teacher) return false;
-    if (search  && !( a.issue || '').toLowerCase().includes(search) &&
-      !( a.responsible || '').toLowerCase().includes(search) &&
-      !( a.required_action || '').toLowerCase().includes(search)) return false;
-    return true;
-  });
+    const list = allActions.filter(a => {
+      if (status && a.status !== status) return false;
+      if (prio && a.priority !== prio) return false;
+      if (teacher && a.teacher !== teacher) return false;
+      if (search && !(a.issue || '').toLowerCase().includes(search) &&
+        !(a.responsible || '').toLowerCase().includes(search) &&
+        !(a.required_action || '').toLowerCase().includes(search)) return false;
+      return true;
+    });
 
-  renderActions(list);
-}
+    renderActions(list);
+  }
 
-function renderActions(list) {
-  document.getElementById('actionCount').textContent = `${list.length} action${list.length !== 1 ? 's' : ''}`;
-  const tbody = document.getElementById('actionBody');
+  function renderActions(list) {
+    document.getElementById('actionCount').textContent = `${list.length} action${list.length !== 1 ? 's' : ''}`;
+    const tbody = document.getElementById('actionBody');
 
-  if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-muted">
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-muted">
       <i class="ti ti-check-circle ti-lg text-success d-block mb-2"></i>
       No actions match the current filter
     </td></tr>`;
-    return;
-  }
+      return;
+    }
 
-  tbody.innerHTML = list.map(a => `
+    tbody.innerHTML = list.map(a => `
     <tr>
       <td>
         <span class="badge bg-${priColor(a.priority)}">
@@ -305,160 +327,206 @@ function renderActions(list) {
         <small class="text-muted">${a.responsible || '—'}</small>
       </td>
       <td>
-        <small class="text-muted">${a.required_action ? a.required_action.substring(0,50)+(a.required_action.length>50?'…':'') : '—'}</small>
+        <small class="text-muted">${a.required_action ? a.required_action.substring(0, 50) + (a.required_action.length > 50 ? '…' : '') : '—'}</small>
       </td>
       <td><span class="badge bg-${stColor(a.status)}">${a.status}</span></td>
       <td>
         ${a.due_date !== '-'
-          ? `<small class="${isDue(a.due_date) ? 'text-danger fw-medium' : 'text-muted'}">${a.due_date}</small>`
-          : '<span class="text-muted">—</span>'}
+        ? `<small class="${isDue(a.due_date) ? 'text-danger fw-medium' : 'text-muted'}">${a.due_date}</small>`
+        : '<span class="text-muted">—</span>'}
       </td>
       <td><small class="text-muted">${a.remarks || '—'}</small></td>
       <td><small class="text-muted">${a.created_at}</small></td>
-      <td>
-        <button class="btn btn-sm btn-outline-primary py-0 px-2 me-1"
-                onclick="openEdit(${a.id}, '${a.status}', \`${(a.remarks||'').replace(/`/g,"'")}\`)"
-                title="Update status">
-          <i class="ti ti-edit"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-danger py-0 px-2"
-                onclick="escalateAction(${a.id})"
-                title="Escalate to Principal">
-          <i class="ti ti-arrow-up"></i>
-        </button>
+      <td class="text-nowrap">
+        <div class="d-inline-flex align-items-center gap-1">
+          <button class="btn btn-sm btn-outline-primary p-1"
+                  onclick="openEdit(${a.id}, '${a.status}', \`${(a.remarks || '').replace(/`/g, "'")}\`)"
+                  title="Update status">
+            <i class="bx bx-edit fs-6"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-warning p-1"
+                  onclick="escalateAction(${a.id})"
+                  title="Escalate to Principal">
+            <i class="bx bx-upload fs-6"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger p-1"
+                  onclick="deleteAction(${a.id})"
+                  title="Delete Action">
+            <i class="bx bx-trash fs-6"></i>
+          </button>
+        </div>
       </td>
     </tr>
   `).join('');
-}
-
-function isDue(dateStr) {
-  if (!dateStr || dateStr === '-') return false;
-  return new Date(dateStr) < new Date();
-}
-
-function openEdit(id, status, remarks) {
-  document.getElementById('edit-action-id').value  = id;
-  document.getElementById('edit-status').value     = status;
-  document.getElementById('edit-remarks').value    = remarks;
-  new bootstrap.Modal(document.getElementById('editActionModal')).show();
-}
-
-async function updateAction() {
-  const id      = document.getElementById('edit-action-id').value;
-  const status  = document.getElementById('edit-status').value;
-  const remarks = document.getElementById('edit-remarks').value;
-
-  const res = await fetch(`/coordinator/actions/${id}/update/`, {
-    method:  'POST',
-    headers: { 'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-    body:    JSON.stringify({ status, remarks })
-  });
-  const d = await res.json();
-  if (d.success) {
-    bootstrap.Modal.getInstance(document.getElementById('editActionModal')).hide();
-    loadActions();
   }
-}
 
-async function escalateAction(id) {
-  if (!confirm('Escalate this action to Principal?')) return;
-  const res = await fetch(`/coordinator/actions/${id}/update/`, {
-    method:  'POST',
-    headers: { 'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-    body:    JSON.stringify({ status: 'Escalated to Principal' })
-  });
-  const d = await res.json();
-  if (d.success) loadActions();
-}
+  function isDue(dateStr) {
+    if (!dateStr || dateStr === '-') return false;
+    return new Date(dateStr) < new Date();
+  }
 
-// ── Populate teacher + student dropdowns in Add Modal ─────────────────────────
-async function populateAddFormDropdowns() {
-  // Teachers
-  const r1   = await fetch("{% url 'coordinator-teacher-activity-api' %}");
-  const d1   = await r1.json();
-  const tSel = document.getElementById('add-teacher');
-  const fSel = document.getElementById('f-teacher');
-  (d1.teachers || []).forEach(t => {
-    [tSel, fSel].forEach(sel => {
-      const o = document.createElement('option');
-      o.value = t.id; o.textContent = t.name;
-      sel.appendChild(o);
+  function openEdit(id, status, remarks) {
+    document.getElementById('edit-action-id').value = id;
+    document.getElementById('edit-status').value = status;
+    document.getElementById('edit-remarks').value = remarks;
+    new bootstrap.Modal(document.getElementById('editActionModal')).show();
+  }
+
+  async function updateAction() {
+    const id = document.getElementById('edit-action-id').value;
+    const status = document.getElementById('edit-status').value;
+    const remarks = document.getElementById('edit-remarks').value;
+
+    const res = await fetch(`/coordinator/actions/${id}/update/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      body: JSON.stringify({ status, remarks })
     });
-  });
-
-  // Students
-  const r2   = await fetch("{% url 'coordinator-student-filter-api' %}");
-  const d2   = await r2.json();
-  const sSel = document.getElementById('add-student');
-  (d2.students || []).forEach(s => {
-    const o = document.createElement('option');
-    o.value = s.id; o.textContent = `${s.name} (${s.class})`;
-    sSel.appendChild(o);
-  });
-}
-
-async function submitAction() {
-  const issue           = document.getElementById('add-issue').value.trim();
-  const required_action = document.getElementById('add-required-action').value.trim();
-  const responsible     = document.getElementById('add-responsible').value.trim();
-  const priority        = document.getElementById('add-priority').value;
-  const due_date        = document.getElementById('add-due').value;
-  const errDiv          = document.getElementById('addActionError');
-  errDiv.classList.add('d-none');
-
-  if (!issue) {
-    errDiv.textContent = 'Issue is required.';
-    errDiv.classList.remove('d-none');
-    return;
+    const d = await res.json();
+    if (d.success) {
+      bootstrap.Modal.getInstance(document.getElementById('editActionModal')).hide();
+      loadActions();
+    }
   }
 
-  const body = { issue, required_action, responsible, priority };
-  if (due_date) body.due_date = due_date;
+  function escalateAction(id) {
+    document.getElementById('confirmActionTitle').textContent = 'Escalate Action?';
+    document.getElementById('confirmActionText').textContent = 'Are you sure you want to escalate this action to the Principal?';
+    document.getElementById('confirmAvatar').className = 'avatar avatar-md bg-label-warning rounded-circle mx-auto mb-3';
+    document.getElementById('confirmIcon').className = 'bx bx-upload fs-3 text-warning';
+    const submitBtn = document.getElementById('confirmActionSubmitBtn');
+    submitBtn.className = 'btn btn-warning btn-sm px-3';
+    submitBtn.textContent = 'Yes, Escalate';
 
-  const res = await fetch("{% url 'coordinator-action-assign-api' %}", {
-    method:  'POST',
-    headers: { 'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-    body:    JSON.stringify(body)
+    const modal = new bootstrap.Modal(document.getElementById('confirmActionModal'));
+    submitBtn.onclick = async () => {
+      modal.hide();
+      const res = await fetch(`/coordinator/actions/${id}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ status: 'Escalated to Principal' })
+      });
+      const d = await res.json();
+      if (d.success) loadActions();
+    };
+    modal.show();
+  }
+
+  function deleteAction(id) {
+    document.getElementById('confirmActionTitle').textContent = 'Delete Action?';
+    document.getElementById('confirmActionText').textContent = 'Are you sure you want to delete this action item permanently?';
+    document.getElementById('confirmAvatar').className = 'avatar avatar-md bg-label-danger rounded-circle mx-auto mb-3';
+    document.getElementById('confirmIcon').className = 'bx bx-trash fs-3 text-danger';
+    const submitBtn = document.getElementById('confirmActionSubmitBtn');
+    submitBtn.className = 'btn btn-danger btn-sm px-3';
+    submitBtn.textContent = 'Yes, Delete';
+
+    const modal = new bootstrap.Modal(document.getElementById('confirmActionModal'));
+    submitBtn.onclick = async () => {
+      modal.hide();
+      const res = await fetch(`/coordinator/actions/${id}/update/`, {
+        method: 'DELETE',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      const d = await res.json();
+      if (d.success) loadActions();
+    };
+    modal.show();
+  }
+
+  // ── Populate teacher + student dropdowns in Add Modal ─────────────────────────
+  async function populateAddFormDropdowns() {
+    // Teachers
+    const r1 = await fetch("{% url 'coordinator-teacher-activity-api' %}");
+    const d1 = await r1.json();
+    const tSel = document.getElementById('add-teacher');
+    const fSel = document.getElementById('f-teacher');
+    (d1.teachers || []).forEach(t => {
+      [tSel, fSel].forEach(sel => {
+        const o = document.createElement('option');
+        o.value = t.id; o.textContent = t.name;
+        sel.appendChild(o);
+      });
+    });
+
+    // Students
+    const r2 = await fetch("{% url 'coordinator-student-filter-api' %}");
+    const d2 = await r2.json();
+    const sSel = document.getElementById('add-student');
+    (d2.students || []).forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.id; o.textContent = `${s.name} (${s.class})`;
+      sSel.appendChild(o);
+    });
+  }
+
+  async function submitAction() {
+    const issue = document.getElementById('add-issue').value.trim();
+    const required_action = document.getElementById('add-required-action').value.trim();
+    const responsible = document.getElementById('add-responsible').value.trim();
+    const priority = document.getElementById('add-priority').value;
+    const due_date = document.getElementById('add-due').value;
+    const errDiv = document.getElementById('addActionError');
+    errDiv.classList.add('d-none');
+
+    if (!issue) {
+      errDiv.textContent = 'Issue is required.';
+      errDiv.classList.remove('d-none');
+      return;
+    }
+
+    const body = { issue, required_action, responsible, priority };
+    if (due_date) body.due_date = due_date;
+
+    const res = await fetch("{% url 'coordinator-action-assign-api' %}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      body: JSON.stringify(body)
+    });
+    const d = await res.json();
+    if (d.success) {
+      bootstrap.Modal.getInstance(document.getElementById('addActionModal')).hide();
+      document.getElementById('add-issue').value = '';
+      document.getElementById('add-required-action').value = '';
+      document.getElementById('add-responsible').value = '';
+      document.getElementById('add-priority').value = 'Medium';
+      document.getElementById('add-due').value = '';
+      loadActions();
+    } else {
+      errDiv.textContent = d.error || 'Error creating action.';
+      errDiv.classList.remove('d-none');
+    }
+  }
+
+
+  function resetFilters() {
+    ['f-status', 'f-priority', 'f-teacher'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-search').value = '';
+    filterActions();
+  }
+
+  function getCookie(name) {
+    const val = `; ${document.cookie}`;
+    const parts = val.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const prefill = params.get('prefill');
+    if (prefill) {
+      const issueInput = document.getElementById('add-issue');
+      if (issueInput) {
+        issueInput.value = decodeURIComponent(prefill);
+      }
+      const modalElem = document.getElementById('addActionModal');
+      if (modalElem) {
+        new bootstrap.Modal(modalElem).show();
+      }
+    }
   });
-  const d = await res.json();
-  if (d.success) {
-    bootstrap.Modal.getInstance(document.getElementById('addActionModal')).hide();
-    document.getElementById('add-issue').value           = '';
-    document.getElementById('add-required-action').value = '';
-    document.getElementById('add-responsible').value     = '';
-    document.getElementById('add-priority').value        = 'Medium';
-    document.getElementById('add-due').value             = '';
-    loadActions();
-  } else {
-    errDiv.textContent = d.error || 'Error creating action.';
-    errDiv.classList.remove('d-none');
-  }
-}
 
-
-function resetFilters() {
-  ['f-status','f-priority','f-teacher'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('f-search').value = '';
-  filterActions();
-}
-
-function getCookie(name) {
-  const val   = `; ${document.cookie}`;
-  const parts = val.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
-// Check URL for prefill from alerts page
-window.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(window.location.search);
-  const prefill = params.get('prefill');
-  if (prefill) {
-    document.getElementById('add-title').value = decodeURIComponent(prefill);
-    new bootstrap.Modal(document.getElementById('addActionModal')).show();
-  }
-});
-
-populateAddFormDropdowns();
-loadActions();
+  populateAddFormDropdowns();
+  loadActions();
 </script>
 {% endblock %}

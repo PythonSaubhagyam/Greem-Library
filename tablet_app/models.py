@@ -20,6 +20,7 @@ class pdfLibraryModel(models.Model):
     student = models.ForeignKey('user_management.StudentModel', on_delete=models.CASCADE,blank=True,null=True, related_name='library')
     created_at = models.DateTimeField(blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)
+    students = models.ManyToManyField('user_management.StudentModel',blank=True,related_name='library_new')
 
     def __str__(self):
         return self.title

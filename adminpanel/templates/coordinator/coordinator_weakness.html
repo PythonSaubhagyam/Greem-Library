@@ -30,6 +30,19 @@
     </div>
   </div>
 
+  <!-- AI Weakness Prediction Banner (Phase 3 Feature) -->
+  <div class="card mb-4 border-danger shadow-sm">
+    <div class="card-header bg-label-danger d-flex justify-content-between align-items-center">
+      <h5 class="mb-0 text-danger"><i class="bx bx-brain me-2"></i>AI Failure Risk Predictions</h5>
+      <span class="badge bg-danger" id="ai-risk-count">Loading…</span>
+    </div>
+    <div class="card-body py-3">
+      <div id="ai-predictions-list" class="row g-3">
+        <div class="col-12 text-center text-muted py-3"><div class="spinner-border spinner-border-sm text-danger me-2"></div>Analyzing student score trends & activity...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Weak Students Table -->
   <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -138,6 +151,38 @@ document.addEventListener('DOMContentLoaded', function(){
             <td>${c.tests_taken}</td>
             <td><span class="badge bg-${sc[c.status]||'secondary'}">${c.status}</span></td>
         </tr>`).join('');
+    });
+
+    // Load AI predictions independently
+    fetch("{% url 'coordinator-ai-prediction-api' %}")
+    .then(r => r.json())
+    .then(data => {
+        const preds = data.predictions || [];
+        document.getElementById('ai-risk-count').textContent = `${preds.length} At Risk`;
+        const container = document.getElementById('ai-predictions-list');
+        if(!preds.length){
+            container.innerHTML = '<div class="col-12 text-center text-success py-2"><i class="bx bx-check-circle me-1"></i>No student predicted at risk of failing!</div>';
+            return;
+        }
+        container.innerHTML = preds.slice(0, 4).map(p => `
+            <div class="col-md-6">
+                <div class="p-3 border rounded bg-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="text-primary">${p.student_name} (${p.class_name})</strong>
+                        <span class="badge bg-${p.risk_level === 'High' ? 'danger' : 'warning'}">${p.risk_level} Risk (${p.risk_score}%)</span>
+                    </div>
+                    <p class="small text-danger mb-1"><i class="bx bx-error me-1"></i><strong>Prediction:</strong> ${p.prediction}</p>
+                    <ul class="small text-muted mb-2 ps-3">
+                        ${p.reasons.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+                    <div class="small bg-label-info p-2 rounded"><strong>Recommended Action:</strong> ${p.recommended_action}</div>
+                </div>
+            </div>
+        `).join('');
+    })
+    .catch(err => {
+        document.getElementById('ai-risk-count').textContent = '0 At Risk';
+        document.getElementById('ai-predictions-list').innerHTML = '<div class="col-12 text-center text-muted py-2"><i class="bx bx-info-circle me-1"></i>No high-risk prediction alerts generated.</div>';
     });
 });
 

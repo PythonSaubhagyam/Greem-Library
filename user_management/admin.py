@@ -279,3 +279,22 @@ class DeviceQRCodeModelAdmin(admin.ModelAdmin):
     search_fields = ("device__imei_number",)
     list_filter = ("created_at",)
     raw_id_fields = ("device",)
+
+
+@admin.register(TeacherDeviceScan)
+class TeacherDeviceScanAdmin(admin.ModelAdmin):
+    list_display = ('id','teacher','device','student','qr','is_assigned','created_at')
+    list_filter = ('is_assigned','created_at')
+    search_fields = (       'teacher__first_name','teacher__last_name','teacher__username','teacher__email','device__device_name','device__serial_number','student__first_name','student__last_name')
+    autocomplete_fields = (
+        'teacher',
+        'device',
+        'student',
+        'qr',
+    )
+
+    readonly_fields = (
+        'created_at',
+    )
+
+    ordering = ('-created_at',)

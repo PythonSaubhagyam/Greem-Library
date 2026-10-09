@@ -28,6 +28,22 @@
           </div>
         </div>
       </div>
+
+      <!-- Coordinator Self-Action Score (Phase 3 Feature) -->
+      <div class="card mt-3 p-3 border-primary">
+        <h6 class="text-primary mb-2"><i class="bx bx-award me-1"></i>Coordinator Action Score</h6>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="h2 mb-0 text-primary" id="coord-score-val">—</span>
+          <span class="badge bg-success" id="coord-rating-badge">—</span>
+        </div>
+        <div class="progress mb-2" style="height:8px;">
+          <div class="progress-bar bg-primary" id="coord-score-bar" style="width:0%;"></div>
+        </div>
+        <div class="row text-center mt-2 small text-muted">
+          <div class="col-6">Resolution Rate: <strong class="text-dark" id="coord-res-rate">—</strong></div>
+          <div class="col-6">Escalation Rate: <strong class="text-dark" id="coord-esc-rate">—</strong></div>
+        </div>
+      </div>
     </div>
 
     <!-- Edit Card -->
@@ -81,6 +97,16 @@ fetch('/coordinator/api/profile/')
     document.getElementById('edit-last-name').value  = data.last_name;
     document.getElementById('edit-email').value      = data.email;
     document.getElementById('edit-mobile').value     = data.mobile !== '-' ? data.mobile : '';
+  });
+
+fetch("{% url 'coordinator-self-score-api' %}")
+  .then(r => r.json())
+  .then(d => {
+    document.getElementById('coord-score-val').textContent = `${d.coordinator_score}/100`;
+    document.getElementById('coord-rating-badge').textContent = d.rating;
+    document.getElementById('coord-score-bar').style.width = `${d.coordinator_score}%`;
+    document.getElementById('coord-res-rate').textContent = `${d.resolution_rate}%`;
+    document.getElementById('coord-esc-rate').textContent = `${d.escalation_rate}%`;
   });
 
 function saveProfile() {

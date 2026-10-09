@@ -114,8 +114,8 @@
           </div>
           <div class="d-flex gap-2">
             <textarea id="commentText" class="form-control" rows="2" placeholder="Write your remark…"></textarea>
-            <button class="btn btn-primary" onclick="submitComment()">
-              <i class="ti ti-send"></i>
+            <button class="btn btn-primary d-flex align-items-center justify-content-center px-3" onclick="submitComment()">
+              <i class="bx bx-paper-plane me-1"></i> Send
             </button>
           </div>
         </div>
@@ -163,17 +163,17 @@ async function loadActivity(){
       <td>${t.weak_students > 0 ? `<span class="badge bg-label-danger">${t.weak_students}</span>` : '0'}</td>
       <td>${t.last_active}</td>
       <td>
-        <div class="d-flex align-items-center gap-1">
+        <div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" data-bs-html="true" title="<b>Classes:</b> ${t.score_breakdown?.classes_taken || 0}/20<br><b>Time:</b> ${t.score_breakdown?.teaching_time || 0}/20<br><b>Tests:</b> ${t.score_breakdown?.tests_conducted || 0}/15<br><b>HW Given:</b> ${t.score_breakdown?.homework_given || 0}/15<br><b>HW Checked:</b> ${t.score_breakdown?.homework_checked || 0}/15<br><b>Improvement:</b> ${t.score_breakdown?.student_improvement || 0}/15">
           <div class="progress flex-grow-1" style="height:5px;min-width:50px">
             <div class="progress-bar ${t.score>70?'bg-success':t.score>40?'bg-warning':'bg-danger'}" style="width:${t.score}%"></div>
           </div>
-          <small>${t.score}</small>
+          <small class="fw-bold cursor-pointer">${t.score}/100</small>
         </div>
       </td>
       <td>${statusBadge(t.status)}</td>
       <td>
-        <button class="btn btn-sm btn-outline-info py-0 px-2" onclick="openComments(${t.id},'${t.name.replace(/'/g,"\\'")}')">
-          <i class="ti ti-message"></i>
+        <button class="btn btn-sm btn-outline-info py-0 px-2" onclick="openComments(${t.id},'${t.name.replace(/'/g,"\\'")}')" title="View/Add Comments">
+          <i class="bx bx-comment-detail"></i>
         </button>
       </td>
     </tr>
@@ -248,8 +248,8 @@ async function loadComparison(){
       </td>
       <td>${statusBadge(t.status)}</td>
       <td>
-        <button class="btn btn-sm btn-outline-info py-0 px-2" onclick="openComments(${t.id},'${t.name.replace(/'/g,"\\'")}')">
-          <i class="ti ti-message-circle"></i>
+        <button class="btn btn-sm btn-outline-info py-0 px-2" onclick="openComments(${t.id},'${t.name.replace(/'/g,"\\'")}')" title="View/Add Comments">
+          <i class="bx bx-comment-detail"></i>
         </button>
       </td>
     </tr>
